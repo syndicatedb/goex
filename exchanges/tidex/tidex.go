@@ -1,27 +1,41 @@
 package tidex
 
-import "github.com/syndicatedb/goex/schemas"
+import (
+	"github.com/syndicatedb/goproxy/proxy"
+
+	"github.com/syndicatedb/goex/schemas"
+)
+
+const (
+	// URL - API endpoint
+	urlSymbols = " https://api.tidex.com/api/3/info"
+)
 
 /*
 Tidex - exchange struct
 */
 type Tidex struct {
-	schemas.Exchange // Extending Exchange
+	credentials       schemas.Credentials
+	httpProxy         *proxy.Client
+	OrderBookProvider schemas.OrderBookProvider
 }
 
 // New - Tidex constructor. APIKey and APISecret is mandatory, but could be empty
 func New(apiKey, apiSecret string) *Tidex {
 	return &Tidex{
-		Exchange: schemas.NewExchange(apiKey, apiSecret),
+		credentials: schemas.Credentials{
+			APIKey:    apiKey,
+			APISecret: apiSecret,
+		},
 	}
 }
 
-// NewPublic - constructor decorator to use only public endpoints
-func NewPublic() *Tidex {
-	return New("", "")
+// SetProxy - setting proxy
+func (ex *Tidex) SetProxy(httpProxy *proxy.Client) {
+	ex.httpProxy = httpProxy
 }
 
 // GetOrderBookProvider - getter
 func (ex *Tidex) GetOrderBookProvider() schemas.OrderBookProvider {
-	return ex.Exchange.OrderBookProvider
+	return ex.OrderBookProvider
 }
