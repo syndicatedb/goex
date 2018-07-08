@@ -15,7 +15,7 @@ type Exchange interface {
 	SetProxyProvider(pp *proxy.Provider)
 	InitProviders()
 	GetSymbolProvider() schemas.SymbolProvider
-	GetOrderBookProvider() schemas.OrderBookProvider
+	GetOrdersProvider() schemas.OrdersProvider
 }
 
 // New - exchange constructor

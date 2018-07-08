@@ -1,11 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"time"
-
+	runner "github.com/niklucky/go-runner"
 	"github.com/syndicatedb/goex/exchanges"
-	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
@@ -14,20 +11,17 @@ const (
 )
 
 var (
-	chs chan schemas.Result
+	worker Worker
 )
 
 func init() {
-	httpProxyAgent := proxy.New(proxyServer)
-	ex := exchanges.NewPublic(exchanges.Tidex)
-	ex.SetProxyProvider(httpProxyAgent)
-	ex.InitProviders()
-
-	chs = ex.GetSymbolProvider().Subscribe(1 * time.Hour)
+	// Init HTTP Proxy provider
+	httpProxyProvider := proxy.New(proxyServer)
+	worker = NewWorker(exchanges.Tidex, httpProxyProvider)
 }
 
 func main() {
-	for msg := range chs {
-		fmt.Println("msg: ", msg)
-	}
+	r := runner.New()
+	r.Add(&worker)
+	r.Run()
 }

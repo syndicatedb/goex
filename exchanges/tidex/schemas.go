@@ -17,3 +17,10 @@ type Symbol struct {
 	Hidden        float64 `json:"hidden"`         //  0,
 	Fee           float64 `json:"fee"`            //  0.1
 }
+
+type OrderBookResponse map[string]OrderBook
+
+type OrderBook struct {
+	Asks [][]float64 `json:"asks"`
+	Bids [][]float64 `json:"bids"`
+}

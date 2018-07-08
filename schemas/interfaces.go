@@ -10,9 +10,12 @@ type SymbolProvider interface {
 	Subscribe(time.Duration) chan Result
 }
 
-type OrderBookProvider interface {
-	Get()
-	Subscribe()
+// OrdersProvider - provides access to Order book
+type OrdersProvider interface {
+	SetSymbols(symbols []Symbol) OrdersProvider
+	GetOrderBook(symbol Symbol) (book OrderBook, err error)
+	Subscribe(symbol Symbol, d time.Duration) chan Result
+	SubscribeAll(d time.Duration) chan Result
 }
 
 type TradeProvider interface {

@@ -59,7 +59,6 @@ func (client *HTTP) Request(method, endpoint string, params, payload Params) (b 
 		}
 		formData = formValues.Encode()
 	}
-	// fmt.Println("formData: ", rawurl, formData)
 	req, err := http.NewRequest(method, rawurl, strings.NewReader(formData))
 	if err != nil {
 		return
@@ -68,11 +67,13 @@ func (client *HTTP) Request(method, endpoint string, params, payload Params) (b 
 	if method == "POST" || method == "PUT" {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
 	}
-	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Accept", "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36")
 
 	resp, err := client.proxy.Do(req)
 	if err != nil {
-		fmt.Println("Response: ", resp)
+		fmt.Println("Error: ", err)
+		fmt.Printf("Response: %+v\n\n", resp)
 		return
 	}
 	defer resp.Body.Close()
