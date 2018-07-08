@@ -38,8 +38,13 @@ func (w *Worker) Start() {
 	if err != nil {
 		log.Fatalln("Symbols empty")
 	}
-	go w.orderBook(w.state.symbols)
 	go w.symbols()
+	w.subscribe()
+}
+
+func (w *Worker) subscribe() {
+	go w.orderBook(w.state.symbols)
+	go w.quotes(w.state.symbols)
 }
 
 func (w *Worker) symbols() {
@@ -54,7 +59,15 @@ func (w *Worker) orderBook(symbols []schemas.Symbol) {
 		SetSymbols(symbols).
 		SubscribeAll(1 * time.Second)
 	for msg := range chs {
-		fmt.Println("msg error: ", msg.Error)
+		fmt.Println("Order book error: ", msg.Error)
+	}
+}
+func (w *Worker) quotes(symbols []schemas.Symbol) {
+	chs := w.exchange.GetQuotesProvider().
+		SetSymbols(symbols).
+		SubscribeAll(1 * time.Second)
+	for msg := range chs {
+		fmt.Println("Quotes error: ", msg.Error)
 	}
 }
 

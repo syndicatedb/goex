@@ -12,6 +12,7 @@ const (
 	// URL - API endpoint
 	apiSymbols   = "https://api.tidex.com/api/3/info"
 	apiOrderBook = "https://api.tidex.com/api/3/depth/"
+	apiQuotes    = "https://api.tidex.com/api/3/ticker/"
 )
 
 var (
@@ -19,6 +20,7 @@ var (
 	exchangeName = "tidex"
 
 	orderBookSymbolsLimit = 10
+	quotesSymbolsLimit    = 10
 )
 
 /*
@@ -29,6 +31,7 @@ type Tidex struct {
 	httpProxy      *proxy.Provider
 	OrdersProvider schemas.OrdersProvider
 	SymbolProvider schemas.SymbolProvider
+	QuotesProvider schemas.QuotesProvider
 }
 
 // New - Tidex constructor. APIKey and APISecret is mandatory, but could be empty
@@ -45,6 +48,7 @@ func New(apiKey, apiSecret string) *Tidex {
 func (ex *Tidex) InitProviders() {
 	ex.SymbolProvider = NewSymbolsProvider(ex.httpProxy)
 	ex.OrdersProvider = NewOrdersProvider(ex.httpProxy)
+	ex.QuotesProvider = NewQuotesProvider(ex.httpProxy)
 }
 
 // SetProxyProvider - setting proxy
@@ -60,6 +64,11 @@ func (ex *Tidex) GetOrdersProvider() schemas.OrdersProvider {
 // GetSymbolProvider - getter
 func (ex *Tidex) GetSymbolProvider() schemas.SymbolProvider {
 	return ex.SymbolProvider
+}
+
+// GetQuotesProvider - getter
+func (ex *Tidex) GetQuotesProvider() schemas.QuotesProvider {
+	return ex.QuotesProvider
 }
 
 func parseSymbol(s string) (name, coin, baseCoin string) {

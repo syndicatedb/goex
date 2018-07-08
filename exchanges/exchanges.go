@@ -16,6 +16,7 @@ type Exchange interface {
 	InitProviders()
 	GetSymbolProvider() schemas.SymbolProvider
 	GetOrdersProvider() schemas.OrdersProvider
+	GetQuotesProvider() schemas.QuotesProvider
 }
 
 // New - exchange constructor

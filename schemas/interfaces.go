@@ -18,12 +18,15 @@ type OrdersProvider interface {
 	SubscribeAll(d time.Duration) chan Result
 }
 
-type TradeProvider interface {
+// QuotesProvider - provides quotes/ticker
+type QuotesProvider interface {
+	SetSymbols(symbols []Symbol) QuotesProvider
 	Get()
 	Subscribe()
+	SubscribeAll(d time.Duration) chan Result
 }
 
-type QuoteProvider interface {
+type TradeProvider interface {
 	Get()
 	Subscribe()
 }
