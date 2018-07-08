@@ -1,8 +1,13 @@
 package schemas
 
+import (
+	"time"
+)
+
+// SymbolProvider - provides symbol methods
 type SymbolProvider interface {
-	Get()
-	Subscribe()
+	Get() (symbols []Symbol, err error)
+	Subscribe(time.Duration) chan Result
 }
 
 type OrderBookProvider interface {

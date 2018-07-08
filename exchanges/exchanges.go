@@ -3,6 +3,7 @@ package exchanges
 import (
 	"github.com/syndicatedb/goex/exchanges/tidex"
 	"github.com/syndicatedb/goex/schemas"
+	"github.com/syndicatedb/goproxy/proxy"
 )
 
 // Exchange names
@@ -11,6 +12,9 @@ const (
 )
 
 type Exchange interface {
+	SetProxyProvider(pp *proxy.Provider)
+	InitProviders()
+	GetSymbolProvider() schemas.SymbolProvider
 	GetOrderBookProvider() schemas.OrderBookProvider
 }
 
