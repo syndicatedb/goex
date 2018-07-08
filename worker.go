@@ -51,7 +51,9 @@ func (w *Worker) subscribe() {
 func (w *Worker) symbols() {
 	chs := w.exchange.GetSymbolProvider().Subscribe(10 * time.Hour)
 	for msg := range chs {
-		fmt.Println("msg error: ", msg.Error)
+		if msg.Error != nil {
+			fmt.Println("Symbols error: ", msg.Error)
+		}
 	}
 }
 
@@ -60,7 +62,9 @@ func (w *Worker) orderBook(symbols []schemas.Symbol) {
 		SetSymbols(symbols).
 		SubscribeAll(1 * time.Second)
 	for msg := range chs {
-		fmt.Println("Order book error: ", msg.Error)
+		if msg.Error != nil {
+			fmt.Println("Order book error: ", msg.Error)
+		}
 	}
 }
 func (w *Worker) quotes(symbols []schemas.Symbol) {
@@ -68,7 +72,9 @@ func (w *Worker) quotes(symbols []schemas.Symbol) {
 		SetSymbols(symbols).
 		SubscribeAll(1 * time.Second)
 	for msg := range chs {
-		fmt.Println("Quotes error: ", msg.Error)
+		if msg.Error != nil {
+			fmt.Println("Quotes error: ", msg.Error)
+		}
 	}
 }
 func (w *Worker) trades(symbols []schemas.Symbol) {
@@ -76,7 +82,9 @@ func (w *Worker) trades(symbols []schemas.Symbol) {
 		SetSymbols(symbols).
 		SubscribeAll(1 * time.Second)
 	for msg := range chs {
-		fmt.Println("Trades error: ", msg.Error)
+		if msg.Error != nil {
+			fmt.Println("Trades error: ", msg.Error)
+		}
 	}
 }
 
