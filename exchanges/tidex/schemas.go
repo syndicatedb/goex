@@ -1,6 +1,10 @@
 package tidex
 
-import "github.com/syndicatedb/goex/schemas"
+import (
+	"fmt"
+
+	"github.com/syndicatedb/goex/schemas"
+)
 
 // SymbolResponse - symbol response
 type SymbolResponse struct {
@@ -59,5 +63,27 @@ func (q Quote) Map(name string) schemas.Quote {
 		Buy:        q.Buy,
 		Sell:       q.Sell,
 		Updated:    q.Updated,
+	}
+}
+
+type TradesResponse map[string][]Trade
+
+type Trade struct {
+	Type      string  `json:"type"`      // "ask",
+	Price     float64 `json:"price"`     // 0.0721605,
+	Amount    float64 `json:"amount"`    // 0.18422595,
+	Tid       int64   `json:"tid"`       // 21490692,
+	Timestamp int64   `json:"timestamp"` // 1531088906
+}
+
+func (t Trade) Map(symbol string) schemas.Trade {
+	return schemas.Trade{
+		ExchangeID: exchangeID,
+		ID:         fmt.Sprintf("%v", t.Tid),
+		Symbol:     symbol,
+		Type:       t.Type,
+		Price:      t.Price,
+		Amount:     t.Amount,
+		Timestamp:  t.Timestamp,
 	}
 }

@@ -26,35 +26,38 @@ type QuotesProvider interface {
 	SubscribeAll(d time.Duration) chan Result
 }
 
-type TradeProvider interface {
-	Get()
-	Subscribe()
+// TradesProvider - provides public trades
+type TradesProvider interface {
+	SetSymbols(symbols []Symbol) TradesProvider
+	Get(symbol Symbol) (t []Trade, err error)
+	Subscribe(symbol Symbol, d time.Duration) chan Result
+	SubscribeAll(d time.Duration) chan Result
 }
 
-type OHLCVProvider interface {
-	Get()
-	Subscribe()
-}
+// type OHLCVProvider interface {
+// 	Get()
+// 	Subscribe()
+// }
 
-type UserProvider interface {
-	Get()
-	Balance()
-}
+// type UserProvider interface {
+// 	Get()
+// 	Balance()
+// }
 
-type UserBalanceProvider interface {
-	Get()
-	Subscribe()
-}
+// type UserBalanceProvider interface {
+// 	Get()
+// 	Subscribe()
+// }
 
-type UserOrdersProvider interface {
-	Get()
-	Subscribe()
-	Create()
-	Cancel()
-	CancelAll()
-}
+// type UserOrdersProvider interface {
+// 	Get()
+// 	Subscribe()
+// 	Create()
+// 	Cancel()
+// 	CancelAll()
+// }
 
-type UserTradesProvider interface {
-	Get()
-	Subscribe()
-}
+// type UserTradesProvider interface {
+// 	Get()
+// 	Subscribe()
+// }

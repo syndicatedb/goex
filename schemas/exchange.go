@@ -8,6 +8,7 @@ type Credentials struct {
 
 // Result - sending data with channels
 type Result struct {
-	Error error
-	Data  interface{}
+	DataType string
+	Error    error
+	Data     interface{}
 }

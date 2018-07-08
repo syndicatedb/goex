@@ -11,12 +11,14 @@ const (
 	Tidex = "tidex"
 )
 
+// Exchange - exchange methods
 type Exchange interface {
 	SetProxyProvider(pp *proxy.Provider)
 	InitProviders()
 	GetSymbolProvider() schemas.SymbolProvider
 	GetOrdersProvider() schemas.OrdersProvider
 	GetQuotesProvider() schemas.QuotesProvider
+	GetTradesProvider() schemas.TradesProvider
 }
 
 // New - exchange constructor

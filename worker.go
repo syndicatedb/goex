@@ -45,6 +45,7 @@ func (w *Worker) Start() {
 func (w *Worker) subscribe() {
 	go w.orderBook(w.state.symbols)
 	go w.quotes(w.state.symbols)
+	go w.trades(w.state.symbols)
 }
 
 func (w *Worker) symbols() {
@@ -68,6 +69,14 @@ func (w *Worker) quotes(symbols []schemas.Symbol) {
 		SubscribeAll(1 * time.Second)
 	for msg := range chs {
 		fmt.Println("Quotes error: ", msg.Error)
+	}
+}
+func (w *Worker) trades(symbols []schemas.Symbol) {
+	chs := w.exchange.GetTradesProvider().
+		SetSymbols(symbols).
+		SubscribeAll(1 * time.Second)
+	for msg := range chs {
+		fmt.Println("Trades error: ", msg.Error)
 	}
 }
 
