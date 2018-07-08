@@ -47,7 +47,7 @@ func NewOrderBookProvider(symbols []schemas.Symbol, httpProxy *proxy.Provider) *
 func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersProvider {
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
-	capacity := 10
+	capacity := orderBookSymbolsLimit
 	for {
 		if len(slice) <= capacity {
 			ob.books = append(
@@ -69,7 +69,9 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 
 // GetOrderBook - getting all symbols from Exchange
 func (ob *OrdersProvider) GetOrderBook(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
-	return
+	orderBookProvider := NewOrderBookProvider([]schemas.Symbol{symbol}, ob.httpProxy)
+	m, err := orderBookProvider.Get()
+	return m[symbol.OriginalName], err
 }
 
 // Subscribe - getting all symbols from Exchange
@@ -145,7 +147,9 @@ func (ob *OrderBookProvider) Get() (book map[string]schemas.OrderBook, err error
 				Count:      1,
 			})
 		}
-		book[name] = b
+		if len(b.Sell) > 0 || len(b.Sell) > 0 {
+			book[sname] = b
+		}
 	}
 	return
 }

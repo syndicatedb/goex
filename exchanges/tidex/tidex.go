@@ -17,6 +17,8 @@ const (
 var (
 	exchangeID   = 5
 	exchangeName = "tidex"
+
+	orderBookSymbolsLimit = 10
 )
 
 /*

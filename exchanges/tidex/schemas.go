@@ -18,8 +18,10 @@ type Symbol struct {
 	Fee           float64 `json:"fee"`            //  0.1
 }
 
+// OrderBookResponse - Tidex orders book response by symbol
 type OrderBookResponse map[string]OrderBook
 
+// OrderBook - Tidex order book
 type OrderBook struct {
 	Asks [][]float64 `json:"asks"`
 	Bids [][]float64 `json:"bids"`
