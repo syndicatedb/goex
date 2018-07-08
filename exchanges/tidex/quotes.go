@@ -45,13 +45,22 @@ func (qp *QuotesProvider) SetSymbols(symbols []schemas.Symbol) schemas.QuotesPro
 }
 
 // Get - getting quotes by symbol
-func (qp *QuotesProvider) Get() {
-
+func (qp *QuotesProvider) Get(symbol schemas.Symbol) (q schemas.Quote, err error) {
+	var data []schemas.Quote
+	group := NewQuotesGroup([]schemas.Symbol{symbol}, qp.httpProxy)
+	data, err = group.Get()
+	if err != nil {
+		return
+	}
+	return data[0], nil
 }
 
 // Subscribe - subscribing to quote by symbol and interval
-func (qp *QuotesProvider) Subscribe() {
-
+func (qp *QuotesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.Result {
+	ch := make(chan schemas.Result)
+	group := NewQuotesGroup([]schemas.Symbol{symbol}, qp.httpProxy)
+	go group.subscribe(ch, d)
+	return ch
 }
 
 // SubscribeAll - subscribing to all quotes with interval

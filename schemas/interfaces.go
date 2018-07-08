@@ -21,8 +21,8 @@ type OrdersProvider interface {
 // QuotesProvider - provides quotes/ticker
 type QuotesProvider interface {
 	SetSymbols(symbols []Symbol) QuotesProvider
-	Get()
-	Subscribe()
+	Get(symbol Symbol) (q Quote, err error)
+	Subscribe(symbol Symbol, d time.Duration) chan Result
 	SubscribeAll(d time.Duration) chan Result
 }
 

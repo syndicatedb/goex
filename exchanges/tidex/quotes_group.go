@@ -48,8 +48,7 @@ func (q *QuotesGroup) subscribe(ch chan schemas.Result, d time.Duration) {
 }
 
 // Get - getting all quotes from Exchange
-func (q *QuotesGroup) Get() (quotes map[string]schemas.Quote, err error) {
-	quotes = make(map[string]schemas.Quote)
+func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	var b []byte
 	var symbols []string
 	for _, symbol := range q.symbols {
@@ -65,7 +64,7 @@ func (q *QuotesGroup) Get() (quotes map[string]schemas.Quote, err error) {
 	}
 	for sname, d := range resp {
 		name, _, _ := parseSymbol(sname)
-		quotes[name] = d.Map(name)
+		quotes = append(quotes, d.Map(name))
 	}
 	return
 }
