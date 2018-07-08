@@ -1,5 +1,6 @@
 package schemas
 
+// Quote - common quote/ticker model
 type Quote struct {
 	Name       string
 	ExchangeID int
