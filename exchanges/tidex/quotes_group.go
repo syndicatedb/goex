@@ -18,7 +18,7 @@ type QuotesGroup struct {
 }
 
 // NewQuotesGroup - OrderBook constructor
-func NewQuotesGroup(symbols []schemas.Symbol, httpProxy *proxy.Provider) *QuotesGroup {
+func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesGroup {
 	proxyClient := httpProxy.NewClient(exchangeName)
 
 	return &QuotesGroup{

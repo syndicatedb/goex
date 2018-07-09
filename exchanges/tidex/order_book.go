@@ -10,14 +10,14 @@ import (
 
 // OrdersProvider - order book provider
 type OrdersProvider struct {
-	httpProxy *proxy.Provider
+	httpProxy proxy.Provider
 	symbols   []schemas.Symbol
 	books     []*OrderBookGroup
 	sync.Mutex
 }
 
 // NewOrdersProvider - OrdersProvider constructor
-func NewOrdersProvider(httpProxy *proxy.Provider) *OrdersProvider {
+func NewOrdersProvider(httpProxy proxy.Provider) *OrdersProvider {
 	return &OrdersProvider{
 		httpProxy: httpProxy,
 	}

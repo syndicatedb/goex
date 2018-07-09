@@ -52,22 +52,23 @@ type Quote struct {
 // Map - mapping Tidex model to common model
 func (q Quote) Map(name string) schemas.Quote {
 	return schemas.Quote{
-		Name:       name,
-		ExchangeID: exchangeID,
-		High:       q.High,
-		Low:        q.Low,
-		Avg:        q.Avg,
-		Volume:     q.Vol,
-		VolCur:     q.VolCur,
-		LastTrade:  q.Last,
-		Buy:        q.Buy,
-		Sell:       q.Sell,
-		Updated:    q.Updated,
+		Name:      name,
+		High:      q.High,
+		Low:       q.Low,
+		Avg:       q.Avg,
+		Volume:    q.Vol,
+		VolCur:    q.VolCur,
+		LastTrade: q.Last,
+		Buy:       q.Buy,
+		Sell:      q.Sell,
+		Updated:   q.Updated,
 	}
 }
 
+// TradesResponse - Tidex HTTP response for trades
 type TradesResponse map[string][]Trade
 
+// Trade - Tidex trade
 type Trade struct {
 	Type      string  `json:"type"`      // "ask",
 	Price     float64 `json:"price"`     // 0.0721605,
@@ -76,14 +77,14 @@ type Trade struct {
 	Timestamp int64   `json:"timestamp"` // 1531088906
 }
 
+// Map - mapping Tidex trade to common
 func (t Trade) Map(symbol string) schemas.Trade {
 	return schemas.Trade{
-		ExchangeID: exchangeID,
-		ID:         fmt.Sprintf("%v", t.Tid),
-		Symbol:     symbol,
-		Type:       t.Type,
-		Price:      t.Price,
-		Amount:     t.Amount,
-		Timestamp:  t.Timestamp,
+		ID:        fmt.Sprintf("%v", t.Tid),
+		Symbol:    symbol,
+		Type:      t.Type,
+		Price:     t.Price,
+		Amount:    t.Amount,
+		Timestamp: t.Timestamp,
 	}
 }

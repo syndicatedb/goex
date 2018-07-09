@@ -15,9 +15,8 @@ type SymbolsProvider struct {
 }
 
 // NewSymbolsProvider - SymbolsProvider constructor
-func NewSymbolsProvider(httpProxy *proxy.Provider) *SymbolsProvider {
+func NewSymbolsProvider(httpProxy proxy.Provider) *SymbolsProvider {
 	proxyClient := httpProxy.NewClient(exchangeName)
-
 	return &SymbolsProvider{
 		httpClient: clients.NewHTTP(proxyClient),
 	}

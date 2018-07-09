@@ -18,7 +18,7 @@ type OrderBookGroup struct {
 }
 
 // NewOrderBookGroup - OrderBook constructor
-func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy *proxy.Provider) *OrderBookGroup {
+func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *OrderBookGroup {
 	proxyClient := httpProxy.NewClient(exchangeName)
 
 	return &OrderBookGroup{
@@ -68,20 +68,18 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 		var b schemas.OrderBook
 		for _, o := range d.Asks {
 			b.Buy = append(b.Buy, schemas.Order{
-				ExchangeID: exchangeID,
-				Symbol:     name,
-				Price:      o[0],
-				Amount:     o[1],
-				Count:      1,
+				Symbol: name,
+				Price:  o[0],
+				Amount: o[1],
+				Count:  1,
 			})
 		}
 		for _, o := range d.Bids {
 			b.Sell = append(b.Sell, schemas.Order{
-				ExchangeID: exchangeID,
-				Symbol:     name,
-				Price:      o[0],
-				Amount:     o[1],
-				Count:      1,
+				Symbol: name,
+				Price:  o[0],
+				Amount: o[1],
+				Count:  1,
 			})
 		}
 		if len(b.Sell) > 0 || len(b.Sell) > 0 {

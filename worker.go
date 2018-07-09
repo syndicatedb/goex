@@ -13,7 +13,7 @@ import (
 type Worker struct {
 	exchangeName      string
 	state             state
-	httpProxyProvider *proxy.Provider
+	httpProxyProvider proxy.Provider
 	exchange          exchanges.Exchange
 }
 
@@ -21,7 +21,7 @@ type state struct {
 	symbols []schemas.Symbol
 }
 
-func NewWorker(exchangeName string, httpProxyProvider *proxy.Provider) Worker {
+func NewWorker(exchangeName string, httpProxyProvider proxy.Provider) Worker {
 	return Worker{
 		exchangeName:      exchangeName,
 		httpProxyProvider: httpProxyProvider,
@@ -31,9 +31,10 @@ func NewWorker(exchangeName string, httpProxyProvider *proxy.Provider) Worker {
 func (w *Worker) Start() {
 	var err error
 	// Exchange init
-	w.exchange = exchanges.NewPublic(w.exchangeName)
-	w.exchange.SetProxyProvider(w.httpProxyProvider)
-	w.exchange.InitProviders()
+	w.exchange = exchanges.New(schemas.Options{
+		Name:          w.exchangeName,
+		ProxyProvider: w.httpProxyProvider,
+	})
 	w.state.symbols, err = w.exchange.GetSymbolProvider().Get()
 	if err != nil {
 		log.Fatalln("Symbols empty")
@@ -43,9 +44,9 @@ func (w *Worker) Start() {
 }
 
 func (w *Worker) subscribe() {
-	go w.orderBook(w.state.symbols)
-	go w.quotes(w.state.symbols)
-	go w.trades(w.state.symbols)
+	// go w.orderBook(w.state.symbols)
+	// go w.quotes(w.state.symbols)
+	// go w.trades(w.state.symbols)
 }
 
 func (w *Worker) symbols() {

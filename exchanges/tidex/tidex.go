@@ -3,8 +3,7 @@ package tidex
 import (
 	"strings"
 
-	"github.com/syndicatedb/goproxy/proxy"
-
+	"github.com/syndicatedb/goex/clients"
 	"github.com/syndicatedb/goex/schemas"
 )
 
@@ -17,66 +16,35 @@ const (
 )
 
 var (
-	exchangeID   = 5
-	exchangeName = "tidex"
-
-	orderBookSymbolsLimit = 10
+	orderBookSymbolsLimit = 20
 	quotesSymbolsLimit    = 10
+	exchangeName          = ""
 )
 
 /*
 Tidex - exchange struct
 */
 type Tidex struct {
-	credentials    schemas.Credentials
-	httpProxy      *proxy.Provider
-	OrdersProvider schemas.OrdersProvider
-	SymbolProvider schemas.SymbolProvider
-	QuotesProvider schemas.QuotesProvider
-	TradesProvider schemas.TradesProvider
+	schemas.Exchange
 }
 
 // New - Tidex constructor. APIKey and APISecret is mandatory, but could be empty
-func New(apiKey, apiSecret string) *Tidex {
+func New(opts schemas.Options) *Tidex {
+	exchangeName = opts.Name
+	proxyProvider := opts.ProxyProvider
+	if proxyProvider == nil {
+		proxyProvider = clients.NewNoProxy()
+	}
 	return &Tidex{
-		credentials: schemas.Credentials{
-			APIKey:    apiKey,
-			APISecret: apiSecret,
+		Exchange: schemas.Exchange{
+			Credentials:    opts.Credentials,
+			ProxyProvider:  proxyProvider,
+			SymbolProvider: NewSymbolsProvider(proxyProvider),
+			OrdersProvider: NewOrdersProvider(proxyProvider),
+			QuotesProvider: NewQuotesProvider(proxyProvider),
+			TradesProvider: NewTradesProvider(proxyProvider),
 		},
 	}
-}
-
-// InitProviders - init Exchnage market and User providers
-func (ex *Tidex) InitProviders() {
-	ex.SymbolProvider = NewSymbolsProvider(ex.httpProxy)
-	ex.OrdersProvider = NewOrdersProvider(ex.httpProxy)
-	ex.QuotesProvider = NewQuotesProvider(ex.httpProxy)
-	ex.TradesProvider = NewTradesProvider(ex.httpProxy)
-}
-
-// SetProxyProvider - setting proxy
-func (ex *Tidex) SetProxyProvider(httpProxy *proxy.Provider) {
-	ex.httpProxy = httpProxy
-}
-
-// GetOrdersProvider - getter
-func (ex *Tidex) GetOrdersProvider() schemas.OrdersProvider {
-	return ex.OrdersProvider
-}
-
-// GetSymbolProvider - getter
-func (ex *Tidex) GetSymbolProvider() schemas.SymbolProvider {
-	return ex.SymbolProvider
-}
-
-// GetQuotesProvider - getter
-func (ex *Tidex) GetQuotesProvider() schemas.QuotesProvider {
-	return ex.QuotesProvider
-}
-
-// GetTradesProvider - getter
-func (ex *Tidex) GetTradesProvider() schemas.TradesProvider {
-	return ex.TradesProvider
 }
 
 func parseSymbol(s string) (name, coin, baseCoin string) {

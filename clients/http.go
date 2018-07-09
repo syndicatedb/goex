@@ -17,11 +17,11 @@ const (
 
 // HTTP - http mapper/helper
 type HTTP struct {
-	proxy *proxy.Client
+	proxy proxy.Client
 }
 
 // NewHTTP - HTTP mapper constructor
-func NewHTTP(proxy *proxy.Client) *HTTP {
+func NewHTTP(proxy proxy.Client) *HTTP {
 	return &HTTP{
 		proxy: proxy,
 	}

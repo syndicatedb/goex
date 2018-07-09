@@ -10,11 +10,11 @@ import (
 // QuotesProvider - provides quotes/ticker
 type QuotesProvider struct {
 	groups    []*QuotesGroup
-	httpProxy *proxy.Provider
+	httpProxy proxy.Provider
 }
 
 // NewQuotesProvider - QuotesProvider constructor
-func NewQuotesProvider(httpProxy *proxy.Provider) *QuotesProvider {
+func NewQuotesProvider(httpProxy proxy.Provider) *QuotesProvider {
 	return &QuotesProvider{
 		httpProxy: httpProxy,
 	}

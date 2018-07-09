@@ -18,7 +18,7 @@ type TradesGroup struct {
 }
 
 // NewTradesGroup - OrderBook constructor
-func NewTradesGroup(symbols []schemas.Symbol, httpProxy *proxy.Provider) *TradesGroup {
+func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesGroup {
 	proxyClient := httpProxy.NewClient(exchangeName)
 
 	return &TradesGroup{
