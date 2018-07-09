@@ -27,6 +27,8 @@ type Exchange struct {
 	SymbolProvider SymbolProvider
 	QuotesProvider QuotesProvider
 	TradesProvider TradesProvider
+
+	UserProvider UserProvider
 }
 
 // GetOrdersProvider - getter
@@ -49,6 +51,12 @@ func (ex *Exchange) GetTradesProvider() TradesProvider {
 	return ex.TradesProvider
 }
 
+// GetUserProvider - getter
+func (ex *Exchange) GetUserProvider() UserProvider {
+	return ex.UserProvider
+}
+
+// Options - exchange options for init
 type Options struct {
 	Name          string
 	Credentials   Credentials

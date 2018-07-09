@@ -34,19 +34,24 @@ func (w *Worker) Start() {
 	w.exchange = exchanges.New(schemas.Options{
 		Name:          w.exchangeName,
 		ProxyProvider: w.httpProxyProvider,
+		Credentials: schemas.Credentials{
+			APIKey:    "",
+			APISecret: "",
+		},
 	})
 	w.state.symbols, err = w.exchange.GetSymbolProvider().Get()
 	if err != nil {
 		log.Fatalln("Symbols empty")
 	}
-	go w.symbols()
-	w.subscribe()
+	// go w.symbols()
+	// w.subscribe()
+	w.exchange.GetUserProvider().Info()
 }
 
 func (w *Worker) subscribe() {
-	// go w.orderBook(w.state.symbols)
-	// go w.quotes(w.state.symbols)
-	// go w.trades(w.state.symbols)
+	go w.orderBook(w.state.symbols)
+	go w.quotes(w.state.symbols)
+	go w.trades(w.state.symbols)
 }
 
 func (w *Worker) symbols() {

@@ -17,26 +17,55 @@ const (
 
 // HTTP - http mapper/helper
 type HTTP struct {
-	proxy proxy.Client
+	proxy   proxy.Client
+	Headers KeyValue
 }
 
 // NewHTTP - HTTP mapper constructor
 func NewHTTP(proxy proxy.Client) *HTTP {
 	return &HTTP{
-		proxy: proxy,
+		proxy:   proxy,
+		Headers: Headers(),
 	}
 }
 
+type KeyValue struct {
+	data map[string]string
+}
+
+func (p *KeyValue) Set(key, value string) *KeyValue {
+	p.data[key] = value
+	return p
+}
+
+func (p *KeyValue) Map() map[string]string {
+	return p.data
+}
+
 // Params - map key=value for params and payload
-type Params map[string]string
+func Params() KeyValue {
+	return KeyValue{
+		data: make(map[string]string),
+	}
+}
+
+// Headers - map key=value to set HTTP headers
+func Headers() KeyValue {
+	return Params()
+}
 
 // Get - http GET request
-func (client *HTTP) Get(url string, params Params) (b []byte, err error) {
-	return client.Request(methodGET, url, params, nil)
+func (client *HTTP) Get(url string, params KeyValue) (b []byte, err error) {
+	return client.Request(methodGET, url, params, KeyValue{})
+}
+
+// Post - http GET request
+func (client *HTTP) Post(url string, params, payload KeyValue) (b []byte, err error) {
+	return client.Request(methodPOST, url, params, payload)
 }
 
 // Request - custom HTTP request
-func (client *HTTP) Request(method, endpoint string, params, payload Params) (b []byte, err error) {
+func (client *HTTP) Request(method, endpoint string, params, payload KeyValue) (b []byte, err error) {
 	var formData string
 	rawurl := endpoint
 	if method == methodGET {
@@ -46,7 +75,7 @@ func (client *HTTP) Request(method, endpoint string, params, payload Params) (b 
 			return
 		}
 		q := URL.Query()
-		for key, value := range params {
+		for key, value := range params.data {
 			q.Set(key, value)
 		}
 		formData = q.Encode()
@@ -54,11 +83,12 @@ func (client *HTTP) Request(method, endpoint string, params, payload Params) (b 
 		rawurl = URL.String()
 	} else {
 		formValues := url.Values{}
-		for key, value := range payload {
+		for key, value := range payload.data {
 			formValues.Set(key, value)
 		}
 		formData = formValues.Encode()
 	}
+
 	req, err := http.NewRequest(method, rawurl, strings.NewReader(formData))
 	if err != nil {
 		return
@@ -69,7 +99,11 @@ func (client *HTTP) Request(method, endpoint string, params, payload Params) (b 
 	}
 	req.Header.Add("Accept", "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36")
-
+	if len(client.Headers.data) > 0 {
+		for key, v := range client.Headers.data {
+			req.Header.Add(key, v)
+		}
+	}
 	resp, err := client.proxy.Do(req)
 	if err != nil {
 		fmt.Println("Error: ", err)

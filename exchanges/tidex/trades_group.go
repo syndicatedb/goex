@@ -54,7 +54,7 @@ func (q *TradesGroup) Get() (trades [][]schemas.Trade, err error) {
 	for _, symbol := range q.symbols {
 		symbols = append(symbols, symbol.OriginalName)
 	}
-	if b, err = q.httpClient.Get(apiTrades+strings.Join(symbols, "-"), clients.Params{}); err != nil {
+	if b, err = q.httpClient.Get(apiTrades+strings.Join(symbols, "-"), clients.Params()); err != nil {
 		return
 	}
 	var resp TradesResponse

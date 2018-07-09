@@ -39,10 +39,11 @@ type TradesProvider interface {
 // 	Subscribe()
 // }
 
-// type UserProvider interface {
-// 	Get()
-// 	Balance()
-// }
+// UserProvider - provides all user Info
+type UserProvider interface {
+	Info()
+	Subscribe()
+}
 
 // type UserBalanceProvider interface {
 // 	Get()
