@@ -46,18 +46,14 @@ type subscriber interface {
 // 	Subscribe()
 // }
 
-// UserProvider - provides all user Info
-type UserProvider interface {
+// TradingProvider - provides API to trade
+type TradingProvider interface {
 	Info() (UserInfo, error)
 	Orders(symbols []Symbol) ([]Order, error)
 	Trades(TradeHistoryOptions) ([]Trade, error)
 
 	Subscribe(time.Duration) (chan UserInfoChannel, chan UserOrdersChannel, chan UserTradesChannel)
-}
-
-// TradingProvider - provides API to trade
-type TradingProvider interface {
-	Create(order Order) (result []Order, err error)
-	Cancel(order Order) (result Order, err error)
+	Create(order Order) (result Order, err error)
+	Cancel(order Order) (err error)
 	CancelAll() (err error)
 }

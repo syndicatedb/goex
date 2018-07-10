@@ -53,7 +53,6 @@ func New(opts schemas.Options) *Tidex {
 			Orders:        NewOrdersProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
 			Trades:        NewTradesProvider(proxyProvider),
-			User:          NewUserProvider(opts.Credentials, proxyProvider),
 			Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
@@ -65,6 +64,14 @@ func parseSymbol(s string) (name, coin, baseCoin string) {
 	baseCoin = strings.ToUpper(sa[1])
 	name = coin + "-" + baseCoin
 	return
+}
+
+func symbolToPair(s string) string {
+	sa := strings.Split(s, "-")
+	coin := strings.ToLower(sa[0])
+	baseCoin := strings.ToLower(sa[1])
+	return coin + "_" + baseCoin
+
 }
 
 // sign - signing request

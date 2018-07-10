@@ -31,7 +31,6 @@ type Exchange struct {
 	Quotes QuotesProvider
 	Trades TradesProvider
 
-	User    UserProvider
 	Trading TradingProvider
 }
 
@@ -53,11 +52,6 @@ func (ex *Exchange) QuotesProvider() QuotesProvider {
 // TradesProvider - getter
 func (ex *Exchange) TradesProvider() TradesProvider {
 	return ex.Trades
-}
-
-// UserProvider - getter
-func (ex *Exchange) UserProvider() UserProvider {
-	return ex.User
 }
 
 // TradingProvider - getter

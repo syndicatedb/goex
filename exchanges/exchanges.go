@@ -17,7 +17,6 @@ type API interface {
 	OrdersProvider() schemas.OrdersProvider
 	QuotesProvider() schemas.QuotesProvider
 	TradesProvider() schemas.TradesProvider
-	UserProvider() schemas.UserProvider
 	TradingProvider() schemas.TradingProvider
 }
 

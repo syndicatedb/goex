@@ -203,3 +203,14 @@ func (ut *UserTradesResponse) Map() (trades []schemas.Trade) {
 	}
 	return
 }
+
+// OrdersCreateResponse - response after order create
+type OrdersCreateResponse struct {
+	Success int `json:"success"`
+	Return  struct {
+		Received float64            `json:"received"` // 0.1,
+		Remains  float64            `json:"remains"`  // 0,
+		OrderID  int64              `json:"order_id"` // 0,
+		Funds    map[string]float64 `json:"funds"`    // "eth":325
+	} `json:"return"`
+}
