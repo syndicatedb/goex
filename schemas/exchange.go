@@ -22,6 +22,7 @@ type Result struct {
 Exchange - exchange struct
 */
 type Exchange struct {
+	symbols       []Symbol
 	Credentials   Credentials
 	ProxyProvider proxy.Provider
 

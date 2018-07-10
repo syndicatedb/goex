@@ -49,7 +49,7 @@ type subscriber interface {
 // UserProvider - provides all user Info
 type UserProvider interface {
 	Info() (UserInfo, error)
-	Subscribe()
+	Subscribe(time.Duration) chan UserInfoChannel
 }
 
 // TradingProvider - provides API to trade
@@ -58,21 +58,3 @@ type TradingProvider interface {
 	Cancel(order Order) (result Order, err error)
 	CancelAll() (err error)
 }
-
-// type UserBalanceProvider interface {
-// 	Get()
-// 	Subscribe()
-// }
-
-// type UserOrdersProvider interface {
-// 	Get()
-// 	Subscribe()
-// 	Create()
-// 	Cancel()
-// 	CancelAll()
-// }
-
-// type UserTradesProvider interface {
-// 	Get()
-// 	Subscribe()
-// }

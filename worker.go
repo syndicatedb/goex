@@ -43,16 +43,14 @@ func (w *Worker) Start() {
 		log.Fatalln("Symbols empty")
 	}
 	// go w.symbols()
-	// w.subscribe()
-	info, err := w.exchange.UserProvider().Info()
-	fmt.Printf("User: %+v\n", info)
-	fmt.Println("err: ", err)
+	w.subscribe()
 }
 
 func (w *Worker) subscribe() {
-	go w.orderBook(w.state.symbols)
-	go w.quotes(w.state.symbols)
-	go w.trades(w.state.symbols)
+	// go w.orderBook(w.state.symbols)
+	// go w.quotes(w.state.symbols)
+	// go w.trades(w.state.symbols)
+	go w.userInfo(w.state.symbols)
 }
 
 func (w *Worker) symbols() {
@@ -91,6 +89,15 @@ func (w *Worker) trades(symbols []schemas.Symbol) {
 	for msg := range chs {
 		if msg.Error != nil {
 			fmt.Println("Trades error: ", msg.Error)
+		}
+	}
+}
+func (w *Worker) userInfo(symbols []schemas.Symbol) {
+	chs := w.exchange.UserProvider().
+		Subscribe(10 * time.Second)
+	for msg := range chs {
+		if msg.Error != nil {
+			fmt.Println("User info error: ", msg.Error)
 		}
 	}
 }

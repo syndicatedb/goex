@@ -47,12 +47,28 @@ func (up *UserProvider) Info() (ui schemas.UserInfo, err error) {
 
 /*
 Subscribe - subscribing to user info
-— keys state
-- balances
+— user info
 - orders
 - trades
 */
-func (up *UserProvider) Subscribe() {}
+func (up *UserProvider) Subscribe(interval time.Duration) chan schemas.UserInfoChannel {
+	uic := make(chan schemas.UserInfoChannel)
+
+	if interval == 0 {
+		interval = SubscriptionInterval
+	}
+	go func() {
+		for {
+			ui, err := up.Info()
+			uic <- schemas.UserInfoChannel{
+				Data:  ui,
+				Error: err,
+			}
+			time.Sleep(interval)
+		}
+	}()
+	return uic
+}
 
 func (up *UserProvider) Orders(symbol []schemas.Symbol) (orders []schemas.Order, err error) {
 	return
