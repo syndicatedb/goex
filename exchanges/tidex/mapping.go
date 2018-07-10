@@ -2,6 +2,7 @@ package tidex
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/syndicatedb/goex/schemas"
 )
@@ -107,6 +108,7 @@ type UserInfoResponse struct {
 	} `json:"return"`
 }
 
+// Map - mapping Tidex user info to common
 func (ui *UserInfoResponse) Map() schemas.UserInfo {
 	var balances map[string]schemas.Balance
 	if len(ui.Return.Funds) > 0 {
@@ -129,4 +131,75 @@ func (ui *UserInfoResponse) Map() schemas.UserInfo {
 		TradesCount: ui.Return.TransactionCount,
 		OrdersCount: ui.Return.OpenOrders,
 	}
+}
+
+// UserOrdersResponse - response with user active orders
+type UserOrdersResponse struct {
+	Success int              `json:"success"`
+	Return  map[string]Order `json:"return"`
+}
+
+// Order - Tidex user order
+type Order struct {
+	Pair             string  `json:"pair"`              // "eth_btc",
+	Type             string  `json:"type"`              // "sell",
+	StartAmount      float64 `json:"start_amount"`      // 13.345,
+	Amount           float64 `json:"amount"`            // 12.345,
+	Rate             float64 `json:"rate"`              // 485,
+	TimestampCreated int64   `json:"timestamp_created"` // 1342448420,
+	Status           int     `json:"status"`            // 0
+}
+
+// Map - mapping Tidex orders to common
+func (uo *UserOrdersResponse) Map() (orders []schemas.Order) {
+	for id, o := range uo.Return {
+		symbol, _, _ := parseSymbol(o.Pair)
+		orders = append(orders,
+			schemas.Order{
+				ID:           id,
+				Type:         strings.ToUpper(o.Type),
+				Symbol:       symbol,
+				Price:        o.Rate,
+				Amount:       o.StartAmount,
+				AmountFilled: o.Amount,
+				CreatedAt:    o.TimestampCreated,
+			},
+		)
+	}
+	return
+}
+
+// UserTradesResponse - response with user trades
+type UserTradesResponse struct {
+	Success int                  `json:"success"`
+	Return  map[string]UserTrade `json:"return"`
+}
+
+// UserTrade - Tidex trade
+type UserTrade struct {
+	Pair      string  `json:"pair"`      // "eth_btc",
+	Type      string  `json:"type"`      // "ask",
+	Amount    float64 `json:"amount"`    // 0.18422595,
+	Rate      float64 `json:"rate"`      // 0.0721605,
+	OrderID   int64   `json:"order_id"`  // 21490692,
+	Timestamp int64   `json:"timestamp"` // 1531088906
+}
+
+// Map - mapping Tidex orders to common
+func (ut *UserTradesResponse) Map() (trades []schemas.Trade) {
+	for id, t := range ut.Return {
+		symbol, _, _ := parseSymbol(t.Pair)
+		trades = append(trades,
+			schemas.Trade{
+				ID:        id,
+				OrderID:   fmt.Sprintf("%d", t.OrderID),
+				Type:      strings.ToUpper(t.Type),
+				Symbol:    symbol,
+				Price:     t.Rate,
+				Amount:    t.Amount,
+				Timestamp: t.Timestamp,
+			},
+		)
+	}
+	return
 }

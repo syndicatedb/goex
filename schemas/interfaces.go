@@ -49,6 +49,9 @@ type subscriber interface {
 // UserProvider - provides all user Info
 type UserProvider interface {
 	Info() (UserInfo, error)
+	Orders(symbols []Symbol) ([]Order, error)
+	Trades(TradeHistoryOptions) ([]Trade, error)
+
 	Subscribe(time.Duration) chan UserInfoChannel
 }
 

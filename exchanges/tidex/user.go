@@ -3,6 +3,7 @@ package tidex
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/syndicatedb/goex/clients"
@@ -70,10 +71,60 @@ func (up *UserProvider) Subscribe(interval time.Duration) chan schemas.UserInfoC
 	return uic
 }
 
-func (up *UserProvider) Orders(symbol []schemas.Symbol) (orders []schemas.Order, err error) {
-	return
+// Orders - getting user active orders
+func (up *UserProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
+	var b []byte
+	payload := clients.Params()
+	payload.Set("method", "ActiveOrders")
+	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
+	if len(symbols) > 0 {
+		var pairs []string
+		for _, s := range symbols {
+			pairs = append(pairs, s.OriginalName)
+		}
+		payload.Set("pair", strings.Join(pairs, "-"))
+	}
+	b, err = up.httpClient.Post(apiUserInfo, clients.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	var resp UserOrdersResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	return resp.Map(), nil
 }
 
-func (up *UserProvider) Trades(sinceTrade schemas.Trade) (orders []schemas.Order, err error) {
-	return
+// Trades - getting user trades
+func (up *UserProvider) Trades(opts schemas.TradeHistoryOptions) (trades []schemas.Trade, err error) {
+	var b []byte
+	payload := clients.Params()
+	payload.Set("method", "TradeHistory")
+	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
+
+	if len(opts.Symbols) > 0 {
+		var pairs []string
+		for _, s := range opts.Symbols {
+			pairs = append(pairs, s.OriginalName)
+		}
+		payload.Set("pair", strings.Join(pairs, "-"))
+	}
+
+	if opts.Limit > 0 {
+		payload.Set("count", fmt.Sprintf("%d", opts.Limit))
+	}
+
+	if opts.FromID != "" {
+		payload.Set("from_id", opts.FromID)
+	}
+
+	b, err = up.httpClient.Post(apiUserInfo, clients.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	var resp UserTradesResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	return resp.Map(), nil
 }

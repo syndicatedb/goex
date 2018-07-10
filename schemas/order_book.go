@@ -8,10 +8,13 @@ type OrderBook struct {
 
 // Order - common order model
 type Order struct {
-	ExchangeID int
-	Symbol     string
-	Type       string
-	Price      float64
-	Amount     float64
-	Count      int
+	ID           string
+	Symbol       string
+	Type         string
+	Price        float64
+	Amount       float64
+	AmountFilled float64
+	Count        int
+	CreatedAt    int64
+	UpdatedAt    int64
 }

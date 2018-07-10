@@ -43,7 +43,11 @@ func (w *Worker) Start() {
 		log.Fatalln("Symbols empty")
 	}
 	// go w.symbols()
-	w.subscribe()
+	// w.subscribe()
+	// orders, err := w.exchange.UserProvider().Orders([]schemas.Symbol{})
+	// fmt.Println("orders, err: ", orders, err)
+	trades, err := w.exchange.UserProvider().Trades(schemas.TradeHistoryOptions{})
+	fmt.Println("trades, err: ", trades, err)
 }
 
 func (w *Worker) subscribe() {
