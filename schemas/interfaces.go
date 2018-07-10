@@ -52,7 +52,7 @@ type UserProvider interface {
 	Orders(symbols []Symbol) ([]Order, error)
 	Trades(TradeHistoryOptions) ([]Trade, error)
 
-	Subscribe(time.Duration) chan UserInfoChannel
+	Subscribe(time.Duration) (chan UserInfoChannel, chan UserOrdersChannel, chan UserTradesChannel)
 }
 
 // TradingProvider - provides API to trade

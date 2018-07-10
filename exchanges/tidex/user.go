@@ -52,12 +52,15 @@ Subscribe - subscribing to user info
 - orders
 - trades
 */
-func (up *UserProvider) Subscribe(interval time.Duration) chan schemas.UserInfoChannel {
+func (up *UserProvider) Subscribe(interval time.Duration) (chan schemas.UserInfoChannel, chan schemas.UserOrdersChannel, chan schemas.UserTradesChannel) {
 	uic := make(chan schemas.UserInfoChannel)
+	uoc := make(chan schemas.UserOrdersChannel)
+	utc := make(chan schemas.UserTradesChannel)
 
 	if interval == 0 {
 		interval = SubscriptionInterval
 	}
+	lastTradeID := "1"
 	go func() {
 		for {
 			ui, err := up.Info()
@@ -65,10 +68,22 @@ func (up *UserProvider) Subscribe(interval time.Duration) chan schemas.UserInfoC
 				Data:  ui,
 				Error: err,
 			}
+			o, err := up.Orders([]schemas.Symbol{})
+			uoc <- schemas.UserOrdersChannel{
+				Data:  o,
+				Error: err,
+			}
+			t, err := up.Trades(schemas.TradeHistoryOptions{
+				FromID: lastTradeID,
+			})
+			utc <- schemas.UserTradesChannel{
+				Data:  t,
+				Error: err,
+			}
 			time.Sleep(interval)
 		}
 	}()
-	return uic
+	return uic, uoc, utc
 }
 
 // Orders - getting user active orders
