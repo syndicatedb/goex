@@ -1,6 +1,7 @@
 package tidex
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -22,23 +23,26 @@ func NewUserProvider(credentials schemas.Credentials, httpProxy proxy.Provider) 
 	return &UserProvider{
 		credentials: credentials,
 		httpProxy:   httpProxy,
-		httpClient:  clients.NewHTTP(proxyClient),
+		httpClient:  clients.NewSignedHTTP(credentials, proxyClient),
 	}
 }
 
 // Info - provides user info: Keys access, balances
-func (up *UserProvider) Info() {
+func (up *UserProvider) Info() (ui schemas.UserInfo, err error) {
+	var b []byte
 	payload := clients.Params()
 	payload.Set("method", "getInfoExt")
 	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
-	secret := signRequest(up.credentials.APISecret, payload.Map())
 
-	up.httpClient.Headers.Set("Sign", secret)
-	up.httpClient.Headers.Set("Key", up.credentials.APIKey)
-
-	b, err := up.httpClient.Post(apiUserInfo, clients.Params(), payload)
-
-	fmt.Println("params: ", string(b), err)
+	b, err = up.httpClient.Post(apiUserInfo, clients.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	var resp UserInfoResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	return resp.Map(), nil
 }
 
 /*
@@ -54,10 +58,6 @@ func (up *UserProvider) Orders(symbol []schemas.Symbol) (orders []schemas.Order,
 	return
 }
 
-func (up *UserProvider) Trades(symbol []schemas.Symbol) (orders []schemas.Order, err error) {
-	return
-}
-
-func (up *UserProvider) TradesHistory(sinceTrade schemas.Trade) (trades []schemas.Trade, err error) {
+func (up *UserProvider) Trades(sinceTrade schemas.Trade) (orders []schemas.Order, err error) {
 	return
 }

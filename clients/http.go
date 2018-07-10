@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
@@ -17,8 +18,18 @@ const (
 
 // HTTP - http mapper/helper
 type HTTP struct {
-	proxy   proxy.Client
-	Headers KeyValue
+	proxy       proxy.Client
+	credentials schemas.Credentials
+	Headers     KeyValue
+}
+
+// NewSignedHTTP - HTTP mapper constructor
+func NewSignedHTTP(credentials schemas.Credentials, proxy proxy.Client) *HTTP {
+	return &HTTP{
+		proxy:       proxy,
+		credentials: credentials,
+		Headers:     Headers(),
+	}
 }
 
 // NewHTTP - HTTP mapper constructor
@@ -55,17 +66,17 @@ func Headers() KeyValue {
 }
 
 // Get - http GET request
-func (client *HTTP) Get(url string, params KeyValue) (b []byte, err error) {
-	return client.Request(methodGET, url, params, KeyValue{})
+func (client *HTTP) Get(url string, params KeyValue, isSigned bool) (b []byte, err error) {
+	return client.Request(methodGET, url, params, KeyValue{}, isSigned)
 }
 
 // Post - http GET request
-func (client *HTTP) Post(url string, params, payload KeyValue) (b []byte, err error) {
-	return client.Request(methodPOST, url, params, payload)
+func (client *HTTP) Post(url string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
+	return client.Request(methodPOST, url, params, payload, isSigned)
 }
 
 // Request - custom HTTP request
-func (client *HTTP) Request(method, endpoint string, params, payload KeyValue) (b []byte, err error) {
+func (client *HTTP) Request(method, endpoint string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
 	var formData string
 	rawurl := endpoint
 	if method == methodGET {
@@ -99,11 +110,17 @@ func (client *HTTP) Request(method, endpoint string, params, payload KeyValue) (
 	}
 	req.Header.Add("Accept", "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36")
+
+	if isSigned {
+		req = client.sign(req)
+	}
+
 	if len(client.Headers.data) > 0 {
 		for key, v := range client.Headers.data {
 			req.Header.Add(key, v)
 		}
 	}
+
 	resp, err := client.proxy.Do(req)
 	if err != nil {
 		fmt.Println("Error: ", err)
@@ -116,4 +133,10 @@ func (client *HTTP) Request(method, endpoint string, params, payload KeyValue) (
 		fmt.Println(resp.Status)
 	}
 	return body, nil
+}
+
+func (client *HTTP) sign(req *http.Request) *http.Request {
+	key := client.credentials.APIKey
+	secret := client.credentials.APISecret
+	return client.credentials.Sign(key, secret, req)
 }

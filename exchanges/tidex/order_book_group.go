@@ -55,7 +55,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 	for _, symbol := range ob.symbols {
 		symbols = append(symbols, symbol.OriginalName)
 	}
-	if b, err = ob.httpClient.Get(apiOrderBook+strings.Join(symbols, "-"), clients.Params()); err != nil {
+	if b, err = ob.httpClient.Get(apiOrderBook+strings.Join(symbols, "-"), clients.Params(), false); err != nil {
 		return
 	}
 	var resp OrderBookResponse

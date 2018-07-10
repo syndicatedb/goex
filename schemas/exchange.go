@@ -8,6 +8,7 @@ import (
 type Credentials struct {
 	APIKey    string
 	APISecret string
+	Sign      Signer
 }
 
 // Result - sending data with channels
@@ -21,39 +22,46 @@ type Result struct {
 Exchange - exchange struct
 */
 type Exchange struct {
-	Credentials    Credentials
-	ProxyProvider  proxy.Provider
-	OrdersProvider OrdersProvider
-	SymbolProvider SymbolProvider
-	QuotesProvider QuotesProvider
-	TradesProvider TradesProvider
+	Credentials   Credentials
+	ProxyProvider proxy.Provider
 
-	UserProvider UserProvider
+	Orders OrdersProvider
+	Symbol SymbolProvider
+	Quotes QuotesProvider
+	Trades TradesProvider
+
+	User    UserProvider
+	Trading TradingProvider
 }
 
-// GetOrdersProvider - getter
-func (ex *Exchange) GetOrdersProvider() OrdersProvider {
-	return ex.OrdersProvider
+// OrdersProvider - getter
+func (ex *Exchange) OrdersProvider() OrdersProvider {
+	return ex.Orders
 }
 
-// GetSymbolProvider - getter
-func (ex *Exchange) GetSymbolProvider() SymbolProvider {
-	return ex.SymbolProvider
+// SymbolProvider - getter
+func (ex *Exchange) SymbolProvider() SymbolProvider {
+	return ex.Symbol
 }
 
-// GetQuotesProvider - getter
-func (ex *Exchange) GetQuotesProvider() QuotesProvider {
-	return ex.QuotesProvider
+// QuotesProvider - getter
+func (ex *Exchange) QuotesProvider() QuotesProvider {
+	return ex.Quotes
 }
 
-// GetTradesProvider - getter
-func (ex *Exchange) GetTradesProvider() TradesProvider {
-	return ex.TradesProvider
+// TradesProvider - getter
+func (ex *Exchange) TradesProvider() TradesProvider {
+	return ex.Trades
 }
 
-// GetUserProvider - getter
-func (ex *Exchange) GetUserProvider() UserProvider {
-	return ex.UserProvider
+// UserProvider - getter
+func (ex *Exchange) UserProvider() UserProvider {
+	return ex.User
+}
+
+// TradingProvider - getter
+func (ex *Exchange) TradingProvider() TradingProvider {
+	return ex.Trading
 }
 
 // Options - exchange options for init

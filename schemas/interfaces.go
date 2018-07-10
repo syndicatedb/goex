@@ -1,8 +1,12 @@
 package schemas
 
 import (
+	"net/http"
 	"time"
 )
+
+// Signer - signing request for Private API
+type Signer func(string, string, *http.Request) *http.Request
 
 // SymbolProvider - provides symbol methods
 type SymbolProvider interface {
@@ -14,22 +18,25 @@ type SymbolProvider interface {
 type OrdersProvider interface {
 	SetSymbols(symbols []Symbol) OrdersProvider
 	GetOrderBook(symbol Symbol) (book OrderBook, err error)
-	Subscribe(symbol Symbol, d time.Duration) chan Result
-	SubscribeAll(d time.Duration) chan Result
+	subscriber
 }
 
 // QuotesProvider - provides quotes/ticker
 type QuotesProvider interface {
 	SetSymbols(symbols []Symbol) QuotesProvider
 	Get(symbol Symbol) (q Quote, err error)
-	Subscribe(symbol Symbol, d time.Duration) chan Result
-	SubscribeAll(d time.Duration) chan Result
+	subscriber
 }
 
 // TradesProvider - provides public trades
 type TradesProvider interface {
 	SetSymbols(symbols []Symbol) TradesProvider
 	Get(symbol Symbol) (t []Trade, err error)
+	subscriber
+}
+
+// subscriber - provides public trades
+type subscriber interface {
 	Subscribe(symbol Symbol, d time.Duration) chan Result
 	SubscribeAll(d time.Duration) chan Result
 }
@@ -41,8 +48,15 @@ type TradesProvider interface {
 
 // UserProvider - provides all user Info
 type UserProvider interface {
-	Info()
+	Info() (UserInfo, error)
 	Subscribe()
+}
+
+// TradingProvider - provides API to trade
+type TradingProvider interface {
+	Create(order Order) (result []Order, err error)
+	Cancel(order Order) (result Order, err error)
+	CancelAll() (err error)
 }
 
 // type UserBalanceProvider interface {

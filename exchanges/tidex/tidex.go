@@ -4,7 +4,8 @@ import (
 	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/hex"
-	"net/url"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -43,15 +44,17 @@ func New(opts schemas.Options) *Tidex {
 	if proxyProvider == nil {
 		proxyProvider = clients.NewNoProxy()
 	}
+	opts.Credentials.Sign = sign
 	return &Tidex{
 		Exchange: schemas.Exchange{
-			Credentials:    opts.Credentials,
-			ProxyProvider:  proxyProvider,
-			SymbolProvider: NewSymbolsProvider(proxyProvider),
-			OrdersProvider: NewOrdersProvider(proxyProvider),
-			QuotesProvider: NewQuotesProvider(proxyProvider),
-			TradesProvider: NewTradesProvider(proxyProvider),
-			UserProvider:   NewUserProvider(opts.Credentials, proxyProvider),
+			Credentials:   opts.Credentials,
+			ProxyProvider: proxyProvider,
+			Symbol:        NewSymbolsProvider(proxyProvider),
+			Orders:        NewOrdersProvider(proxyProvider),
+			Quotes:        NewQuotesProvider(proxyProvider),
+			Trades:        NewTradesProvider(proxyProvider),
+			User:          NewUserProvider(opts.Credentials, proxyProvider),
+			Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
 }
@@ -64,15 +67,15 @@ func parseSymbol(s string) (name, coin, baseCoin string) {
 	return
 }
 
-func signRequest(apiSecret string, payload map[string]string) string {
-	formValues := url.Values{}
-	for key, value := range payload {
-		formValues.Set(key, value)
-	}
-	formData := formValues.Encode()
+// sign - signing request
+func sign(key, secret string, req *http.Request) *http.Request {
+	b, _ := req.GetBody()
+	body, _ := ioutil.ReadAll(b)
 
-	sig := hmac.New(sha512.New, []byte(apiSecret))
-	sig.Write([]byte(formData))
+	sig := hmac.New(sha512.New, []byte(secret))
+	sig.Write(body)
 
-	return hex.EncodeToString(sig.Sum(nil))
+	req.Header.Set("Sign", hex.EncodeToString(sig.Sum(nil)))
+	req.Header.Set("Key", key)
+	return req
 }

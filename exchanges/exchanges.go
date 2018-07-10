@@ -7,20 +7,22 @@ import (
 
 // Exchange names
 const (
-	Tidex = "tidex"
+	Tidex  = "tidex"
+	Kucoin = "kucoin"
 )
 
-// Exchange - exchange methods
-type Exchange interface {
-	GetSymbolProvider() schemas.SymbolProvider
-	GetOrdersProvider() schemas.OrdersProvider
-	GetQuotesProvider() schemas.QuotesProvider
-	GetTradesProvider() schemas.TradesProvider
-	GetUserProvider() schemas.UserProvider
+// API - exchange API methods
+type API interface {
+	SymbolProvider() schemas.SymbolProvider
+	OrdersProvider() schemas.OrdersProvider
+	QuotesProvider() schemas.QuotesProvider
+	TradesProvider() schemas.TradesProvider
+	UserProvider() schemas.UserProvider
+	TradingProvider() schemas.TradingProvider
 }
 
 // New - exchange constructor
-func New(opts schemas.Options) Exchange {
+func New(opts schemas.Options) API {
 	if opts.Name == Tidex {
 		return tidex.New(opts)
 	}

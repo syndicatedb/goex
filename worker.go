@@ -14,7 +14,7 @@ type Worker struct {
 	exchangeName      string
 	state             state
 	httpProxyProvider proxy.Provider
-	exchange          exchanges.Exchange
+	exchange          exchanges.API
 }
 
 type state struct {
@@ -35,17 +35,18 @@ func (w *Worker) Start() {
 		Name:          w.exchangeName,
 		ProxyProvider: w.httpProxyProvider,
 		Credentials: schemas.Credentials{
-			APIKey:    "",
-			APISecret: "",
-		},
+			APIKey:    "QR1MG8OT-I4C7D2WZ-30SLFZWI-FM9EK9ZM-82X1P5PO",
+			APISecret: "f28d85ef232b1494b7a4f07edc1e792960ac0385c8b31cedd30e2958ffb3f859"},
 	})
-	w.state.symbols, err = w.exchange.GetSymbolProvider().Get()
+	w.state.symbols, err = w.exchange.SymbolProvider().Get()
 	if err != nil {
 		log.Fatalln("Symbols empty")
 	}
 	// go w.symbols()
 	// w.subscribe()
-	w.exchange.GetUserProvider().Info()
+	info, err := w.exchange.UserProvider().Info()
+	fmt.Printf("User: %+v\n", info)
+	fmt.Println("err: ", err)
 }
 
 func (w *Worker) subscribe() {
@@ -55,7 +56,7 @@ func (w *Worker) subscribe() {
 }
 
 func (w *Worker) symbols() {
-	chs := w.exchange.GetSymbolProvider().Subscribe(10 * time.Hour)
+	chs := w.exchange.SymbolProvider().Subscribe(10 * time.Hour)
 	for msg := range chs {
 		if msg.Error != nil {
 			fmt.Println("Symbols error: ", msg.Error)
@@ -64,7 +65,7 @@ func (w *Worker) symbols() {
 }
 
 func (w *Worker) orderBook(symbols []schemas.Symbol) {
-	chs := w.exchange.GetOrdersProvider().
+	chs := w.exchange.OrdersProvider().
 		SetSymbols(symbols).
 		SubscribeAll(1 * time.Second)
 	for msg := range chs {
@@ -74,7 +75,7 @@ func (w *Worker) orderBook(symbols []schemas.Symbol) {
 	}
 }
 func (w *Worker) quotes(symbols []schemas.Symbol) {
-	chs := w.exchange.GetQuotesProvider().
+	chs := w.exchange.QuotesProvider().
 		SetSymbols(symbols).
 		SubscribeAll(1 * time.Second)
 	for msg := range chs {
@@ -84,7 +85,7 @@ func (w *Worker) quotes(symbols []schemas.Symbol) {
 	}
 }
 func (w *Worker) trades(symbols []schemas.Symbol) {
-	chs := w.exchange.GetTradesProvider().
+	chs := w.exchange.TradesProvider().
 		SetSymbols(symbols).
 		SubscribeAll(1 * time.Second)
 	for msg := range chs {

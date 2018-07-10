@@ -88,3 +88,45 @@ func (t Trade) Map(symbol string) schemas.Trade {
 		Timestamp: t.Timestamp,
 	}
 }
+
+// UserInfoResponse - tidex response
+type UserInfoResponse struct {
+	Return struct {
+		Funds map[string]struct {
+			Value    float64 `json:"value"`
+			InOrders float64 `json:"inOrders"`
+		} `json:"funds"`
+		Rights struct {
+			Info     bool `json:"info"`     // true,
+			Trade    bool `json:"trade"`    // true,
+			Withdraw bool `json:"withdraw"` // false
+		} `json:"rights"`
+		TransactionCount int32 `json:"transaction_count"` // 0,
+		OpenOrders       int32 `json:"open_orders"`       // 0,
+		ServerTime       int64 `json:"server_time"`       // 1531172634
+	} `json:"return"`
+}
+
+func (ui *UserInfoResponse) Map() schemas.UserInfo {
+	var balances map[string]schemas.Balance
+	if len(ui.Return.Funds) > 0 {
+		for key, v := range ui.Return.Funds {
+			name, _, _ := parseSymbol(key)
+			balances[name] = schemas.Balance{
+				Total:     (v.Value + v.InOrders),
+				InOrders:  v.InOrders,
+				Available: v.Value,
+			}
+		}
+	}
+	return schemas.UserInfo{
+		Access: schemas.Access{
+			Read:     ui.Return.Rights.Info,
+			Trade:    ui.Return.Rights.Trade,
+			Withdraw: ui.Return.Rights.Withdraw,
+		},
+		Balances:    balances,
+		TradesCount: ui.Return.TransactionCount,
+		OrdersCount: ui.Return.OpenOrders,
+	}
+}
