@@ -1,4 +1,4 @@
-package exchanges
+package goex
 
 import (
 	"github.com/syndicatedb/goex/exchanges/tidex"

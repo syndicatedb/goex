@@ -110,11 +110,12 @@ type UserInfoResponse struct {
 
 // Map - mapping Tidex user info to common
 func (ui *UserInfoResponse) Map() schemas.UserInfo {
-	var balances map[string]schemas.Balance
+	balances := make(map[string]schemas.Balance)
 	if len(ui.Return.Funds) > 0 {
 		for key, v := range ui.Return.Funds {
-			name, _, _ := parseSymbol(key)
+			name := strings.ToUpper(key)
 			balances[name] = schemas.Balance{
+				Coin:      name,
 				Total:     (v.Value + v.InOrders),
 				InOrders:  v.InOrders,
 				Available: v.Value,

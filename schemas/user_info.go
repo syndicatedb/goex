@@ -18,6 +18,7 @@ type Access struct {
 
 // Balance - balance struct
 type Balance struct {
+	Coin      string
 	Available float64
 	InOrders  float64
 	Total     float64
