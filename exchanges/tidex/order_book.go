@@ -55,13 +55,13 @@ func (ob *OrdersProvider) GetOrderBook(symbol schemas.Symbol) (book schemas.Orde
 }
 
 // Subscribe - getting all symbols from Exchange
-func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r chan schemas.Result) {
+func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r chan schemas.ResultChannel) {
 	return
 }
 
 // SubscribeAll - getting all symbols from Exchange
-func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.Result {
-	ch := make(chan schemas.Result)
+func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
+	ch := make(chan schemas.ResultChannel)
 
 	for _, orderBook := range ob.books {
 		go orderBook.subscribe(ch, d)

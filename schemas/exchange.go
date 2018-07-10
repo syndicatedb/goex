@@ -11,13 +11,6 @@ type Credentials struct {
 	Sign      Signer
 }
 
-// Result - sending data with channels
-type Result struct {
-	DataType string
-	Error    error
-	Data     interface{}
-}
-
 /*
 Exchange - exchange struct
 */

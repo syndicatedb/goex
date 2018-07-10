@@ -125,6 +125,9 @@ func (client *HTTP) Request(method, endpoint string, params, payload KeyValue, i
 	if err != nil {
 		fmt.Println("Error: ", err)
 		fmt.Printf("Response: %+v\n\n", resp)
+		if resp.Body != nil {
+			resp.Body.Close()
+		}
 		return
 	}
 	defer resp.Body.Close()

@@ -1,5 +1,12 @@
 package schemas
 
+// ResultChannel - sending data with channels
+type ResultChannel struct {
+	DataType string
+	Error    error
+	Data     interface{}
+}
+
 // UserInfoChannel - for User info subscription
 type UserInfoChannel struct {
 	Data  UserInfo

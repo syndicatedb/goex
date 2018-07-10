@@ -56,16 +56,16 @@ func (qp *QuotesProvider) Get(symbol schemas.Symbol) (q schemas.Quote, err error
 }
 
 // Subscribe - subscribing to quote by symbol and interval
-func (qp *QuotesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.Result {
-	ch := make(chan schemas.Result)
+func (qp *QuotesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
+	ch := make(chan schemas.ResultChannel)
 	group := NewQuotesGroup([]schemas.Symbol{symbol}, qp.httpProxy)
 	go group.subscribe(ch, d)
 	return ch
 }
 
 // SubscribeAll - subscribing to all quotes with interval
-func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.Result {
-	ch := make(chan schemas.Result)
+func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
+	ch := make(chan schemas.ResultChannel)
 
 	for _, group := range qp.groups {
 		go group.subscribe(ch, d)

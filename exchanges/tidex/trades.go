@@ -56,16 +56,16 @@ func (tp *TradesProvider) Get(symbol schemas.Symbol) (q []schemas.Trade, err err
 }
 
 // Subscribe - subscribing to quote by symbol and interval
-func (tp *TradesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.Result {
-	ch := make(chan schemas.Result)
+func (tp *TradesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
+	ch := make(chan schemas.ResultChannel)
 	group := NewTradesGroup([]schemas.Symbol{symbol}, tp.httpProxy)
 	go group.subscribe(ch, d)
 	return ch
 }
 
 // SubscribeAll - subscribing to all quotes with interval
-func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.Result {
-	ch := make(chan schemas.Result)
+func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
+	ch := make(chan schemas.ResultChannel)
 
 	for _, group := range tp.groups {
 		go group.subscribe(ch, d)

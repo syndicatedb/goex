@@ -28,19 +28,22 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 }
 
 // SubscribeAll - getting all symbols from Exchange
-func (q *TradesGroup) subscribe(ch chan schemas.Result, d time.Duration) {
+func (q *TradesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
 	for {
-		quotes, err := q.Get()
+		trades, err := q.Get()
 		if err != nil {
-			ch <- schemas.Result{
-				Data:  quotes,
+			ch <- schemas.ResultChannel{
+				Data:  trades,
 				Error: err,
 			}
 		}
-		for _, b := range quotes {
-			ch <- schemas.Result{
-				Data:  b,
-				Error: err,
+		for _, b := range trades {
+			if len(b) > 0 {
+				ch <- schemas.ResultChannel{
+					DataType: "s",
+					Data:     b,
+					Error:    err,
+				}
 			}
 		}
 		time.Sleep(d)

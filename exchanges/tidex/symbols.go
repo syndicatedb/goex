@@ -50,13 +50,13 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 }
 
 // Subscribe - getting all symbols from Exchange
-func (sp *SymbolsProvider) Subscribe(d time.Duration) chan schemas.Result {
-	ch := make(chan schemas.Result)
+func (sp *SymbolsProvider) Subscribe(d time.Duration) chan schemas.ResultChannel {
+	ch := make(chan schemas.ResultChannel)
 
 	go func() {
 		for {
 			symbols, err := sp.Get()
-			ch <- schemas.Result{
+			ch <- schemas.ResultChannel{
 				Data:  symbols,
 				Error: err,
 			}

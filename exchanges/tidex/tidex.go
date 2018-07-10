@@ -25,8 +25,8 @@ const (
 var (
 	// SubscriptionInterval - default subscription interval
 	SubscriptionInterval  = 1 * time.Second
-	orderBookSymbolsLimit = 20
-	quotesSymbolsLimit    = 10
+	orderBookSymbolsLimit = 15
+	quotesSymbolsLimit    = 15
 	exchangeName          = ""
 )
 

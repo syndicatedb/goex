@@ -28,19 +28,20 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 }
 
 // SubscribeAll - getting all symbols from Exchange
-func (ob *OrderBookGroup) subscribe(ch chan schemas.Result, d time.Duration) {
+func (ob *OrderBookGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
 	for {
 		book, err := ob.Get()
 		if err != nil {
-			ch <- schemas.Result{
+			ch <- schemas.ResultChannel{
 				Data:  book,
 				Error: err,
 			}
 		}
 		for _, b := range book {
-			ch <- schemas.Result{
-				Data:  b,
-				Error: err,
+			ch <- schemas.ResultChannel{
+				DataType: "s",
+				Data:     b,
+				Error:    err,
 			}
 		}
 		time.Sleep(d)

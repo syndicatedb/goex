@@ -28,17 +28,17 @@ func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesG
 }
 
 // SubscribeAll - getting all symbols from Exchange
-func (q *QuotesGroup) subscribe(ch chan schemas.Result, d time.Duration) {
+func (q *QuotesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
 	for {
 		quotes, err := q.Get()
 		if err != nil {
-			ch <- schemas.Result{
+			ch <- schemas.ResultChannel{
 				Data:  quotes,
 				Error: err,
 			}
 		}
 		for _, b := range quotes {
-			ch <- schemas.Result{
+			ch <- schemas.ResultChannel{
 				Data:  b,
 				Error: err,
 			}
