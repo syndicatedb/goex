@@ -3,6 +3,7 @@ package tidex
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -60,12 +61,21 @@ func (q *TradesGroup) Get() (trades [][]schemas.Trade, err error) {
 	if b, err = q.httpClient.Get(apiTrades+strings.Join(symbols, "-"), clients.Params(), false); err != nil {
 		return
 	}
-	var resp TradesResponse
+	var resp Response
 	if err = json.Unmarshal(b, &resp); err != nil {
+		fmt.Println("Response error:", string(b))
+		return
+	}
+	if resp.Error != "" {
+		log.Println("Error in Trades response: ", resp.Error)
+		return
+	}
+	var tradesResponse TradesResponse
+	if err = json.Unmarshal(b, &tradesResponse); err != nil {
 		fmt.Println("string(b)", string(b))
 		return
 	}
-	for sname, d := range resp {
+	for sname, d := range tradesResponse {
 		name, _, _ := parseSymbol(sname)
 		var symbolTrades []schemas.Trade
 		for _, t := range d {

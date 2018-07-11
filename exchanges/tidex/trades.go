@@ -24,7 +24,7 @@ func NewTradesProvider(httpProxy proxy.Provider) *TradesProvider {
 func (tp *TradesProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradesProvider {
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
-	capacity := quotesSymbolsLimit
+	capacity := tradesSymbolsLimit
 	for {
 		if len(slice) <= capacity {
 			tp.groups = append(

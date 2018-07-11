@@ -1,6 +1,7 @@
 package tidex
 
 import (
+	"log"
 	"sync"
 	"time"
 
@@ -25,6 +26,7 @@ func NewOrdersProvider(httpProxy proxy.Provider) *OrdersProvider {
 
 // SetSymbols - getting all symbols from Exchange
 func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersProvider {
+	log.Println("Symbols: ", len(symbols))
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
 	capacity := orderBookSymbolsLimit
@@ -43,7 +45,6 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 
 		slice = slice[capacity:]
 	}
-
 	return ob
 }
 

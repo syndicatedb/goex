@@ -7,6 +7,12 @@ import (
 	"github.com/syndicatedb/goex/schemas"
 )
 
+// Response - common response to get success or fail before parsing
+type Response struct {
+	Success int    `json:"success"`
+	Error   string `json:"error"`
+}
+
 // SymbolResponse - symbol response
 type SymbolResponse struct {
 	ServerTime int64             `json:"server_time"` // 1530993527
@@ -21,7 +27,7 @@ type Symbol struct {
 	MinAmount     float64 `json:"min_amount"`     //  0.001,
 	MaxAmount     float64 `json:"max_amount"`     //  10000000,
 	MinTotal      float64 `json:"min_total"`      //  1,
-	Hidden        float64 `json:"hidden"`         //  0,
+	Hidden        int     `json:"hidden"`         //  0,
 	Fee           float64 `json:"fee"`            //  0.1
 }
 
@@ -53,7 +59,7 @@ type Quote struct {
 // Map - mapping Tidex model to common model
 func (q Quote) Map(name string) schemas.Quote {
 	return schemas.Quote{
-		Name:      name,
+		Symbol:    name,
 		High:      q.High,
 		Low:       q.Low,
 		Avg:       q.Avg,
@@ -62,7 +68,7 @@ func (q Quote) Map(name string) schemas.Quote {
 		LastTrade: q.Last,
 		Buy:       q.Buy,
 		Sell:      q.Sell,
-		Updated:   q.Updated,
+		Updated:   int64(q.Updated),
 	}
 }
 
