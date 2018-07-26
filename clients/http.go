@@ -3,6 +3,7 @@ package clients
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -125,13 +126,14 @@ func (client *HTTP) Request(method, endpoint string, params, payload KeyValue, i
 	if err != nil {
 		fmt.Println("Error: ", err)
 		fmt.Printf("Response: %+v\n\n", resp)
-		if resp.Body != nil {
-			resp.Body.Close()
-		}
+		return
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("Error reading body:", err)
 		return
 	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
 		fmt.Println(resp.Status)
 	}
