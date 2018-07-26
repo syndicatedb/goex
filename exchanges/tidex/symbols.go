@@ -2,7 +2,6 @@ package tidex
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/syndicatedb/goex/clients"
 	"github.com/syndicatedb/goex/schemas"
@@ -52,18 +51,20 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 }
 
 // Subscribe - getting all symbols from Exchange
-func (sp *SymbolsProvider) Subscribe(d time.Duration) chan schemas.ResultChannel {
-	ch := make(chan schemas.ResultChannel)
-
-	go func() {
-		for {
-			symbols, err := sp.Get()
-			ch <- schemas.ResultChannel{
-				Data:  symbols,
-				Error: err,
-			}
-			time.Sleep(d)
-		}
-	}()
-	return ch
+func (sp *SymbolsProvider) Subscribe(callback func(string, string, interface{}, error)) {
+	// func (sp *SymbolsProvider) Subscribe(d time.Duration, ch chan schemas.ResultChannel) {
+	// ch := make(chan schemas.ResultChannel)
+	symbols, err := sp.Get()
+	callback("symbols", "", symbols, err)
+	// go func() {
+	// 	for {
+	// 		symbols, err := sp.Get()
+	// 		ch <- schemas.ResultChannel{
+	// 			Data:  symbols,
+	// 			Error: err,
+	// 		}
+	// 		time.Sleep(d)
+	// 	}
+	// }()
+	// return ch
 }

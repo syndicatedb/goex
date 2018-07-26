@@ -1,8 +1,8 @@
 package clients
 
 import (
-	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -38,6 +38,10 @@ func NewHTTP(proxy proxy.Client) *HTTP {
 		proxy:   proxy,
 		Headers: Headers(),
 	}
+}
+
+func (client *HTTP) SetProxy(proxy proxy.Client) {
+	client.proxy = proxy
 }
 
 type KeyValue struct {
@@ -104,6 +108,7 @@ func (client *HTTP) Request(method, endpoint string, params, payload KeyValue, i
 	if err != nil {
 		return
 	}
+	req.Close = true
 
 	if method == "POST" || method == "PUT" {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
@@ -122,16 +127,20 @@ func (client *HTTP) Request(method, endpoint string, params, payload KeyValue, i
 	}
 
 	resp, err := client.proxy.Do(req)
-	defer resp.Body.Close()
 	if err != nil {
-		fmt.Println("Error: ", err)
-		fmt.Printf("Response: %+v\n\n", resp)
+		log.Println("Error: ", err)
+		log.Printf("Response: %+v\n\n", resp)
 		return
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != 200 {
-		fmt.Println(resp.Status)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err)
+		return nil, err
 	}
+	if resp.StatusCode != 200 {
+		log.Println(resp.Status)
+	}
+	defer resp.Body.Close()
 	return body, nil
 }
 

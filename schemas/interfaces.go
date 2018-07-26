@@ -11,7 +11,8 @@ type Signer func(string, string, *http.Request) *http.Request
 // SymbolProvider - provides symbol methods
 type SymbolProvider interface {
 	Get() (symbols []Symbol, err error)
-	Subscribe(time.Duration) chan ResultChannel
+	// Subscribe(time.Duration, chan ResultChannel)
+	Subscribe(callback func(string, string, interface{}, error))
 }
 
 // OrdersProvider - provides access to Order book
@@ -37,8 +38,8 @@ type TradesProvider interface {
 
 // subscriber - provides public trades
 type subscriber interface {
-	Subscribe(symbol Symbol, d time.Duration) chan ResultChannel
-	SubscribeAll(d time.Duration) chan ResultChannel
+	Subscribe(symbol Symbol, d time.Duration, ch chan ResultChannel)
+	SubscribeAll(callback func(string, string, interface{}, error))
 }
 
 // type OHLCVProvider interface {

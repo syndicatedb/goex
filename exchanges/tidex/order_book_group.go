@@ -2,7 +2,6 @@ package tidex
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -16,51 +15,76 @@ import (
 type OrderBookGroup struct {
 	symbols      []schemas.Symbol
 	httpClient   *clients.HTTP
+	httpProxy    proxy.Provider
 	emptySymbols map[string]string
 }
 
 // NewOrderBookGroup - OrderBook constructor
 func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *OrderBookGroup {
-	proxyClient := httpProxy.NewClient(exchangeName)
+	// proxyClient := httpProxy.NewClient(exchangeName)
 
 	return &OrderBookGroup{
-		symbols:      symbols,
-		httpClient:   clients.NewHTTP(proxyClient),
+		symbols:   symbols,
+		httpProxy: httpProxy,
+		// httpClient:   clients.NewHTTP(proxyClient),
 		emptySymbols: make(map[string]string),
 	}
 }
 
 // SubscribeAll - getting all symbols from Exchange
-func (ob *OrderBookGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
-	i := 0
+// func (ob *OrderBookGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
+// 	i := 0
+// 	for {
+// 		book, err := ob.Get()
+// 		log.Println("Orderbook:", len(book), err)
+// 		if err != nil {
+// 			ch <- schemas.ResultChannel{
+// 				Data:  book,
+// 				Error: err,
+// 			}
+// 		}
+// 		for _, b := range book {
+// 			ch <- schemas.ResultChannel{
+// 				DataType: "s",
+// 				Data:     b,
+// 				Error:    err,
+// 			}
+// 		}
+// 		i++
+// 		if i%5 == 0 {
+// 			if len(ob.emptySymbols) > 0 {
+// 				log.Println("Empty: ", ob.emptySymbols)
+// 			}
+// 		}
+// 		time.Sleep(d)
+// 	}
+// }
+func (ob *OrderBookGroup) subscribe(callback func(string, string, interface{}, error)) {
 	for {
+		log.Println("Before get book")
 		book, err := ob.Get()
+		log.Println("After get book")
 		if err != nil {
-			ch <- schemas.ResultChannel{
-				Data:  book,
-				Error: err,
+			for _, b := range book {
+				callback("orderbook", "", b, err)
 			}
 		}
 		for _, b := range book {
-			ch <- schemas.ResultChannel{
-				DataType: "s",
-				Data:     b,
-				Error:    err,
-			}
+			callback("orderbook", "s", b, err)
 		}
-		i++
-		if i%5 == 0 {
-			if len(ob.emptySymbols) > 0 {
-				log.Println("Empty: ", ob.emptySymbols)
-			}
-		}
-		time.Sleep(d)
+		time.Sleep(500 * time.Millisecond)
 	}
+}
+
+func (ob *OrderBookGroup) SetProxy() {
+	proxyClient := ob.httpProxy.NewClient(exchangeName)
+	ob.httpClient = clients.NewHTTP(proxyClient)
 }
 
 // Get - getting all symbols from Exchange
 func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 	// start := time.Now().UnixNano() / 1000000
+	ob.SetProxy()
 	book = make(map[string]schemas.OrderBook)
 	var by []byte
 	var symbols []string
@@ -79,7 +103,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 	// }
 	var resp Response
 	if err = json.Unmarshal(by, &resp); err != nil {
-		fmt.Println("Response error:", string(by))
+		log.Println("Response error:", string(by))
 		return
 	}
 	if resp.Error != "" {
@@ -88,7 +112,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 	}
 	var booksResponse OrderBookResponse
 	if err = json.Unmarshal(by, &booksResponse); err != nil {
-		fmt.Println("Order Response error:", string(by))
+		log.Println("Order Response error:", string(by))
 		return
 	}
 	for sname, d := range booksResponse {

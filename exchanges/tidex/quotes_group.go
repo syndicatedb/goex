@@ -2,7 +2,7 @@ package tidex
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -15,42 +15,68 @@ import (
 type QuotesGroup struct {
 	symbols    []schemas.Symbol
 	httpClient *clients.HTTP
+	httpProxy  proxy.Provider
 }
 
 // NewQuotesGroup - OrderBook constructor
 func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesGroup {
-	proxyClient := httpProxy.NewClient(exchangeName)
+	// proxyClient := httpProxy.NewClient(exchangeName)
 
 	return &QuotesGroup{
-		symbols:    symbols,
-		httpClient: clients.NewHTTP(proxyClient),
+		symbols:   symbols,
+		httpProxy: httpProxy,
+		// httpClient: clients.NewHTTP(proxyClient),
 	}
 }
 
 // SubscribeAll - getting all symbols from Exchange
-func (q *QuotesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
+// func (q *QuotesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
+// 	for {
+// 		quotes, err := q.Get()
+// 		log.Println("Quotes:", len(quotes), err)
+// 		if err != nil {
+// 			ch <- schemas.ResultChannel{
+// 				Data:  quotes,
+// 				Error: err,
+// 			}
+// 		}
+// 		for _, b := range quotes {
+// 			ch <- schemas.ResultChannel{
+// 				Data:  b,
+// 				Error: err,
+// 			}
+// 		}
+// 		time.Sleep(d)
+// 	}
+// }
+
+func (q *QuotesGroup) subscribe(callback func(string, string, interface{}, error)) {
 	for {
+		log.Println("Before get quotes")
 		quotes, err := q.Get()
+		log.Println("After get quotes")
 		if err != nil {
-			ch <- schemas.ResultChannel{
-				Data:  quotes,
-				Error: err,
+			for _, b := range quotes {
+				callback("quotes", "", b, err)
 			}
 		}
 		for _, b := range quotes {
-			ch <- schemas.ResultChannel{
-				Data:  b,
-				Error: err,
-			}
+			callback("quotes", "s", b, err)
 		}
-		time.Sleep(d)
+		time.Sleep(500 * time.Millisecond)
 	}
+}
+
+func (q *QuotesGroup) SetProxy() {
+	proxyClient := q.httpProxy.NewClient(exchangeName)
+	q.httpClient = clients.NewHTTP(proxyClient)
 }
 
 // Get - getting all quotes from Exchange
 func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	var b []byte
 	var symbols []string
+	q.SetProxy()
 	for _, symbol := range q.symbols {
 		symbols = append(symbols, symbol.OriginalName)
 	}
@@ -59,7 +85,7 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	}
 	var resp QuoteResponse
 	if err = json.Unmarshal(b, &resp); err != nil {
-		fmt.Println("string(b)", string(b))
+		log.Println("string(b)", string(b))
 		return
 	}
 	for sname, d := range resp {

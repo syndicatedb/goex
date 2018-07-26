@@ -56,17 +56,28 @@ func (ob *OrdersProvider) GetOrderBook(symbol schemas.Symbol) (book schemas.Orde
 }
 
 // Subscribe - getting all symbols from Exchange
-func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r chan schemas.ResultChannel) {
-	return
+func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration, ch chan schemas.ResultChannel) {
+	// r = make(chan schemas.ResultChannel)
+	// return
 }
 
 // SubscribeAll - getting all symbols from Exchange
-func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	ch := make(chan schemas.ResultChannel)
+// func (ob *OrdersProvider) SubscribeAll(d time.Duration, ch chan schemas.ResultChannel) {
+// 	// ch := make(chan schemas.ResultChannel)
+
+// 	for _, orderBook := range ob.books {
+// 		go orderBook.subscribe(ch, d)
+// 		time.Sleep(100 * time.Millisecond)
+// 	}
+// 	// return ch
+// }
+
+func (ob *OrdersProvider) SubscribeAll(callback func(string, string, interface{}, error)) {
+	// ch := make(chan schemas.ResultChannel)
 
 	for _, orderBook := range ob.books {
-		go orderBook.subscribe(ch, d)
+		go orderBook.subscribe(callback)
 		time.Sleep(100 * time.Millisecond)
 	}
-	return ch
+	// return ch
 }
