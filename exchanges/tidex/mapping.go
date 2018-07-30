@@ -86,10 +86,17 @@ type Trade struct {
 
 // Map - mapping Tidex trade to common
 func (t Trade) Map(symbol string) schemas.Trade {
+	var trType string
+	if strings.ToLower(t.Type) == "ask" {
+		trType = "buy"
+	}
+	if strings.ToLower(t.Type) == "bid" {
+		trType = "sell"
+	}
 	return schemas.Trade{
 		ID:        fmt.Sprintf("%v", t.Tid),
 		Symbol:    symbol,
-		Type:      t.Type,
+		Type:      trType,
 		Price:     t.Price,
 		Amount:    t.Amount,
 		Timestamp: t.Timestamp,
