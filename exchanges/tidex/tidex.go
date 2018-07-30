@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/syndicatedb/goex/clients"
+	"github.com/syndicatedb/goex/internal/proxy"
 	"github.com/syndicatedb/goex/schemas"
 )
 
@@ -43,7 +43,7 @@ func New(opts schemas.Options) *Tidex {
 	exchangeName = opts.Name
 	proxyProvider := opts.ProxyProvider
 	if proxyProvider == nil {
-		proxyProvider = clients.NewNoProxy()
+		proxyProvider = proxy.NewNoProxy()
 	}
 	opts.Credentials.Sign = sign
 	return &Tidex{

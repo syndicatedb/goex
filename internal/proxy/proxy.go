@@ -1,4 +1,4 @@
-package clients
+package proxy
 
 import (
 	"net/http"

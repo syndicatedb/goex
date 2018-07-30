@@ -1,4 +1,4 @@
-package clients
+package httpclient
 
 import (
 	"fmt"
@@ -17,25 +17,25 @@ const (
 	methodPOST = "POST"
 )
 
-// HTTP - http mapper/helper
-type HTTP struct {
+// Client - http mapper/helper
+type Client struct {
 	proxy       proxy.Client
 	credentials schemas.Credentials
 	Headers     KeyValue
 }
 
-// NewSignedHTTP - HTTP mapper constructor
-func NewSignedHTTP(credentials schemas.Credentials, proxy proxy.Client) *HTTP {
-	return &HTTP{
+// NewSigned - HTTP mapper constructor
+func NewSigned(credentials schemas.Credentials, proxy proxy.Client) *Client {
+	return &Client{
 		proxy:       proxy,
 		credentials: credentials,
 		Headers:     Headers(),
 	}
 }
 
-// NewHTTP - HTTP mapper constructor
-func NewHTTP(proxy proxy.Client) *HTTP {
-	return &HTTP{
+// New - HTTP mapper constructor
+func New(proxy proxy.Client) *Client {
+	return &Client{
 		proxy:   proxy,
 		Headers: Headers(),
 	}
@@ -67,17 +67,17 @@ func Headers() KeyValue {
 }
 
 // Get - http GET request
-func (client *HTTP) Get(url string, params KeyValue, isSigned bool) (b []byte, err error) {
+func (client *Client) Get(url string, params KeyValue, isSigned bool) (b []byte, err error) {
 	return client.Request(methodGET, url, params, KeyValue{}, isSigned)
 }
 
 // Post - http GET request
-func (client *HTTP) Post(url string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
+func (client *Client) Post(url string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
 	return client.Request(methodPOST, url, params, payload, isSigned)
 }
 
 // Request - custom HTTP request
-func (client *HTTP) Request(method, endpoint string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
+func (client *Client) Request(method, endpoint string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
 	var formData string
 	rawurl := endpoint
 	if method == methodGET {
@@ -140,7 +140,7 @@ func (client *HTTP) Request(method, endpoint string, params, payload KeyValue, i
 	return body, nil
 }
 
-func (client *HTTP) sign(req *http.Request) *http.Request {
+func (client *Client) sign(req *http.Request) *http.Request {
 	key := client.credentials.APIKey
 	secret := client.credentials.APISecret
 	return client.credentials.Sign(key, secret, req)

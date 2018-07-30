@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/syndicatedb/goex/clients"
+	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -15,7 +15,7 @@ import (
 // OrderBookGroup - order book
 type OrderBookGroup struct {
 	symbols      []schemas.Symbol
-	httpClient   *clients.HTTP
+	httpClient   *httpclient.Client
 	emptySymbols map[string]string
 }
 
@@ -25,7 +25,7 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 
 	return &OrderBookGroup{
 		symbols:      symbols,
-		httpClient:   clients.NewHTTP(proxyClient),
+		httpClient:   httpclient.New(proxyClient),
 		emptySymbols: make(map[string]string),
 	}
 }
@@ -67,7 +67,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 	for _, symbol := range ob.symbols {
 		symbols = append(symbols, symbol.OriginalName)
 	}
-	params := clients.Params()
+	params := httpclient.Params()
 	params.Set("limit", "2000")
 	if by, err = ob.httpClient.Get(apiOrderBook+strings.Join(symbols, "-"), params, false); err != nil {
 		return

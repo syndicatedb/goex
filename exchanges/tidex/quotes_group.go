@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/syndicatedb/goex/clients"
+	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -14,7 +14,7 @@ import (
 // QuotesGroup - group of quotes to group requests
 type QuotesGroup struct {
 	symbols    []schemas.Symbol
-	httpClient *clients.HTTP
+	httpClient *httpclient.Client
 }
 
 // NewQuotesGroup - OrderBook constructor
@@ -23,7 +23,7 @@ func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesG
 
 	return &QuotesGroup{
 		symbols:    symbols,
-		httpClient: clients.NewHTTP(proxyClient),
+		httpClient: httpclient.New(proxyClient),
 	}
 }
 
@@ -54,7 +54,7 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	for _, symbol := range q.symbols {
 		symbols = append(symbols, symbol.OriginalName)
 	}
-	if b, err = q.httpClient.Get(apiQuotes+strings.Join(symbols, "-"), clients.Params(), false); err != nil {
+	if b, err = q.httpClient.Get(apiQuotes+strings.Join(symbols, "-"), httpclient.Params(), false); err != nil {
 		return
 	}
 	var resp QuoteResponse
