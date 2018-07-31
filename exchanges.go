@@ -1,14 +1,16 @@
 package goex
 
 import (
+	"github.com/syndicatedb/goex/exchanges/bitfinex"
 	"github.com/syndicatedb/goex/exchanges/tidex"
 	"github.com/syndicatedb/goex/schemas"
 )
 
 // Exchange names
 const (
-	Tidex  = "tidex"
-	Kucoin = "kucoin"
+	Tidex    = "tidex"
+	Kucoin   = "kucoin"
+	Bitfinex = "bitfinex"
 )
 
 // API - exchange API methods
@@ -24,6 +26,9 @@ type API interface {
 func New(opts schemas.Options) API {
 	if opts.Name == Tidex {
 		return tidex.New(opts)
+	}
+	if opts.Name == Bitfinex {
+		return bitfinex.New(opts)
 	}
 	return nil
 }

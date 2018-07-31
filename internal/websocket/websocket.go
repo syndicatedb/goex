@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -37,7 +38,7 @@ NewClient - Websocket client constructor
 func NewClient(url string, proxy proxy.Provider) *Client {
 	return &Client{
 		config:           Config{URL: url},
-		keepalive:        true,
+		keepalive:        false,
 		keepaliveTimeout: time.Minute,
 		proxyProvider:    proxy,
 	}
@@ -62,10 +63,17 @@ func (c *Client) ChangeKeepAlive(f bool) *Client {
 // Connect - connecting to Websocket server
 func (c *Client) Connect() (err error) {
 	log.Println("websocket connecting")
+	var dialer websocket.Dialer
 	var resp *http.Response
-	// proxyClient := c.proxyProvider.NewClient("")
-	dialer := websocket.Dialer{
-	// Proxy: http.ProxyURL(),
+	ip := c.proxyProvider.IP()
+	log.Println("IP:", ip)
+	if len(ip) > 0 {
+		proxyURL, _ := url.Parse(c.proxyProvider.IP())
+		dialer = websocket.Dialer{
+			Proxy: http.ProxyURL(proxyURL),
+		}
+	} else {
+		dialer = websocket.Dialer{}
 	}
 	c.conn, resp, err = dialer.Dial(c.getAddressURL(), nil)
 	// c.conn, resp, err = websocket.DefaultDialer.Dial(c.getAddressURL(), nil)

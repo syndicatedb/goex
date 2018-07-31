@@ -1,7 +1,9 @@
 package bitfinex
 
 import (
+	"log"
 	"strings"
+	"time"
 
 	"github.com/syndicatedb/goex/internal/proxy"
 	"github.com/syndicatedb/goex/schemas"
@@ -10,13 +12,24 @@ import (
 const (
 	exchangeName = "bitfinex"
 	apiSymbols   = "https://api.bitfinex.com/v1/symbols_details"
+	wsURL        = "wss://api.bitfinex.com/ws/2"
 )
 
+const (
+	subscriptionInterval  = 1 * time.Second
+	orderBookSymbolsLimit = 100
+	tradesSymbolsLimit    = 10
+	quotesSymbolsLimit    = 10
+)
+
+// Bitfinex - bitfinex exchange structure
 type Bitfinex struct {
 	schemas.Exchange
 }
 
+// New - bitfinex exchange constructor
 func New(opts schemas.Options) *Bitfinex {
+	log.Println("Constructing bitfinex")
 	proxyProvider := opts.ProxyProvider
 	if proxyProvider == nil {
 		proxyProvider = proxy.NewNoProxy()
@@ -27,7 +40,7 @@ func New(opts schemas.Options) *Bitfinex {
 			Credentials:   opts.Credentials,
 			ProxyProvider: proxyProvider,
 			Symbol:        NewSymbolsProvider(proxyProvider),
-			// Orders:        NewOrdersProvider(proxyProvider),
+			Orders:        NewOrdersProvider(proxyProvider),
 			// Quotes:        NewQuotesProvider(proxyProvider),
 			// Trades:        NewTradesProvider(proxyProvider),
 			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
@@ -36,9 +49,8 @@ func New(opts schemas.Options) *Bitfinex {
 }
 
 func parseSymbol(s string) (name, coin, baseCoin string) {
-	sa := strings.Split(s, "_")
-	coin = strings.ToUpper(sa[0])
-	baseCoin = strings.ToUpper(sa[1])
+	coin = strings.ToUpper(s[0:3])
+	baseCoin = strings.ToUpper(s[3:])
 	name = coin + "-" + baseCoin
 	return
 }
