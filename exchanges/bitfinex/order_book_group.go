@@ -15,8 +15,6 @@ type OrderBookGroup struct {
 	httpProxy proxy.Provider
 	subs      *SubsManager
 	bus       ordersBus
-
-	emptySymbols map[string]string
 }
 
 type ordersBus struct {
@@ -27,9 +25,8 @@ type ordersBus struct {
 // NewOrderBookGroup - OrderBookGroup constructor
 func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *OrderBookGroup {
 	return &OrderBookGroup{
-		symbols:      symbols,
-		emptySymbols: make(map[string]string),
-		httpProxy:    httpProxy,
+		symbols:   symbols,
+		httpProxy: httpProxy,
 		bus: ordersBus{
 			serviceChannel: make(chan ChannelMessage),
 		},
@@ -76,7 +73,6 @@ func (ob *OrderBookGroup) listen() {
 					DataType: datatype,
 					Data:     orders,
 				}
-				log.Println("Finished writing to channel in order book group")
 			}
 		}
 	}()

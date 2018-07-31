@@ -41,8 +41,8 @@ func New(opts schemas.Options) *Bitfinex {
 			ProxyProvider: proxyProvider,
 			Symbol:        NewSymbolsProvider(proxyProvider),
 			Orders:        NewOrdersProvider(proxyProvider),
+			Trades:        NewTradesProvider(proxyProvider),
 			// Quotes:        NewQuotesProvider(proxyProvider),
-			// Trades:        NewTradesProvider(proxyProvider),
 			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}

@@ -143,7 +143,7 @@ func (sm *SubsManager) listen() {
 }
 
 func (sm *SubsManager) parseMessage(msg []byte) {
-	log.Printf("string(msg): %s \n", string(msg))
+	// log.Printf("string(msg): %s \n", string(msg))
 	t := bytes.TrimLeftFunc(msg, unicode.IsSpace)
 	var err error
 	// either a channel data array or an event object, raw json encoding
