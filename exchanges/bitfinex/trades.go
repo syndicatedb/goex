@@ -1,6 +1,7 @@
 package bitfinex
 
 import (
+	"sync"
 	"time"
 
 	"github.com/syndicatedb/goex/schemas"
@@ -10,6 +11,8 @@ import (
 type TradesProvider struct {
 	groups    []*TradesGroup
 	httpProxy proxy.Provider
+
+	sync.Mutex
 }
 
 func NewTradesProvider(httpProxy proxy.Provider) *TradesProvider {
