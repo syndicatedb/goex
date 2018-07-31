@@ -2,6 +2,7 @@ package tidex
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/syndicatedb/goex/schemas"
@@ -60,14 +61,14 @@ type Quote struct {
 func (q Quote) Map(name string) schemas.Quote {
 	return schemas.Quote{
 		Symbol:    name,
-		High:      q.High,
-		Low:       q.Low,
-		Avg:       q.Avg,
-		Volume:    q.Vol,
-		VolCur:    q.VolCur,
-		LastTrade: q.Last,
-		Buy:       q.Buy,
-		Sell:      q.Sell,
+		High:      strconv.FormatFloat(q.High, 'f', 8, 64),
+		Low:       strconv.FormatFloat(q.Low, 'f', 8, 64),
+		Avg:       strconv.FormatFloat(q.Avg, 'f', 8, 64),
+		Volume:    strconv.FormatFloat(q.Vol, 'f', 8, 64),
+		VolCur:    strconv.FormatFloat(q.VolCur, 'f', 8, 64),
+		LastTrade: strconv.FormatFloat(q.Last, 'f', 8, 64),
+		Buy:       strconv.FormatFloat(q.Buy, 'f', 8, 64),
+		Sell:      strconv.FormatFloat(q.Sell, 'f', 8, 64),
 		Updated:   int64(q.Updated),
 	}
 }
