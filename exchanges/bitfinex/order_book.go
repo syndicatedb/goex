@@ -1,7 +1,6 @@
 package bitfinex
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -45,7 +44,6 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 
 		slice = slice[capacity:]
 	}
-	log.Println("BOOKS", len(ob.books))
 	return ob
 }
 
@@ -66,7 +64,6 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	for _, orderBook := range ob.books {
 		go orderBook.start(ch)
 		time.Sleep(100 * time.Millisecond)
-		// time.Sleep(2 * time.Second)
 	}
 	return ch
 }

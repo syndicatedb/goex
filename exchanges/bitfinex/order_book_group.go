@@ -8,15 +8,7 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-type subsMessage struct {
-	Event     string `json:"event"`
-	Channel   string `json:"channel"`
-	Symbol    string `json:"symbol"`
-	Precision string `json:"prec"`
-	Frequency string `json:"freq"`
-	Length    string `json:"len"`
-}
-
+// OrderBookGroup - order book group structure
 type OrderBookGroup struct {
 	symbols   []schemas.Symbol
 	wsClient  *websocket.Client
@@ -32,6 +24,7 @@ type ordersBus struct {
 	dataChannel    chan schemas.ResultChannel
 }
 
+// NewOrderBookGroup - OrderBookGroup constructor
 func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *OrderBookGroup {
 	return &OrderBookGroup{
 		symbols:      symbols,
@@ -43,6 +36,7 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 	}
 }
 
+// start - starting updates
 func (ob *OrderBookGroup) start(ch chan schemas.ResultChannel) {
 	ob.bus.dataChannel = ch
 
@@ -51,16 +45,18 @@ func (ob *OrderBookGroup) start(ch chan schemas.ResultChannel) {
 	ob.subscribe()
 }
 
+// connect - creating new WS client and establishing connection
 func (ob *OrderBookGroup) connect() {
 	ws := websocket.NewClient(wsURL, ob.httpProxy)
 	if err := ws.Connect(); err != nil {
 		log.Println("Error connecting to bitfinex API: ", err)
 		return
 	}
-	// ws.ChangeKeepAlive(true)
+
 	ob.wsClient = ws
 }
 
+// subscribe - subscribing to books by symbols
 func (ob *OrderBookGroup) subscribe() {
 	var smbls []string
 	for _, s := range ob.symbols {
@@ -70,13 +66,12 @@ func (ob *OrderBookGroup) subscribe() {
 	ob.subs.Subscribe()
 }
 
+// listen - listening to updates from WS
 func (ob *OrderBookGroup) listen() {
 	go func() {
 		for msg := range ob.bus.serviceChannel {
 			orders, datatype := ob.handleMessage(msg)
 			if len(orders.Buy) > 0 || len(orders.Sell) > 0 {
-				log.Println("DATATYPE", datatype)
-				log.Println("ORDERS", orders)
 				ob.bus.dataChannel <- schemas.ResultChannel{
 					DataType: datatype,
 					Data:     orders,
@@ -87,6 +82,7 @@ func (ob *OrderBookGroup) listen() {
 	}()
 }
 
+// handleMessage - handling message from WS
 func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.OrderBook, dataType string) {
 	data := cm.Data
 	symbol := cm.Symbol
@@ -103,43 +99,43 @@ func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.Order
 			return ob.handleSnapshot(symbol, v)
 		}
 
-		orders = ob.mapOrderBook(symbol, v)
+		sl := make([]interface{}, 0)
+		sl = append(sl, v)
+		orders = ob.mapOrderBook(symbol, sl)
 	} else {
 		log.Println("Unrecognized: ", data)
 	}
 	return
 }
 
+// handleSnapshot - handling snapshot message
 func (ob *OrderBookGroup) handleSnapshot(symbol string, data []interface{}) (orders schemas.OrderBook, datatype string) {
 	orders = ob.mapOrderBook(symbol, data)
 	datatype = "snapshot"
 	return
 }
 
+// mapOrderBook - mapping incoming books message into commot OrderBook model
 func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas.OrderBook {
 	orderBook := schemas.OrderBook{
 		Symbol: symbol,
 	}
 	for i := range raw {
-		ordr := ob.mapOrder(symbol, raw[i])
-		if ordr.Amount > 0 {
-			orderBook.Buy = append(orderBook.Buy, ordr)
-		} else {
-			orderBook.Sell = append(orderBook.Sell, ordr)
+		if o, ok := raw[i].([]interface{}); ok {
+			ordr := schemas.Order{
+				Symbol: symbol,
+				Price:  o[0].(float64),
+				Amount: o[2].(float64),
+				Count:  1,
+			}
+
+			if ordr.Amount > 0 {
+				orderBook.Buy = append(orderBook.Buy, ordr)
+			} else {
+				orderBook.Sell = append(orderBook.Sell, ordr)
+			}
 		}
 	}
 
 	return orderBook
-}
-
-func (ob *OrderBookGroup) mapOrder(symbol string, ordr interface{}) schemas.Order {
-	if o, ok := ordr.([]interface{}); ok {
-		return schemas.Order{
-			Symbol: symbol,
-			Price:  o[0].(float64),
-			Amount: o[2].(float64),
-			Count:  1,
-		}
-	}
-	return schemas.Order{}
 }
