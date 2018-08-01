@@ -49,7 +49,7 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 }
 
 // GetOrderBook - getting all symbols from Exchange
-func (ob *OrdersProvider) GetOrderBook(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
+func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
 	orderBookGroup := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
 	m, err := orderBookGroup.Get()
 	return m[symbol.OriginalName], err
