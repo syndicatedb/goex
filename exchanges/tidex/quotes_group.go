@@ -74,6 +74,7 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 		oldPriceStr, err := q.data.Get("price_" + name)
 		if err != nil {
 			log.Println(err)
+			oldPriceStr = "0"
 		}
 		oldPrice, err := strconv.ParseFloat(oldPriceStr, 64)
 		if err != nil {
