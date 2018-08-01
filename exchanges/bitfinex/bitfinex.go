@@ -52,7 +52,7 @@ func New(opts schemas.Options) *Bitfinex {
 	}
 }
 
-func parseSymbol(s string) (name, coin, baseCoin string) {
+func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 	basecoin = strings.ToUpper(s[0:3])
 	quoteCoin = strings.ToUpper(s[3:])
 	name = basecoin + "-" + quoteCoin
