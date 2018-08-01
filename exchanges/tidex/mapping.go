@@ -2,6 +2,7 @@ package tidex
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/syndicatedb/goex/schemas"
@@ -58,6 +59,7 @@ type Quote struct {
 
 // Map - mapping Tidex model to common model
 func (q Quote) Map(name string) schemas.Quote {
+<<<<<<< HEAD
 	// return schemas.Quote{
 	// 	Symbol:    name,
 	// 	High:      q.High,
@@ -71,6 +73,20 @@ func (q Quote) Map(name string) schemas.Quote {
 	// 	Updated:   int64(q.Updated),
 	// }
 	return schemas.Quote{}
+=======
+	return schemas.Quote{
+		Symbol:      name,
+		High:        strconv.FormatFloat(q.High, 'f', 8, 64),
+		Low:         strconv.FormatFloat(q.Low, 'f', 8, 64),
+		Price:       strconv.FormatFloat(q.Last, 'f', 8, 64),
+		VolumeBase:  strconv.FormatFloat(q.VolCur, 'f', 8, 64),
+		VolumeQuote: strconv.FormatFloat(q.Vol, 'f', 8, 64),
+		// LastTrade:   strconv.FormatFloat(q.Last, 'f', 8, 64),
+		// Buy:         strconv.FormatFloat(q.Buy, 'f', 8, 64),
+		// Sell:        strconv.FormatFloat(q.Sell, 'f', 8, 64),
+		// Updated:     int64(q.Updated),
+	}
+>>>>>>> master
 }
 
 // TradesResponse - Tidex HTTP response for trades
@@ -87,10 +103,17 @@ type Trade struct {
 
 // Map - mapping Tidex trade to common
 func (t Trade) Map(symbol string) schemas.Trade {
+	var trType string
+	if strings.ToLower(t.Type) == "ask" {
+		trType = "buy"
+	}
+	if strings.ToLower(t.Type) == "bid" {
+		trType = "sell"
+	}
 	return schemas.Trade{
 		ID:        fmt.Sprintf("%v", t.Tid),
 		Symbol:    symbol,
-		Type:      t.Type,
+		Type:      trType,
 		Price:     t.Price,
 		Amount:    t.Amount,
 		Timestamp: t.Timestamp,
