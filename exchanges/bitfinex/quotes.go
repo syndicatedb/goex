@@ -8,6 +8,7 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
+// QuotesProvider - quotes provider structure
 type QuotesProvider struct {
 	httpProxy proxy.Provider
 	symbols   []schemas.Symbol
@@ -16,6 +17,7 @@ type QuotesProvider struct {
 	sync.Mutex
 }
 
+// NewQuotesProvider - QuotesProvider constructor
 func NewQuotesProvider(httpProxy proxy.Provider) *QuotesProvider {
 	return &QuotesProvider{
 		httpProxy: httpProxy,
@@ -45,17 +47,17 @@ func (qp *QuotesProvider) SetSymbols(symbols []schemas.Symbol) schemas.QuotesPro
 	return qp
 }
 
-// TODO: Add get and subscribe methods
 // Get - getting quotes by symbol
 func (qp *QuotesProvider) Get(symbol schemas.Symbol) (q schemas.Quote, err error) {
-	return
+	group := NewQuotesGroup([]schemas.Symbol{symbol}, qp.httpProxy)
+	return group.Get()
 }
 
 // Subscribe - subscribing to quote by one symbol
 func (qp *QuotesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
 	group := NewQuotesGroup([]schemas.Symbol{symbol}, qp.httpProxy)
-	go group.start(ch)
+	go group.Start(ch)
 	return ch
 }
 
@@ -64,7 +66,7 @@ func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	ch := make(chan schemas.ResultChannel)
 
 	for _, group := range qp.groups {
-		go group.start(ch)
+		go group.Start(ch)
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch

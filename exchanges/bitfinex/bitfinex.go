@@ -14,6 +14,7 @@ const (
 	apiSymbols   = "https://api.bitfinex.com/v1/symbols_details"
 	apiOrderBook = "https://api.bitfinex.com/v2/book"
 	apiTrades    = "https://api.bitfinex.com/v2/trades"
+	apiQuotes    = "https://api.bitfinex.com/v2/ticker"
 
 	wsURL = "wss://api.bitfinex.com/ws/2"
 )

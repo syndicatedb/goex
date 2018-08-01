@@ -1,9 +1,13 @@
 package bitfinex
 
 import (
+	"encoding/json"
+	"errors"
 	"log"
 	"strconv"
+	"strings"
 
+	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/internal/websocket"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
@@ -11,11 +15,12 @@ import (
 
 // QuotesGroup - quotes group strcutre
 type QuotesGroup struct {
-	symbols   []schemas.Symbol
-	wsClient  *websocket.Client
-	httpProxy proxy.Provider
-	subs      *SubsManager
-	bus       quotesBus
+	symbols    []schemas.Symbol
+	wsClient   *websocket.Client
+	httpClient *httpclient.Client
+	httpProxy  proxy.Provider
+	subs       *SubsManager
+	bus        quotesBus
 }
 
 type quotesBus struct {
@@ -25,17 +30,47 @@ type quotesBus struct {
 
 // NewQuotesGroup - QuotesGroup constructor
 func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesGroup {
+	proxyClient := httpProxy.NewClient(exchangeName)
+
 	return &QuotesGroup{
-		symbols:   symbols,
-		httpProxy: httpProxy,
+		symbols:    symbols,
+		httpProxy:  httpProxy,
+		httpClient: httpclient.New(proxyClient),
 		bus: quotesBus{
 			serviceChannel: make(chan ChannelMessage),
 		},
 	}
 }
 
-// start - starting updates
-func (q *QuotesGroup) start(ch chan schemas.ResultChannel) {
+// Get - getting quote by one symbol
+func (q *QuotesGroup) Get() (quote schemas.Quote, err error) {
+	var b []byte
+	var resp interface{}
+	var symbol string
+
+	if len(q.symbols) == 0 {
+		err = errors.New("Symbol is empty")
+		return
+	}
+	symbol = q.symbols[0].OriginalName
+	url := apiQuotes + "/" + "t" + strings.ToUpper(symbol)
+
+	if b, err = q.httpClient.Get(url, httpclient.Params(), false); err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if qt, ok := resp.([]interface{}); ok {
+		return q.mapQuote(symbol, qt), nil
+	}
+
+	err = errors.New("Exchange order books data invalid")
+	return
+}
+
+// Start - starting updates
+func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 	q.bus.dataChannel = ch
 
 	q.listen()
