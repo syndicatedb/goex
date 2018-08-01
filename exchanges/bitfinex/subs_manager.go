@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"unicode"
-	"xproto/shared/lib"
 
 	"github.com/syndicatedb/goex/internal/websocket"
 )
@@ -222,7 +221,7 @@ func (sm *SubsManager) handleChannel(msg []byte) (err error) {
 	if err = json.Unmarshal(msg, &channels); err != nil {
 		return
 	}
-	chanID := lib.Int64Value(channels[0])
+	chanID := int64Value(channels[0])
 	if chanID > 0 {
 		var e Event
 		e, err = sm.get(chanID)
@@ -275,4 +274,14 @@ func (sm *SubsManager) get(chanID int64) (e Event, err error) {
 		return
 	}
 	return e, errors.New("subscription not found")
+}
+
+func int64Value(v interface{}) int64 {
+	if f, ok := v.(float64); ok {
+		return int64(f)
+	}
+	if i, ok := v.(int64); ok {
+		return i
+	}
+	return 0
 }
