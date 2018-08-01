@@ -54,7 +54,7 @@ func New(opts schemas.Options) *Bitfinex {
 
 func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 	log.Println("SYMBOL", s)
-	baseSymbols := []string{"usd", "eur", "gbr", "jpy", "btc", "eth", "eos"}
+	baseSymbols := []string{"USD", "EUR", "GBP", "JPY", "BTC", "ETH", "EOS"}
 
 	for _, symb := range baseSymbols {
 		if strings.Contains(s, symb) {
