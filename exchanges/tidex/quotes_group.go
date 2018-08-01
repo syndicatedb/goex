@@ -87,7 +87,7 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 
 		quote.DrawdownValue = strconv.FormatFloat(newPrice-oldPrice, 'f', 8, 64)
 
-		quote.DrawdownPercent = strconv.FormatFloat((newPrice-oldPrice)/newPrice, 'f', 8, 64)
+		quote.DrawdownPercent = strconv.FormatFloat(100*(newPrice-oldPrice)/newPrice, 'f', 4, 64)
 
 		quotes = append(quotes, quote)
 
