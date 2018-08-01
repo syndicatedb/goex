@@ -58,6 +58,8 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 	for _, symb := range baseSymbols {
 		if strings.Contains(s, symb) {
 			log.Println("CONTAINS", s, symb)
+			log.Println("LAST INDEX", strings.LastIndex(s, symb))
+			log.Println("LEN", len(s))
 			if strings.LastIndex(s, symb) == len(s)-1 {
 				log.Println("HAS LAST INDEX")
 				quoteCoin = strings.ToUpper(symb)
