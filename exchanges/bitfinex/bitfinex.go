@@ -13,6 +13,7 @@ const (
 	exchangeName = "bitfinex"
 	apiSymbols   = "https://api.bitfinex.com/v1/symbols_details"
 	apiOrderBook = "https://api.bitfinex.com/v2/book"
+	apiTrades    = "https://api.bitfinex.com/v2/trades"
 
 	wsURL = "wss://api.bitfinex.com/ws/2"
 )

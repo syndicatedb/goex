@@ -1,8 +1,13 @@
 package bitfinex
 
 import (
+	"encoding/json"
+	"errors"
 	"log"
 	"strconv"
+	"strings"
+
+	"github.com/syndicatedb/goex/internal/http"
 
 	"github.com/syndicatedb/goex/internal/websocket"
 	"github.com/syndicatedb/goex/schemas"
@@ -11,11 +16,13 @@ import (
 
 // TradesGroup - trades group structure
 type TradesGroup struct {
-	symbols   []schemas.Symbol
-	wsClient  *websocket.Client
-	httpProxy proxy.Provider
-	subs      *SubsManager
-	bus       tradesBus
+	symbols []schemas.Symbol
+
+	wsClient   *websocket.Client
+	httpClient *httpclient.Client
+	httpProxy  proxy.Provider
+	subs       *SubsManager
+	bus        tradesBus
 }
 
 type tradesBus struct {
@@ -25,17 +32,50 @@ type tradesBus struct {
 
 // NewTradesGroup - TradesGroup constructor
 func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesGroup {
+	proxyClient := httpProxy.NewClient(exchangeName)
+
 	return &TradesGroup{
-		symbols:   symbols,
-		httpProxy: httpProxy,
+		symbols:    symbols,
+		httpProxy:  httpProxy,
+		httpClient: httpclient.New(proxyClient),
 		bus: tradesBus{
 			serviceChannel: make(chan ChannelMessage),
 		},
 	}
 }
 
-// start - starting updates
-func (tg *TradesGroup) start(ch chan schemas.ResultChannel) {
+// Get - getting trades snapshot by symbol
+func (tg *TradesGroup) Get() (trades []schemas.Trade, err error) {
+	var b []byte
+	var resp interface{}
+	var symbol string
+
+	if len(tg.symbols) == 0 {
+		err = errors.New("Symbol is empty")
+		return
+	}
+	symbol = tg.symbols[0].OriginalName
+	url := apiTrades + "/" + "t" + strings.ToUpper(symbol) + "/hist"
+
+	if b, err = tg.httpClient.Get(url, httpclient.Params(), false); err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if trds, ok := resp.([]interface{}); ok {
+		for _, tr := range trds {
+			if t, ok := tr.([]interface{}); ok {
+				trades = append(trades, tg.mapTrade(symbol, t)[0])
+			}
+		}
+	}
+
+	return
+}
+
+// Start - starting updates
+func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	tg.bus.dataChannel = ch
 
 	tg.listen()
