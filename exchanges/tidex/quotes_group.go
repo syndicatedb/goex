@@ -3,10 +3,13 @@ package tidex
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/syndicatedb/goex/clients"
+	"github.com/syndicatedb/goex/internal/state"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -15,6 +18,7 @@ import (
 type QuotesGroup struct {
 	symbols    []schemas.Symbol
 	httpClient *clients.HTTP
+	data       *state.State
 }
 
 // NewQuotesGroup - OrderBook constructor
@@ -24,6 +28,7 @@ func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesG
 	return &QuotesGroup{
 		symbols:    symbols,
 		httpClient: clients.NewHTTP(proxyClient),
+		data:       state.New(),
 	}
 }
 
@@ -64,7 +69,28 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	}
 	for sname, d := range resp {
 		name, _, _ := parseSymbol(sname)
-		quotes = append(quotes, d.Map(name))
+		quote := d.Map(name)
+
+		oldPriceStr, err := q.data.Get("price_" + name)
+		if err != nil {
+			log.Println(err)
+		}
+		oldPrice, err := strconv.ParseFloat(oldPriceStr, 64)
+		if err != nil {
+			log.Println(err)
+		}
+		newPrice, err := strconv.ParseFloat(quote.Price, 64)
+		if err != nil {
+			log.Println(err)
+		}
+
+		quote.DrawdownValue = strconv.FormatFloat(newPrice-oldPrice, 'f', 8, 64)
+
+		quote.DrawdownPercent = strconv.FormatFloat((newPrice-oldPrice)/newPrice, 'f', 8, 64)
+
+		quotes = append(quotes, quote)
+
+		q.data.Set("price_"+name, quote.Price)
 	}
 	return
 }
