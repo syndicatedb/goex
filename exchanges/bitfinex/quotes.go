@@ -51,9 +51,11 @@ func (qp *QuotesProvider) Get(symbol schemas.Symbol) (q schemas.Quote, err error
 	return
 }
 
-// Subscribe - subscribing to quote by symbol and interval
+// Subscribe - subscribing to quote by one symbol
 func (qp *QuotesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
+	group := NewQuotesGroup([]schemas.Symbol{symbol}, qp.httpProxy)
+	go group.start(ch)
 	return ch
 }
 

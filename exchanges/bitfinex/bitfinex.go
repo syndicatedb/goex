@@ -12,7 +12,9 @@ import (
 const (
 	exchangeName = "bitfinex"
 	apiSymbols   = "https://api.bitfinex.com/v1/symbols_details"
-	wsURL        = "wss://api.bitfinex.com/ws/2"
+	apiOrderBook = "https://api.bitfinex.com/v2/book"
+
+	wsURL = "wss://api.bitfinex.com/ws/2"
 )
 
 const (

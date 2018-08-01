@@ -1,8 +1,12 @@
 package bitfinex
 
 import (
+	"encoding/json"
+	"errors"
 	"log"
+	"strings"
 
+	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/internal/websocket"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
@@ -10,11 +14,13 @@ import (
 
 // OrderBookGroup - order book group structure
 type OrderBookGroup struct {
-	symbols   []schemas.Symbol
-	wsClient  *websocket.Client
-	httpProxy proxy.Provider
-	subs      *SubsManager
-	bus       ordersBus
+	symbols []schemas.Symbol
+
+	wsClient   *websocket.Client
+	httpClient *httpclient.Client
+	httpProxy  proxy.Provider
+	subs       *SubsManager
+	bus        ordersBus
 }
 
 type ordersBus struct {
@@ -24,17 +30,47 @@ type ordersBus struct {
 
 // NewOrderBookGroup - OrderBookGroup constructor
 func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *OrderBookGroup {
+	proxyClient := httpProxy.NewClient(exchangeName)
+
 	return &OrderBookGroup{
-		symbols:   symbols,
-		httpProxy: httpProxy,
+		symbols:    symbols,
+		httpProxy:  httpProxy,
+		httpClient: httpclient.New(proxyClient),
 		bus: ordersBus{
 			serviceChannel: make(chan ChannelMessage),
 		},
 	}
 }
 
-// start - starting updates
-func (ob *OrderBookGroup) start(ch chan schemas.ResultChannel) {
+// Get - loading order books snapshot by one symbol
+func (ob *OrderBookGroup) Get() (book schemas.OrderBook, err error) {
+	var b []byte
+	var resp interface{}
+	var symbol string
+
+	if len(ob.symbols) == 0 {
+		err = errors.New("Symbol is empty")
+		return
+	}
+	symbol = ob.symbols[0].OriginalName
+	url := apiOrderBook + "/" + "t" + strings.ToUpper(symbol) + "/P0"
+
+	if b, err = ob.httpClient.Get(url, httpclient.Params(), false); err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if books, ok := resp.([]interface{}); ok {
+		return ob.mapOrderBook(symbol, books), nil
+	}
+
+	err = errors.New("Exchange order books data invalid")
+	return
+}
+
+// Start - starting updates
+func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	ob.bus.dataChannel = ch
 
 	ob.listen()

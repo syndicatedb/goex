@@ -48,12 +48,15 @@ func (tp *TradesProvider) Get(symbol schemas.Symbol) (q []schemas.Trade, err err
 	return
 }
 
-// TODO: add subscribe to symbols method
+// Subscribe - subscribing to trades by one symbol
 func (tp *TradesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
+	group := NewTradesGroup([]schemas.Symbol{symbol}, tp.httpProxy)
+	go group.start(ch)
 	return ch
 }
 
+// SubscribeAll - subscribing all groups
 func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
 

@@ -47,14 +47,12 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 	return ob
 }
 
-// GetOrderBook - TODO: rename to 'Get' and add some code
-func (ob *OrdersProvider) GetOrderBook(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
-	return
-}
-
-// Subscribe - getting all symbols from Exchange
+// Subscribe - subscribing to quote by one symbol
 func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r chan schemas.ResultChannel) {
-	return
+	ch := make(chan schemas.ResultChannel)
+	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
+	go group.Start(ch)
+	return ch
 }
 
 // SubscribeAll - subscribing all groups
@@ -62,8 +60,14 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	ch := make(chan schemas.ResultChannel)
 
 	for _, orderBook := range ob.books {
-		go orderBook.start(ch)
+		go orderBook.Start(ch)
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch
+}
+
+// GetOrderBook - TODO: rename to 'Get'
+func (ob *OrdersProvider) GetOrderBook(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
+	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
+	return group.Get()
 }

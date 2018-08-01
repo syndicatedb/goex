@@ -109,24 +109,24 @@ func NewSubsManager(channel string, symbols []string, conn *websocket.Client, dc
 // Subscribe - subscribing to channel
 func (sm *SubsManager) Subscribe() {
 	sm.listen()
-	sm.poolStart()
+	sm.start()
 	sm.subscribe()
 }
 
 // reSubscribe - re-subscribing to channel
 // Method is created to gain more control
 func (sm *SubsManager) reSubscribe() {
-	sm.poolConnect()
-	sm.poolStart()
+	sm.connect()
+	sm.start()
 	sm.subscribe()
 }
 
-func (sm *SubsManager) poolConnect() {
+func (sm *SubsManager) connect() {
 	if err := sm.conn.Connect(); err != nil {
 		log.Println("Error connecting: ", err)
 	}
 }
-func (sm *SubsManager) poolStart() {
+func (sm *SubsManager) start() {
 	sm.conn.Listen(sm.bus.data, sm.bus.errors)
 }
 
