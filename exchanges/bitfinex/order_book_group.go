@@ -62,7 +62,7 @@ func (ob *OrderBookGroup) Get() (book schemas.OrderBook, err error) {
 		return
 	}
 	if books, ok := resp.([]interface{}); ok {
-		return ob.mapOrderBook(symbol, books), nil
+		return ob.mapOrderBook(symbol, "s", books), nil
 	}
 
 	err = errors.New("Exchange order books data invalid")
@@ -133,7 +133,7 @@ func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.Order
 
 		sl := make([]interface{}, 0)
 		sl = append(sl, v)
-		orders = ob.mapOrderBook(symbol, sl)
+		orders = ob.mapOrderBook(symbol, "u", sl)
 	} else {
 		log.Println("Unrecognized: ", data)
 	}
@@ -142,13 +142,13 @@ func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.Order
 
 // handleSnapshot - handling snapshot message
 func (ob *OrderBookGroup) handleSnapshot(symbol string, data []interface{}) (orders schemas.OrderBook, datatype string) {
-	orders = ob.mapOrderBook(symbol, data)
 	datatype = "s"
+	orders = ob.mapOrderBook(symbol, datatype, data)
 	return
 }
 
 // mapOrderBook - mapping incoming books message into commot OrderBook model
-func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas.OrderBook {
+func (ob *OrderBookGroup) mapOrderBook(symbol, _type string, raw []interface{}) schemas.OrderBook {
 	smb, _, _ := parseSymbol(symbol)
 	orderBook := schemas.OrderBook{
 		Symbol: smb,
@@ -160,6 +160,7 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 				Price:  o[0].(float64),
 				Amount: o[2].(float64),
 				Count:  1,
+				Type:   _type,
 			}
 
 			if ordr.Amount > 0 {
