@@ -58,18 +58,19 @@ type Quote struct {
 
 // Map - mapping Tidex model to common model
 func (q Quote) Map(name string) schemas.Quote {
-	return schemas.Quote{
-		Symbol:    name,
-		High:      q.High,
-		Low:       q.Low,
-		Avg:       q.Avg,
-		Volume:    q.Vol,
-		VolCur:    q.VolCur,
-		LastTrade: q.Last,
-		Buy:       q.Buy,
-		Sell:      q.Sell,
-		Updated:   int64(q.Updated),
-	}
+	// return schemas.Quote{
+	// 	Symbol:    name,
+	// 	High:      q.High,
+	// 	Low:       q.Low,
+	// 	Avg:       q.Avg,
+	// 	Volume:    q.Vol,
+	// 	VolCur:    q.VolCur,
+	// 	LastTrade: q.Last,
+	// 	Buy:       q.Buy,
+	// 	Sell:      q.Sell,
+	// 	Updated:   int64(q.Updated),
+	// }
+	return schemas.Quote{}
 }
 
 // TradesResponse - Tidex HTTP response for trades

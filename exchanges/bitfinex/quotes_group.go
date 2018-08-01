@@ -2,12 +2,14 @@ package bitfinex
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/syndicatedb/goex/internal/websocket"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
+// QuotesGroup - quotes group strcutre
 type QuotesGroup struct {
 	symbols   []schemas.Symbol
 	wsClient  *websocket.Client
@@ -21,6 +23,7 @@ type quotesBus struct {
 	dataChannel    chan schemas.ResultChannel
 }
 
+// NewQuotesGroup - QuotesGroup constructor
 func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesGroup {
 	return &QuotesGroup{
 		symbols:   symbols,
@@ -57,7 +60,7 @@ func (q *QuotesGroup) subscribe() {
 	for _, s := range q.symbols {
 		smbls = append(smbls, s.OriginalName)
 	}
-	q.subs = NewSubsManager("trades", smbls, q.wsClient, q.bus.serviceChannel)
+	q.subs = NewSubsManager("ticker", smbls, q.wsClient, q.bus.serviceChannel)
 	q.subs.Subscribe()
 }
 
@@ -76,6 +79,36 @@ func (q *QuotesGroup) listen() {
 	}()
 }
 
+// handleMessage - handling incoming WS message
 func (q *QuotesGroup) handleMessage(cm ChannelMessage) (quotes []schemas.Quote, dataType string) {
+	symbol := cm.Symbol
+	data := cm.Data
+
+	if ut, ok := data[1].(string); ok {
+		if ut == "hb" {
+			return
+		}
+	}
+	if upd, ok := data[1].([]interface{}); ok {
+		dataType = "update"
+		quotes = append(quotes, q.mapQuote(symbol, upd))
+	}
+
 	return
+}
+
+// mapQuote - mapping incoming WS message into common Quote model
+func (q *QuotesGroup) mapQuote(symbol string, d []interface{}) schemas.Quote {
+	volumeBase := d[7].(float64) * d[6].(float64)
+
+	return schemas.Quote{
+		Symbol:          symbol,
+		Price:           strconv.FormatFloat(d[6].(float64), 'f', 8, 64),
+		High:            strconv.FormatFloat(d[8].(float64), 'f', 8, 64),
+		Low:             strconv.FormatFloat(d[9].(float64), 'f', 8, 64),
+		DrawdownValue:   strconv.FormatFloat(d[4].(float64), 'f', 8, 64),
+		DrawdownPercent: strconv.FormatFloat(d[5].(float64), 'f', 4, 64),
+		VolumeBase:      strconv.FormatFloat(volumeBase, 'f', 8, 64),
+		VolumeQuote:     strconv.FormatFloat(d[7].(float64), 'f', 8, 64),
+	}
 }

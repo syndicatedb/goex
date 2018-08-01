@@ -22,6 +22,7 @@ const (
 	channelOrderBook = "books"
 	channelTrades    = "trades"
 	channelCandles   = "candles"
+	channelTicker    = "ticker"
 
 	wsCodeStopping = 20051
 )
@@ -185,6 +186,16 @@ func (sm *SubsManager) subscribeToSymbol(symbol string, conn *websocket.Client) 
 		message = OrderBookSubsMessage{
 			Event:     eventSubscribe,
 			Channel:   "book",
+			Symbol:    "t" + strings.ToUpper(symbol),
+			Precision: "P0",
+			Frequency: "F0",
+			Length:    "100",
+		}
+	}
+	if sm.channel == channelTicker {
+		message = OrderBookSubsMessage{
+			Event:     eventSubscribe,
+			Channel:   "ticker",
 			Symbol:    "t" + strings.ToUpper(symbol),
 			Precision: "P0",
 			Frequency: "F0",
