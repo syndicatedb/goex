@@ -48,7 +48,7 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 	}
 
 	for _, smb := range resp {
-		name, coin, baseCoin := parseSymbol(smb.Pair)
+		name, baseCoin, quoteCoin := parseSymbol(smb.Pair)
 		minPrice, _ := strconv.ParseFloat(smb.MinOrderSize, 64)
 		maxPrice, _ := strconv.ParseFloat(smb.MaxOrderSize, 64)
 		minAmount, _ := strconv.ParseFloat(smb.MinMargin, 64)
@@ -56,7 +56,7 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 		symbols = append(symbols, schemas.Symbol{
 			Name:         name,
 			OriginalName: smb.Pair,
-			Coin:         coin,
+			Coin:         quoteCoin,
 			BaseCoin:     baseCoin,
 			MinPrice:     minPrice,
 			MaxPrice:     maxPrice,
