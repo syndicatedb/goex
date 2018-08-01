@@ -139,7 +139,7 @@ func (tg *TradesGroup) handleMessage(cm ChannelMessage) (trades [][]schemas.Trad
 		}
 	}
 	if snap, ok := data[1].([]interface{}); ok {
-		dataType = "snapshot"
+		dataType = "s"
 		for _, trade := range snap {
 			if d, ok := trade.([]interface{}); ok {
 				trades = append(trades, tg.mapTrade(symbol, d))

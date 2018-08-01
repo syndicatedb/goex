@@ -118,7 +118,7 @@ func (ob *OrderBookGroup) listen() {
 func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.OrderBook, dataType string) {
 	data := cm.Data
 	symbol := cm.Symbol
-	dataType = "update"
+	dataType = "u"
 	if v, ok := data[1].(string); ok {
 		if v == "hb" {
 			return
@@ -143,7 +143,7 @@ func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.Order
 // handleSnapshot - handling snapshot message
 func (ob *OrderBookGroup) handleSnapshot(symbol string, data []interface{}) (orders schemas.OrderBook, datatype string) {
 	orders = ob.mapOrderBook(symbol, data)
-	datatype = "snapshot"
+	datatype = "s"
 	return
 }
 
