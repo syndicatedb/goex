@@ -149,13 +149,14 @@ func (ob *OrderBookGroup) handleSnapshot(symbol string, data []interface{}) (ord
 
 // mapOrderBook - mapping incoming books message into commot OrderBook model
 func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas.OrderBook {
+	smb, _, _ := parseSymbol(symbol)
 	orderBook := schemas.OrderBook{
-		Symbol: symbol,
+		Symbol: smb,
 	}
 	for i := range raw {
 		if o, ok := raw[i].([]interface{}); ok {
 			ordr := schemas.Order{
-				Symbol: symbol,
+				Symbol: smb,
 				Price:  o[0].(float64),
 				Amount: o[2].(float64),
 				Count:  1,

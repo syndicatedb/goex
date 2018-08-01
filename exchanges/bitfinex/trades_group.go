@@ -151,9 +151,10 @@ func (tg *TradesGroup) handleMessage(cm ChannelMessage) (trades [][]schemas.Trad
 
 // mapTrade - mapping incoming WS message into common Trade model
 func (tg *TradesGroup) mapTrade(symbol string, d []interface{}) []schemas.Trade {
+	smb, _, _ := parseSymbol(symbol)
 	trade := schemas.Trade{
 		ID:        strconv.FormatFloat(d[0].(float64), 'f', 8, 64),
-		Symbol:    symbol,
+		Symbol:    smb,
 		Price:     d[3].(float64),
 		Amount:    d[2].(float64),
 		Timestamp: int64(d[1].(float64)),

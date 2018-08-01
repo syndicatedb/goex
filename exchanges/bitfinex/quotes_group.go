@@ -134,10 +134,11 @@ func (q *QuotesGroup) handleMessage(cm ChannelMessage) (quotes []schemas.Quote, 
 
 // mapQuote - mapping incoming WS message into common Quote model
 func (q *QuotesGroup) mapQuote(symbol string, d []interface{}) schemas.Quote {
+	smb, _, _ := parseSymbol(symbol)
 	volumeBase := d[7].(float64) * d[6].(float64)
 
 	return schemas.Quote{
-		Symbol:          symbol,
+		Symbol:          smb,
 		Price:           strconv.FormatFloat(d[6].(float64), 'f', 8, 64),
 		High:            strconv.FormatFloat(d[8].(float64), 'f', 8, 64),
 		Low:             strconv.FormatFloat(d[9].(float64), 'f', 8, 64),
