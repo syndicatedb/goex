@@ -3,6 +3,7 @@ package bitfinex
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -104,6 +105,8 @@ func (ob *OrderBookGroup) listen() {
 	go func() {
 		for msg := range ob.bus.serviceChannel {
 			orders, datatype := ob.handleMessage(msg)
+			log.Println("DATATYPE", datatype)
+			log.Printf("Prepared ORDERBOOK MESSAGE %+v", orders)
 			if len(orders.Buy) > 0 || len(orders.Sell) > 0 {
 				ob.bus.dataChannel <- schemas.ResultChannel{
 					DataType: datatype,
@@ -124,7 +127,7 @@ func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.Order
 			return
 		}
 		log.Println("string: ", v)
-		return
+		// return
 	}
 	if v, ok := data[1].([]interface{}); ok {
 		if _, ok := v[0].([]interface{}); ok {
@@ -157,8 +160,8 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 		if o, ok := raw[i].([]interface{}); ok {
 			ordr := schemas.Order{
 				Symbol: smb,
-				Price:  o[0].(float64),
-				Amount: o[2].(float64),
+				Price:  fmt.Sprintf("%.8f", o[0].(float64)),
+				Amount: fmt.Sprintf("%.8f", o[2].(float64)),
 				Count:  1,
 			}
 
