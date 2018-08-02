@@ -22,6 +22,7 @@ const (
 	tradesSymbolsLimit    = 10
 	quotesSymbolsLimit    = 10
 
+	commandSubscribe        = "subscribe"
 	commandCompleteBalances = "returnCompleteBalances"
 	commandOrderBook        = "returnOrderBook"
 	commandVolumes          = "return24hVolume"
