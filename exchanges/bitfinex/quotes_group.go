@@ -103,11 +103,11 @@ func (q *QuotesGroup) subscribe() {
 func (q *QuotesGroup) listen() {
 	go func() {
 		for msg := range q.bus.serviceChannel {
-			trades, datatype := q.handleMessage(msg)
-			if len(trades) > 0 {
+			quote, datatype := q.handleMessage(msg)
+			if len(quote.Symbol) > 0 {
 				q.bus.dataChannel <- schemas.ResultChannel{
 					DataType: datatype,
-					Data:     trades,
+					Data:     quote,
 				}
 			}
 		}
@@ -115,7 +115,7 @@ func (q *QuotesGroup) listen() {
 }
 
 // handleMessage - handling incoming WS message
-func (q *QuotesGroup) handleMessage(cm ChannelMessage) (quotes []schemas.Quote, dataType string) {
+func (q *QuotesGroup) handleMessage(cm ChannelMessage) (quote schemas.Quote, dataType string) {
 	symbol := cm.Symbol
 	data := cm.Data
 
@@ -126,7 +126,8 @@ func (q *QuotesGroup) handleMessage(cm ChannelMessage) (quotes []schemas.Quote, 
 	}
 	if upd, ok := data[1].([]interface{}); ok {
 		dataType = "update"
-		quotes = append(quotes, q.mapQuote(symbol, upd))
+		quote = q.mapQuote(symbol, upd)
+		return
 	}
 
 	return
