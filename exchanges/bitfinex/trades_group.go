@@ -66,7 +66,7 @@ func (tg *TradesGroup) Get() (trades []schemas.Trade, err error) {
 	if trds, ok := resp.([]interface{}); ok {
 		for _, tr := range trds {
 			if t, ok := tr.([]interface{}); ok {
-				trades = append(trades, tg.mapTrade(symbol, t)[0])
+				trades = append(trades, tg.mapTrade(symbol, t))
 			}
 		}
 	}

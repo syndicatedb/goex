@@ -104,8 +104,6 @@ func (ob *OrderBookGroup) listen() {
 	go func() {
 		for msg := range ob.bus.serviceChannel {
 			orders, datatype := ob.handleMessage(msg)
-			log.Println("DATATYPE", datatype)
-			log.Printf("Prepared ORDERBOOK MESSAGE %+v", orders)
 			if len(orders.Buy) > 0 || len(orders.Sell) > 0 {
 				ob.bus.dataChannel <- schemas.ResultChannel{
 					DataType: datatype,
