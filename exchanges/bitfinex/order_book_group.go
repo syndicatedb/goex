@@ -160,8 +160,12 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 			ordr := schemas.Order{
 				Symbol: smb,
 				Price:  o[0].(float64),
+				Count:  o[1].(int64),
 				Amount: o[2].(float64),
-				Count:  1,
+			}
+
+			if ordr.Count == 0 {
+				ordr.Remove = 1
 			}
 
 			if ordr.Amount > 0 {
