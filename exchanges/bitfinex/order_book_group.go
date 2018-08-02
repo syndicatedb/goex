@@ -160,7 +160,7 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 			ordr := schemas.Order{
 				Symbol: smb,
 				Price:  o[0].(float64),
-				Count:  int(o[1].(int64)),
+				Count:  int(o[1].(float64)),
 				Amount: o[2].(float64),
 			}
 
