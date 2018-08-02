@@ -2,7 +2,9 @@ package goex
 
 import (
 	"github.com/syndicatedb/goex/exchanges/bitfinex"
+	"github.com/syndicatedb/goex/exchanges/poloniex"
 	"github.com/syndicatedb/goex/exchanges/tidex"
+
 	"github.com/syndicatedb/goex/schemas"
 )
 
@@ -11,6 +13,7 @@ const (
 	Tidex    = "tidex"
 	Kucoin   = "kucoin"
 	Bitfinex = "bitfinex"
+	Poloniex = "poloniex"
 )
 
 // API - exchange API methods
@@ -29,6 +32,9 @@ func New(opts schemas.Options) API {
 	}
 	if opts.Name == Bitfinex {
 		return bitfinex.New(opts)
+	}
+	if opts.Name == Poloniex {
+		return poloniex.New(opts)
 	}
 	return nil
 }
