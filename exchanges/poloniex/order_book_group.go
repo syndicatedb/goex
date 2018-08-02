@@ -23,6 +23,9 @@ type OrderBookGroup struct {
 	wsClient   *websocket.Client
 	httpProxy  proxy.Provider
 	bus        bus
+
+	connectAtemp int
+	subscribeAttemp int
 }
 
 type bus struct {
@@ -56,13 +59,20 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 
 // TODO: reconnecting method
 func (ob *OrderBookGroup) connect() {
+	ob.connectAtemp++
 	if err := ob.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to poloniex API: ", err)
+		if ob.connectAtemp <= reconnectAttemps {
+			log.Printf("Error connecting to poloniex API: %v. Reconnecting. Attemp %d of %d", err, ob.connectAtemp, reconnectAttemps)
+
+			return ob.connect()
+		}
+		log.Println("Connection to poloniex WS API wasn't establihed: ", err)
 		return
 	}
 	ob.wsClient.Listen(ob.bus.dch, ob.bus.ech)
 }
 
+// TODO: resubscribe method
 func (ob *OrderBookGroup) subscribe() {
 	for _, symb := range ob.symbols {
 		msg := subscribeMsg {
@@ -185,8 +195,36 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data [2]interface{}) schema
 	return book
 }
 
-func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) schemas.OrderBook {
-	// 
+func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book schemas.OrderBook) {
+	var price, size float64
+	symbol, err := b.getSymbolByID(pairID)
+	if err != nil {
+		log.Println("Error getting symbol: ", err)
+		return
+	}
+
+	smb, _, _ := parseSymbol(symbol)
+	if price, err = strconv.ParseFloat(data[2].(string), 64); err != nil {
+		return
+	}
+	if size, err = strconv.ParseFloat(data[3].(string), 64); err != nil {
+		return
+	}
+	if data[1] == 1 {
+		book.Buy = append(book.Buy, schemas.Order{
+			Symbol: smb,
+			Price: price,
+			Amount: size,
+		})
+	} else {
+		book.Sell = append(book.Buy, schemas.Order{
+			Symbol: smb,
+			Price: price,
+			Amount: size,
+		})
+	}
+	book.Symbol = smb
+	return
 }
 
 func (ob *OrderBookGroup) getSymbolByID(pairID int64) (string, error) {
