@@ -3,7 +3,6 @@ package bitfinex
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 
@@ -160,8 +159,8 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 		if o, ok := raw[i].([]interface{}); ok {
 			ordr := schemas.Order{
 				Symbol: smb,
-				Price:  fmt.Sprintf("%.8f", o[0].(float64)),
-				Amount: fmt.Sprintf("%.8f", o[2].(float64)),
+				Price:  o[0].(float64),
+				Amount: o[2].(float64),
 				Count:  1,
 			}
 
