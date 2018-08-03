@@ -46,27 +46,29 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 
 // Get - getting trades snapshot by symbol
 func (tg *TradesGroup) Get() (trades []schemas.Trade, err error) {
-	var b []byte
-	var resp interface{}
-	var symbol string
-
 	if len(tg.symbols) == 0 {
-		err = errors.New("Symbol is empty")
+		err = errors.New("No symbols provided")
 		return
 	}
-	symbol = tg.symbols[0].OriginalName
-	url := apiTrades + "/" + "t" + strings.ToUpper(symbol) + "/hist"
+	for i := range tg.symbols {
+		var resp interface{}
+		var symbol string
+		var b []byte
 
-	if b, err = tg.httpClient.Get(url, httpclient.Params(), false); err != nil {
-		return
-	}
-	if err = json.Unmarshal(b, &resp); err != nil {
-		return
-	}
-	if trds, ok := resp.([]interface{}); ok {
-		for _, tr := range trds {
-			if t, ok := tr.([]interface{}); ok {
-				trades = append(trades, tg.mapTrade(symbol, t))
+		symbol = tg.symbols[i].OriginalName
+		url := apiTrades + "/" + "t" + strings.ToUpper(symbol) + "/hist"
+
+		if b, err = tg.httpClient.Get(url, httpclient.Params(), false); err != nil {
+			return
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
+			return
+		}
+		if trds, ok := resp.([]interface{}); ok {
+			for _, tr := range trds {
+				if t, ok := tr.([]interface{}); ok {
+					trades = append(trades, tg.mapTrade(symbol, t))
+				}
 			}
 		}
 	}

@@ -27,6 +27,7 @@ const (
 	commandOrderBook        = "returnOrderBook"
 	commandVolumes          = "return24hVolume"
 	commandOpenOrders       = "returnOpenOrders"
+	commandTrades           = "returnTradeHistory"
 )
 
 // Poloniex - poloniex exchange structure
@@ -47,8 +48,8 @@ func New(opts schemas.Options) *Poloniex {
 			ProxyProvider: proxyProvider,
 			Symbol:        NewSymbolsProvider(proxyProvider),
 			Orders:        NewOrdersProvider(proxyProvider),
-			//Trades:        NewTradesProvider(proxyProvider),
-			Quotes: NewQuotesProvider(proxyProvider),
+			Trades:        NewTradesProvider(proxyProvider),
+			Quotes:        NewQuotesProvider(proxyProvider),
 			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
