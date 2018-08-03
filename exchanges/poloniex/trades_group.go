@@ -28,7 +28,7 @@ type trade struct {
 // TradesGroup - trade group structure
 type TradesGroup struct {
 	symbols []schemas.Symbol
-	pairs   map[int64]string
+	pairs   map[int]string
 
 	wsClient   *websocket.Client
 	httpClient *httpclient.Client
@@ -41,12 +41,13 @@ type TradesGroup struct {
 // NewTradesGroup - TradesGroup constructor
 func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesGroup {
 	proxyClient := httpProxy.NewClient(exchangeName)
+	pairs := currencPairs
 
 	return &TradesGroup{
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
-		pairs:      make(map[int64]string),
+		pairs:      pairs,
 		bus: bus{
 			dch: make(chan []byte),
 			ech: make(chan error),
@@ -213,14 +214,14 @@ func (tg *TradesGroup) mapSnapshot(symbol string, data []trade) (trades []schema
 // mapUpdate - mapping update data into common update model
 func (tg *TradesGroup) mapUpdate(pairID int64, data []interface{}) schemas.Trade {
 	var price, size float64
-	symbol, err := tg.getSymbolByID(pairID)
+	symbol, err := tg.getSymbolByID(int(pairID))
 	if err != nil {
 		log.Println("Error getting symbol: ", err)
 		return schemas.Trade{}
 	}
 
 	smb, _, _ := parseSymbol(symbol)
-	if price, err = strconv.ParseFloat(data[2].(string), 64); err != nil {
+	if price, err = strconv.ParseFloat(data[4].(string), 64); err != nil {
 		return schemas.Trade{}
 	}
 	if size, err = strconv.ParseFloat(data[3].(string), 64); err != nil {
@@ -245,21 +246,12 @@ func (tg *TradesGroup) mapUpdate(pairID int64, data []interface{}) schemas.Trade
 	return trade
 }
 
-// TODO:
-// remove addPair(), getSymbolByID() - use map from 'currency_pairs.go' instead
-// getSymbolByID - getting symbol name by it's id from state
-func (tg *TradesGroup) getSymbolByID(pairID int64) (string, error) {
+// getSymbolByID - getting symbol name by it's id
+func (tg *TradesGroup) getSymbolByID(pairID int) (string, error) {
 	tg.Lock()
 	tg.Unlock()
 	if symbol, ok := tg.pairs[pairID]; ok {
 		return symbol, nil
 	}
 	return "", fmt.Errorf("Symbol %d not found", pairID)
-}
-
-// addPair - adding symbol name and it's id into state
-func (tg *TradesGroup) addPair(id int64, pair string) {
-	tg.Lock()
-	defer tg.Unlock()
-	tg.pairs[id] = pair
 }
