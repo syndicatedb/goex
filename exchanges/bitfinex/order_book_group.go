@@ -124,7 +124,7 @@ func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.Order
 			return
 		}
 		log.Println("string: ", v)
-		return
+		// return
 	}
 	if v, ok := data[1].([]interface{}); ok {
 		if _, ok := v[0].([]interface{}); ok {
@@ -142,8 +142,8 @@ func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.Order
 
 // handleSnapshot - handling snapshot message
 func (ob *OrderBookGroup) handleSnapshot(symbol string, data []interface{}) (orders schemas.OrderBook, datatype string) {
-	orders = ob.mapOrderBook(symbol, data)
 	datatype = "s"
+	orders = ob.mapOrderBook(symbol, data)
 	return
 }
 
@@ -158,8 +158,12 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 			ordr := schemas.Order{
 				Symbol: smb,
 				Price:  o[0].(float64),
+				Count:  int(o[1].(float64)),
 				Amount: o[2].(float64),
-				Count:  1,
+			}
+
+			if ordr.Count == 0 {
+				ordr.Remove = 1
 			}
 
 			if ordr.Amount > 0 {

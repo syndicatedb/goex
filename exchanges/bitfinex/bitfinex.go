@@ -52,7 +52,8 @@ func New(opts schemas.Options) *Bitfinex {
 	}
 }
 
-func parseSymbol(s string) (name, basecoin, quoteCoin string) {
+func parseSymbol(smb string) (name, basecoin, quoteCoin string) {
+	s := strings.ToUpper(smb)
 	baseSymbols := []string{"USD", "EUR", "GBP", "JPY", "BTC", "ETH", "EOS"}
 
 	for _, symb := range baseSymbols {

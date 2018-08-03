@@ -38,9 +38,11 @@ func NewSymbolsProvider(httpProxy proxy.Provider) *SymbolsProvider {
 
 // Get - getting all symbols from Exchange
 func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
+	log.Println("Get symbols")
 	var b []byte
 	var resp []Symbol
 	if b, err = sp.httpClient.Get(apiSymbols, httpclient.Params(), false); err != nil {
+		log.Printf("ERR %+v", string(b))
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
@@ -48,7 +50,7 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 	}
 
 	for _, smb := range resp {
-		name, coin, baseCoin := parseSymbol(smb.Pair)
+		name, baseCoin, quoteCoin := parseSymbol(smb.Pair)
 		minPrice, _ := strconv.ParseFloat(smb.MinOrderSize, 64)
 		maxPrice, _ := strconv.ParseFloat(smb.MaxOrderSize, 64)
 		minAmount, _ := strconv.ParseFloat(smb.MinMargin, 64)
@@ -56,7 +58,7 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 		symbols = append(symbols, schemas.Symbol{
 			Name:         name,
 			OriginalName: smb.Pair,
-			Coin:         coin,
+			Coin:         quoteCoin,
 			BaseCoin:     baseCoin,
 			MinPrice:     minPrice,
 			MaxPrice:     maxPrice,

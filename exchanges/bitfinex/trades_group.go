@@ -66,7 +66,7 @@ func (tg *TradesGroup) Get() (trades []schemas.Trade, err error) {
 	if trds, ok := resp.([]interface{}); ok {
 		for _, tr := range trds {
 			if t, ok := tr.([]interface{}); ok {
-				trades = append(trades, tg.mapTrade(symbol, t)[0])
+				trades = append(trades, tg.mapTrade(symbol, t))
 			}
 		}
 	}
@@ -120,7 +120,7 @@ func (tg *TradesGroup) listen() {
 }
 
 // handleMessage - handling WS message
-func (tg *TradesGroup) handleMessage(cm ChannelMessage) (trades [][]schemas.Trade, dataType string) {
+func (tg *TradesGroup) handleMessage(cm ChannelMessage) (trades []schemas.Trade, dataType string) {
 	symbol := cm.Symbol
 	data := cm.Data
 
@@ -150,15 +150,13 @@ func (tg *TradesGroup) handleMessage(cm ChannelMessage) (trades [][]schemas.Trad
 }
 
 // mapTrade - mapping incoming WS message into common Trade model
-func (tg *TradesGroup) mapTrade(symbol string, d []interface{}) []schemas.Trade {
+func (tg *TradesGroup) mapTrade(symbol string, d []interface{}) schemas.Trade {
 	smb, _, _ := parseSymbol(symbol)
-	trade := schemas.Trade{
+	return schemas.Trade{
 		ID:        strconv.FormatFloat(d[0].(float64), 'f', 8, 64),
 		Symbol:    smb,
 		Price:     d[3].(float64),
 		Amount:    d[2].(float64),
 		Timestamp: int64(d[1].(float64)),
 	}
-
-	return []schemas.Trade{trade}
 }
