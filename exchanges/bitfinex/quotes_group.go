@@ -125,7 +125,7 @@ func (q *QuotesGroup) handleMessage(cm ChannelMessage) (quotes []schemas.Quote, 
 		}
 	}
 	if upd, ok := data[1].([]interface{}); ok {
-		dataType = "update"
+		dataType = "u"
 		quotes = append(quotes, q.mapQuote(symbol, upd))
 	}
 

@@ -38,14 +38,16 @@ func (q *QuotesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) 
 		quotes, err := q.Get()
 		if err != nil {
 			ch <- schemas.ResultChannel{
-				Data:  quotes,
-				Error: err,
+				Data:     quotes,
+				Error:    err,
+				DataType: "s",
 			}
 		}
 		for _, b := range quotes {
 			ch <- schemas.ResultChannel{
-				Data:  b,
-				Error: err,
+				Data:     b,
+				Error:    err,
+				DataType: "s",
 			}
 		}
 		time.Sleep(d)

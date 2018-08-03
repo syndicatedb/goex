@@ -1,4 +1,4 @@
-package bitfinex
+package binance
 
 import (
 	"sync"
