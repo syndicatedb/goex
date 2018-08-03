@@ -13,7 +13,7 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-type subscribeMsg struct {
+type ordersSubscribeMsg struct {
 	Command string `json:"command"`
 	Channel string `json:"channel"`
 }
@@ -72,7 +72,7 @@ func (ob *OrderBookGroup) connect() {
 // TODO: resubscribe method
 func (ob *OrderBookGroup) subscribe() {
 	for _, symb := range ob.symbols {
-		msg := subscribeMsg{
+		msg := ordersSubscribeMsg{
 			Command: commandSubscribe,
 			Channel: symb.OriginalName,
 		}
