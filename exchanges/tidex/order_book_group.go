@@ -83,7 +83,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 		return
 	}
 	if resp.Error != "" {
-		log.Println("Error in Order response: ", resp.Error)
+		log.Println("[TIDEX] Error in Order response: ", resp.Error)
 		return
 	}
 	var booksResponse OrderBookResponse
