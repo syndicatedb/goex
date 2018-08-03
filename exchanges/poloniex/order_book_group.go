@@ -59,7 +59,7 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	ob.subscribe()
 }
 
-// TODO: reconnect method
+// TODO: reconnect method!!!
 func (ob *OrderBookGroup) connect() {
 	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
 	ob.wsClient.UsePingMessage(".")
@@ -144,20 +144,30 @@ func (ob *OrderBookGroup) publish(data schemas.OrderBook, dataType string, err e
 }
 
 func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas.OrderBook {
+	var buy, sell interface{}
 	book := schemas.OrderBook{
 		Symbol: symbol,
 	}
-	buy := data[0]
-	sell := data[1]
 
-	if ordr, ok := buy.(map[string]string); ok {
+	if len(data) == 2 {
+		if data[0] != nil {
+			buy = data[0]
+		}
+		if data[1] != nil {
+			sell = data[1]
+		}
+	} else {
+		return schemas.OrderBook{}
+	}
+
+	if ordr, ok := buy.(map[string]interface{}); ok {
 		for pr, sz := range ordr {
 			price, err := strconv.ParseFloat(pr, 64)
 			if err != nil {
 				log.Println("Error mapping snapshot: ", err)
 				continue
 			}
-			size, err := strconv.ParseFloat(sz, 64)
+			size, err := strconv.ParseFloat(sz.(string), 64)
 			if err != nil {
 				log.Println("Error mapping snapshot: ", err)
 				continue
@@ -169,14 +179,14 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas
 			})
 		}
 	}
-	if ordr, ok := sell.(map[string]string); ok {
+	if ordr, ok := sell.(map[string]interface{}); ok {
 		for pr, sz := range ordr {
 			price, err := strconv.ParseFloat(pr, 64)
 			if err != nil {
 				log.Println("Error mapping snapshot: ", err)
 				continue
 			}
-			size, err := strconv.ParseFloat(sz, 64)
+			size, err := strconv.ParseFloat(sz.(string), 64)
 			if err != nil {
 				log.Println("Error mapping snapshot: ", err)
 				continue
@@ -193,6 +203,7 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas
 }
 
 func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book schemas.OrderBook) {
+	// log.Printf("RAW ORDERBOOK UPDATE %+v", data)
 	var price, size float64
 	symbol, err := ob.getSymbolByID(pairID)
 	if err != nil {
@@ -207,14 +218,15 @@ func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book sche
 	if size, err = strconv.ParseFloat(data[3].(string), 64); err != nil {
 		return
 	}
-	if data[1] == 1 {
+	if int(data[1].(float64)) == 1 {
 		book.Buy = append(book.Buy, schemas.Order{
 			Symbol: smb,
 			Price:  price,
 			Amount: size,
 		})
-	} else {
-		book.Sell = append(book.Buy, schemas.Order{
+	}
+	if int(data[1].(float64)) == 0 {
+		book.Sell = append(book.Sell, schemas.Order{
 			Symbol: smb,
 			Price:  price,
 			Amount: size,

@@ -27,9 +27,6 @@ const (
 	commandOrderBook        = "returnOrderBook"
 	commandVolumes          = "return24hVolume"
 	commandOpenOrders       = "returnOpenOrders"
-
-	reconnectAttemps   = 5
-	resubscribeAttemps = 5
 )
 
 // Poloniex - poloniex exchange structure
