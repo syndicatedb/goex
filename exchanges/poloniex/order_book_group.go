@@ -1,10 +1,14 @@
 package poloniex
 
 import (
-	"strconv"
+	"encoding/json"
+	"fmt"
 	"log"
-	"xproto/shared/lib/websocket"
+	"strconv"
+	"sync"
 
+	"github.com/syndicatedb/goex/internal/http"
+	"github.com/syndicatedb/goex/internal/websocket"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -16,58 +20,51 @@ type subscribeMsg struct {
 
 type OrderBookGroup struct {
 	symbols []schemas.Symbol
-	pairs map[int64]string
+	pairs   map[int64]string
 
 	wsClient   *websocket.Client
 	httpClient *httpclient.Client
-	wsClient   *websocket.Client
 	httpProxy  proxy.Provider
 	bus        bus
 
-	connectAtemp int
-	subscribeAttemp int
+	sync.RWMutex
 }
 
 type bus struct {
-	resChannel chan schems.ResultChannel
+	resChannel chan schemas.ResultChannel
 	dch        chan []byte
 	ech        chan error
 }
 
-func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Client) *OrderBookGroup {
+func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *OrderBookGroup {
 	proxyClient := httpProxy.NewClient(exchangeName)
 
 	return &OrderBookGroup{
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
-		wsClient:   websocket.NewClient(wsURL),
+		pairs:      make(map[int64]string),
 		bus: bus{
 			dch: make(chan []byte),
 			ech: make(chan error),
-		}
+		},
 	}
 }
 
 func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
-	ob.bus.dataChannel = ch
+	ob.bus.resChannel = ch
 
 	ob.listen()
 	ob.connect()
 	ob.subscribe()
 }
 
-// TODO: reconnecting method
+// TODO: reconnect method
 func (ob *OrderBookGroup) connect() {
-	ob.connectAtemp++
+	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
+	ob.wsClient.UsePingMessage(".")
 	if err := ob.wsClient.Connect(); err != nil {
-		if ob.connectAtemp <= reconnectAttemps {
-			log.Printf("Error connecting to poloniex API: %v. Reconnecting. Attemp %d of %d", err, ob.connectAtemp, reconnectAttemps)
-
-			return ob.connect()
-		}
-		log.Println("Connection to poloniex WS API wasn't establihed: ", err)
-		return
+		log.Println("Error connecting to poloniex WS API: ", err)
 	}
 	ob.wsClient.Listen(ob.bus.dch, ob.bus.ech)
 }
@@ -75,7 +72,7 @@ func (ob *OrderBookGroup) connect() {
 // TODO: resubscribe method
 func (ob *OrderBookGroup) subscribe() {
 	for _, symb := range ob.symbols {
-		msg := subscribeMsg {
+		msg := subscribeMsg{
 			Command: commandSubscribe,
 			Channel: symb.OriginalName,
 		}
@@ -89,8 +86,6 @@ func (ob *OrderBookGroup) listen() {
 	go func() {
 		for msg := range ob.bus.dch {
 			var data []interface{}
-			var orders []schemas.OrderBook
-			var dataType string
 
 			if err := json.Unmarshal(msg, &data); err != nil {
 				log.Println("Error parsing message: ", err)
@@ -100,7 +95,7 @@ func (ob *OrderBookGroup) listen() {
 			}
 			pairID := int64(data[0].(float64))
 			if len(data) > 1 {
-				if d, ok := d[2].([]interface{}); ok {
+				if d, ok := data[2].([]interface{}); ok {
 					for _, a := range d {
 						if c, ok := a.([]interface{}); ok {
 							dataType := c[0].(string)
@@ -109,44 +104,46 @@ func (ob *OrderBookGroup) listen() {
 								snapshot := c[1].(map[string]interface{})
 								symbol, _, _ := parseSymbol(snapshot["currencyPair"].(string))
 								ob.addPair(pairID, symbol)
-								book := snapshot["orderBook"].([2]interface{})
+								book := snapshot["orderBook"].([]interface{})
 
 								mappedBook := ob.mapSnapshot(symbol, book)
-								ob.publish(mappedBook, "s")
+								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
+									ob.publish(mappedBook, "s", nil)
+								}
 								continue
 							}
 							if dataType == "o" {
 								// handling update
-								mappedOrder := ob.mapUpdate(pairID, c)
-								ob.publish(order, "u")
+								mappedBook := ob.mapUpdate(pairID, c)
+								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
+									ob.publish(mappedBook, "u", nil)
+								}
 								continue
 							}
-							} else {
-								log.Printf("a: %+v\n", a)
+						} else {
+							log.Printf("a: %+v\n", a)
 						}
 					}
 				}
 			}
-
 		}
 	}()
 	go func() {
-		for msg := range ob.bus.ech {
+		for err := range ob.bus.ech {
 			log.Println("Error: ", err)
 		}
 	}()
 }
 
-func (ob *OrderBookGroup) publish(data interface{}, dataType string, err error) {
+func (ob *OrderBookGroup) publish(data schemas.OrderBook, dataType string, err error) {
 	ob.bus.resChannel <- schemas.ResultChannel{
 		DataType: dataType,
-		Data: data,
-		Error: err,
+		Data:     data,
+		Error:    err,
 	}
 }
 
-func (ob *OrderBookGroup) mapSnapshot(symbol string, data [2]interface{}) schemas.OrderBook {
-	var orders []schemas.Order
+func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas.OrderBook {
 	book := schemas.OrderBook{
 		Symbol: symbol,
 	}
@@ -167,7 +164,7 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data [2]interface{}) schema
 			}
 			book.Buy = append(book.Buy, schemas.Order{
 				Symbol: symbol,
-				Price: price,
+				Price:  price,
 				Amount: size,
 			})
 		}
@@ -186,7 +183,7 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data [2]interface{}) schema
 			}
 			book.Sell = append(book.Sell, schemas.Order{
 				Symbol: symbol,
-				Price: price,
+				Price:  price,
 				Amount: size,
 			})
 		}
@@ -197,7 +194,7 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data [2]interface{}) schema
 
 func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book schemas.OrderBook) {
 	var price, size float64
-	symbol, err := b.getSymbolByID(pairID)
+	symbol, err := ob.getSymbolByID(pairID)
 	if err != nil {
 		log.Println("Error getting symbol: ", err)
 		return
@@ -213,13 +210,13 @@ func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book sche
 	if data[1] == 1 {
 		book.Buy = append(book.Buy, schemas.Order{
 			Symbol: smb,
-			Price: price,
+			Price:  price,
 			Amount: size,
 		})
 	} else {
 		book.Sell = append(book.Buy, schemas.Order{
 			Symbol: smb,
-			Price: price,
+			Price:  price,
 			Amount: size,
 		})
 	}

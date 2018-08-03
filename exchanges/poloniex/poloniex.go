@@ -49,7 +49,7 @@ func New(opts schemas.Options) *Poloniex {
 			Credentials:   opts.Credentials,
 			ProxyProvider: proxyProvider,
 			Symbol:        NewSymbolsProvider(proxyProvider),
-			//Orders:        NewOrdersProvider(proxyProvider),
+			Orders:        NewOrdersProvider(proxyProvider),
 			//Trades:        NewTradesProvider(proxyProvider),
 			//Quotes:        NewQuotesProvider(proxyProvider),
 			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
@@ -59,8 +59,8 @@ func New(opts schemas.Options) *Poloniex {
 
 func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 	sa := strings.Split(s, "_")
-	basecoin = strings.ToLower(sa[1])
-	quoteCoin = strings.ToLower(sa[0])
+	basecoin = sa[1]
+	quoteCoin = sa[0]
 	name = basecoin + "_" + quoteCoin
 
 	return

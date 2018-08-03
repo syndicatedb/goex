@@ -2,13 +2,16 @@ package poloniex
 
 import (
 	"sync"
+	"time"
+
 	"github.com/syndicatedb/goex/schemas"
+	"github.com/syndicatedb/goproxy/proxy"
 )
 
-type OrdersProvider {
+type OrdersProvider struct {
 	httpProxy proxy.Provider
-	symbols []schemas.Symbol
-	groups []*OrderBookGroup
+	symbols   []schemas.Symbol
+	groups    []*OrderBookGroup
 
 	sync.Mutex
 }
@@ -25,14 +28,14 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 	capacity := orderBookSymbolsLimit
 	for {
 		if len(slice) <= capacity {
-			ob.books = append(
-				ob.books,
+			ob.groups = append(
+				ob.groups,
 				NewOrderBookGroup(slice, ob.httpProxy),
 			)
 			break
 		}
-		ob.books = append(
-			ob.books,
+		ob.groups = append(
+			ob.groups,
 			NewOrderBookGroup(slice[0:capacity], ob.httpProxy),
 		)
 
@@ -53,8 +56,8 @@ func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r c
 func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
 
-	for _, orderBook := range ob.books {
-		go orderBook.Start(ch)
+	for _, gr := range ob.groups {
+		go gr.Start(ch)
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch
