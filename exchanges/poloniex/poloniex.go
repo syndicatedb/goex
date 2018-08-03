@@ -32,6 +32,7 @@ const (
 // Poloniex - poloniex exchange structure
 type Poloniex struct {
 	schemas.Exchange
+	hasBookConn bool
 }
 
 // New - poloniex exchange constructor

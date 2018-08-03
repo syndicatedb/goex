@@ -18,7 +18,7 @@ type ordersSubscribeMsg struct {
 	Channel string `json:"channel"`
 }
 
-type OrderBookGroup struct {
+type AgregatedGroup struct {
 	symbols []schemas.Symbol
 	pairs   map[int64]string
 
@@ -51,40 +51,40 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 	}
 }
 
-func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
-	ob.bus.resChannel = ch
+func (ag *AgregatedGroup) Start(ch chan schemas.ResultChannel) {
+	ag.bus.resChannel = ch
 
-	ob.listen()
-	ob.connect()
-	ob.subscribe()
+	ag.listen()
+	ag.connect()
+	ag.subscribe()
 }
 
 // TODO: reconnect method!!!
-func (ob *OrderBookGroup) connect() {
-	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
-	ob.wsClient.UsePingMessage(".")
-	if err := ob.wsClient.Connect(); err != nil {
+func (ag *AgregatedGroup) connect() {
+	ag.wsClient = websocket.NewClient(wsURL, ag.httpProxy)
+	ag.wsClient.UsePingMessage(".")
+	if err := ag.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
 	}
-	ob.wsClient.Listen(ob.bus.dch, ob.bus.ech)
+	ag.wsClient.Listen(ag.bus.dch, ag.bus.ech)
 }
 
 // TODO: resubscribe method
-func (ob *OrderBookGroup) subscribe() {
-	for _, symb := range ob.symbols {
+func (ag *AgregatedGroup) subscribe() {
+	for _, symb := range ag.symbols {
 		msg := ordersSubscribeMsg{
 			Command: commandSubscribe,
 			Channel: symb.OriginalName,
 		}
-		if err := ob.wsClient.Write(msg); err != nil {
+		if err := ag.wsClient.Write(msg); err != nil {
 			log.Printf("Error subsciring to %v order books", symb.Name)
 		}
 	}
 }
 
-func (ob *OrderBookGroup) listen() {
+func (ag *AgregatedGroup) listen() {
 	go func() {
-		for msg := range ob.bus.dch {
+		for msg := range ag.bus.dch {
 			var data []interface{}
 
 			if err := json.Unmarshal(msg, &data); err != nil {
@@ -103,25 +103,23 @@ func (ob *OrderBookGroup) listen() {
 								// handling snapshot
 								snapshot := c[1].(map[string]interface{})
 								symbol, _, _ := parseSymbol(snapshot["currencyPair"].(string))
-								ob.addPair(pairID, symbol)
+								ag.addPair(pairID, symbol)
 								book := snapshot["orderBook"].([]interface{})
 
-								mappedBook := ob.mapSnapshot(symbol, book)
+								mappedBook := ag.mapSnapshot(symbol, book)
 								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
-									ob.publish(mappedBook, "s", nil)
+									ag.publish(mappedBook, "s", nil)
 								}
 								continue
 							}
 							if dataType == "o" {
 								// handling update
-								mappedBook := ob.mapUpdate(pairID, c)
+								mappedBook := ag.mapUpdate(pairID, c)
 								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
-									ob.publish(mappedBook, "u", nil)
+									ag.publish(mappedBook, "u", nil)
 								}
 								continue
 							}
-						} else {
-							log.Printf("a: %+v\n", a)
 						}
 					}
 				}
@@ -129,21 +127,21 @@ func (ob *OrderBookGroup) listen() {
 		}
 	}()
 	go func() {
-		for err := range ob.bus.ech {
+		for err := range ag.bus.ech {
 			log.Println("Error: ", err)
 		}
 	}()
 }
 
-func (ob *OrderBookGroup) publish(data schemas.OrderBook, dataType string, err error) {
-	ob.bus.resChannel <- schemas.ResultChannel{
+func (ag *AgregatedGroup) publish(data schemas.OrderBook, dataType string, err error) {
+	ag.bus.resChannel <- schemas.ResultChannel{
 		DataType: dataType,
 		Data:     data,
 		Error:    err,
 	}
 }
 
-func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas.OrderBook {
+func (ag *AgregatedGroup) mapSnapshot(symbol string, data []interface{}) schemas.OrderBook {
 	var buy, sell interface{}
 	book := schemas.OrderBook{
 		Symbol: symbol,
@@ -202,10 +200,10 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas
 	return book
 }
 
-func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book schemas.OrderBook) {
+func (ag *AgregatedGroup) mapUpdate(pairID int64, data []interface{}) (book schemas.OrderBook) {
 	// log.Printf("RAW ORDERBOOK UPDATE %+v", data)
 	var price, size float64
-	symbol, err := ob.getSymbolByID(pairID)
+	symbol, err := ag.getSymbolByID(pairID)
 	if err != nil {
 		log.Println("Error getting symbol: ", err)
 		return
@@ -236,17 +234,17 @@ func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book sche
 	return
 }
 
-func (ob *OrderBookGroup) getSymbolByID(pairID int64) (string, error) {
-	ob.Lock()
-	ob.Unlock()
-	if symbol, ok := ob.pairs[pairID]; ok {
+func (ag *AgregatedGroup) getSymbolByID(pairID int64) (string, error) {
+	ag.Lock()
+	ag.Unlock()
+	if symbol, ok := ag.pairs[pairID]; ok {
 		return symbol, nil
 	}
 	return "", fmt.Errorf("Symbol %d not found", pairID)
 }
 
-func (ob *OrderBookGroup) addPair(id int64, pair string) {
-	ob.Lock()
-	defer ob.Unlock()
-	ob.pairs[id] = pair
+func (ag *AgregatedGroup) addPair(id int64, pair string) {
+	ag.Lock()
+	defer ag.Unlock()
+	ag.pairs[id] = pair
 }
