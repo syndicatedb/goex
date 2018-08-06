@@ -37,6 +37,7 @@ type bus struct {
 }
 
 func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *OrderBookGroup {
+	log.Println("NEW ORDERBOOK GROUP")
 	proxyClient := httpProxy.NewClient(exchangeName)
 
 	return &OrderBookGroup{
@@ -52,6 +53,7 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 }
 
 func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
+	log.Println("STARTING POLONIEX ORDERBOOK UPDATES")
 	ob.bus.resChannel = ch
 
 	ob.listen()
