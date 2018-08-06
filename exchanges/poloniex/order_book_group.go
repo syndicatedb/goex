@@ -87,6 +87,7 @@ func (ob *OrderBookGroup) listen() {
 		for msg := range ob.bus.dch {
 			var data []interface{}
 
+			log.Println("RAW ORDERBOOK", msg)
 			if err := json.Unmarshal(msg, &data); err != nil {
 				log.Println("Error parsing message: ", err)
 			}

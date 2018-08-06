@@ -149,13 +149,7 @@ func (qp *QuotesProvider) mapQuote(d []interface{}) schemas.Quote {
 	symbolName, _, _ := parseSymbol(smb)
 	lastPrice, _ := strconv.ParseFloat(d[1].(string), 64)
 	percentChange, _ := strconv.ParseFloat(d[4].(string), 64)
-	if percentChange > 0 {
-		valueChange = lastPrice - ((lastPrice * (100.00 - percentChange)) / 100.00)
-	} else if percentChange < 0 {
-		valueChange = lastPrice - ((lastPrice * (100 + percentChange)) / 100.00)
-	} else {
-		valueChange = 0
-	}
+	valueChange = lastPrice - ((lastPrice * (100 + percentChange)) / 100.00)
 
 	return schemas.Quote{
 		Symbol:          symbolName,

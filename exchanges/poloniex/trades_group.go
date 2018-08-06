@@ -141,7 +141,7 @@ func (tg *TradesGroup) listen() {
 								// handling trade
 								mappedTrade := tg.mapUpdate(pairID, c)
 								if len(mappedTrade.Symbol) > 0 {
-									tg.publish(mappedTrade, "u", nil)
+									tg.publish([]schemas.Trade{mappedTrade}, "u", nil)
 								}
 								continue
 							}
