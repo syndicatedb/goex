@@ -83,6 +83,7 @@ func (ob *OrderBookGroup) subscribe() {
 }
 
 func (ob *OrderBookGroup) listen() {
+	log.Println("Start listening")
 	go func() {
 		for msg := range ob.bus.dch {
 			var data []interface{}
@@ -102,6 +103,7 @@ func (ob *OrderBookGroup) listen() {
 							dataType := c[0].(string)
 							if dataType == "i" {
 								// handling snapshot
+								log.Println("DataType I")
 								snapshot := c[1].(map[string]interface{})
 								symbol, _, _ := parseSymbol(snapshot["currencyPair"].(string))
 								ob.addPair(pairID, symbol)
@@ -115,6 +117,7 @@ func (ob *OrderBookGroup) listen() {
 							}
 							if dataType == "o" {
 								// handling update
+								log.Println("DataType O")
 								mappedBook := ob.mapUpdate(pairID, c)
 								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
 									ob.publish(mappedBook, "u", nil)
@@ -137,6 +140,7 @@ func (ob *OrderBookGroup) listen() {
 }
 
 func (ob *OrderBookGroup) publish(data schemas.OrderBook, dataType string, err error) {
+	log.Println("Publishing data")
 	ob.bus.resChannel <- schemas.ResultChannel{
 		DataType: dataType,
 		Data:     data,
