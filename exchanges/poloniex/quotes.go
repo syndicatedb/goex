@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"time"
 
@@ -167,14 +168,15 @@ func (qp *QuotesProvider) mapSnapshot(data map[string]quote) (quotes []schemas.Q
 		var valueChange float64
 		symbol, _, _ := parseSymbol(symb)
 		lastPrice, _ := strconv.ParseFloat(q.Last, 64)
-		percentChange, _ := strconv.ParseFloat(q.PercentChange, 64)
-		if percentChange > 0 {
-			valueChange = lastPrice - ((lastPrice * (100 + percentChange)) / 100.00)
+		percent, _ := strconv.ParseFloat(q.PercentChange, 64)
+		percentChange := math.Abs(percent)
+		if percent > 0 {
+			valueChange = lastPrice - ((lastPrice * (100 - percentChange)) / 100.00)
 		}
-		if percentChange < 0 {
-			valueChange = -(lastPrice - ((lastPrice * (100 + percentChange)) / 100.00))
+		if percent < 0 {
+			valueChange = -(((lastPrice * (100 + percentChange)) / 100.00) - lastPrice)
 		}
-		if percentChange == 0 {
+		if percent == 0 {
 			valueChange = 0
 		}
 
@@ -203,14 +205,15 @@ func (qp *QuotesProvider) mapUpdate(d []interface{}) schemas.Quote {
 
 	symbolName, _, _ := parseSymbol(smb)
 	lastPrice, _ := strconv.ParseFloat(d[1].(string), 64)
-	percentChange, _ := strconv.ParseFloat(d[4].(string), 64)
-	if percentChange > 0 {
-		valueChange = lastPrice - ((lastPrice * (100 + percentChange)) / 100.00)
+	percent, _ := strconv.ParseFloat(d[4].(string), 64)
+	percentChange := math.Abs(percent)
+	if percent > 0 {
+		valueChange = lastPrice - ((lastPrice * (100 - percentChange)) / 100.00)
 	}
-	if percentChange < 0 {
-		valueChange = -(lastPrice - ((lastPrice * (100 + percentChange)) / 100.00))
+	if percent < 0 {
+		valueChange = -(((lastPrice * (100 + percentChange)) / 100.00) - lastPrice)
 	}
-	if percentChange == 0 {
+	if percent == 0 {
 		valueChange = 0
 	}
 
