@@ -90,6 +90,7 @@ func (ob *OrderBookGroup) listen() {
 			log.Println("RAW ORDERBOOK", msg)
 			if err := json.Unmarshal(msg, &data); err != nil {
 				log.Println("Error parsing message: ", err)
+				continue
 			}
 			if _, ok := data[0].([]interface{}); ok {
 				continue
@@ -110,6 +111,7 @@ func (ob *OrderBookGroup) listen() {
 								mappedBook := ob.mapSnapshot(symbol, book)
 								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
 									ob.publish(mappedBook, "s", nil)
+									continue
 								}
 								continue
 							}
@@ -119,11 +121,13 @@ func (ob *OrderBookGroup) listen() {
 								mappedBook := ob.mapUpdate(pairID, c)
 								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
 									ob.publish(mappedBook, "u", nil)
+									continue
 								}
 								continue
 							}
 						} else {
 							log.Printf("a: %+v\n", a)
+							continue
 						}
 					}
 				}
@@ -133,6 +137,7 @@ func (ob *OrderBookGroup) listen() {
 	go func() {
 		for msg := range ob.bus.ech {
 			log.Println("Error: ", msg)
+			continue
 		}
 	}()
 }
