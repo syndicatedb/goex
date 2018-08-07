@@ -33,7 +33,11 @@ type OrderBookGroup struct {
 	wsClient   *websocket.Client
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
-	bus        bus
+
+	outChannel chan schemas.ResultChannel
+	dch        chan []byte
+	ech        chan error
+	// bus        bus
 }
 
 type bus struct {
@@ -52,10 +56,8 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
 		pairs:      currencPairs,
-		bus: bus{
-			dch: make(chan []byte),
-			ech: make(chan error),
-		},
+		dch:        make(chan []byte),
+		ech:        make(chan error),
 	}
 }
 
@@ -90,7 +92,7 @@ func (ob *OrderBookGroup) Get() (books []schemas.OrderBook, err error) {
 // Start - starting updates
 func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	log.Println("STARTING POLONIEX ORDERBOOK UPDATES")
-	ob.bus.resChannel = ch
+	ob.outChannel = ch
 
 	ob.listen()
 	ob.connect()
@@ -104,7 +106,7 @@ func (ob *OrderBookGroup) connect() {
 	if err := ob.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
 	}
-	ob.wsClient.Listen(ob.bus.dch, ob.bus.ech)
+	ob.wsClient.Listen(ob.dch, ob.ech)
 	log.Println("CONNECTION ESTABLIISHED")
 }
 
@@ -128,7 +130,7 @@ func (ob *OrderBookGroup) listen() {
 	go func() {
 		for {
 			select {
-			case msg := <-ob.bus.dch:
+			case msg := <-ob.dch:
 				var data []interface{}
 
 				log.Println("RAW ORDERBOOK", msg)
@@ -183,7 +185,7 @@ func (ob *OrderBookGroup) listen() {
 	go func() {
 		for {
 			select {
-			case msg := <-ob.bus.ech:
+			case msg := <-ob.ech:
 				log.Println("Error: ", msg)
 			}
 		}
@@ -199,7 +201,7 @@ func (ob *OrderBookGroup) publish(data schemas.OrderBook, dataType string, err e
 	}
 
 	select {
-	case ob.bus.resChannel <- msg:
+	case ob.outChannel <- msg:
 		log.Println("MESSAGE PUBLISHED")
 	}
 }

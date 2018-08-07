@@ -32,7 +32,11 @@ type TradesGroup struct {
 	wsClient   *websocket.Client
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
-	bus        bus
+
+	outChannel chan schemas.ResultChannel
+	dch        chan []byte
+	ech        chan error
+	// bus        bus
 }
 
 // NewTradesGroup - TradesGroup constructor
@@ -45,10 +49,8 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
 		pairs:      pairs,
-		bus: bus{
-			dch: make(chan []byte),
-			ech: make(chan error),
-		},
+		dch:        make(chan []byte),
+		ech:        make(chan error),
 	}
 }
 
@@ -85,7 +87,7 @@ func (tg *TradesGroup) Get() (trades [][]schemas.Trade, err error) {
 
 // Start - starting updates
 func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
-	tg.bus.resChannel = ch
+	tg.outChannel = ch
 
 	tg.listen()
 	tg.connect()
@@ -100,7 +102,7 @@ func (tg *TradesGroup) connect() {
 	if err := tg.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
 	}
-	tg.wsClient.Listen(tg.bus.dch, tg.bus.ech)
+	tg.wsClient.Listen(tg.dch, tg.ech)
 }
 
 // TODO: resubscribe method
@@ -119,7 +121,7 @@ func (tg *TradesGroup) subscribe() {
 // listen - listening to WS channels and handle incoming messages
 func (tg *TradesGroup) listen() {
 	go func() {
-		for msg := range tg.bus.dch {
+		for msg := range tg.dch {
 			var data []interface{}
 
 			if err := json.Unmarshal(msg, &data); err != nil {
@@ -152,7 +154,7 @@ func (tg *TradesGroup) listen() {
 		}
 	}()
 	go func() {
-		for err := range tg.bus.ech {
+		for err := range tg.ech {
 			log.Println("Error: ", err)
 		}
 	}()
@@ -160,7 +162,7 @@ func (tg *TradesGroup) listen() {
 
 // publish - publishing data into result channel
 func (tg *TradesGroup) publish(data interface{}, dataType string, err error) {
-	tg.bus.resChannel <- schemas.ResultChannel{
+	tg.outChannel <- schemas.ResultChannel{
 		DataType: dataType,
 		Data:     data,
 		Error:    err,
