@@ -162,11 +162,13 @@ func (tg *TradesGroup) listen() {
 
 // publish - publishing data into result channel
 func (tg *TradesGroup) publish(data interface{}, dataType string, err error) {
-	tg.outChannel <- schemas.ResultChannel{
-		DataType: dataType,
-		Data:     data,
-		Error:    err,
-	}
+	go func() {
+		tg.outChannel <- schemas.ResultChannel{
+			DataType: dataType,
+			Data:     data,
+			Error:    err,
+		}
+	}()
 }
 
 // sendSnapshot - preparing and sending snapshot into result channel

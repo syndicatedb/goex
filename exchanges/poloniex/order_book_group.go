@@ -193,17 +193,14 @@ func (ob *OrderBookGroup) listen() {
 }
 
 func (ob *OrderBookGroup) publish(data schemas.OrderBook, dataType string, err error) {
-	log.Println("Publishing data", data)
-	msg := schemas.ResultChannel{
-		DataType: dataType,
-		Data:     data,
-		Error:    err,
-	}
-
-	select {
-	case ob.outChannel <- msg:
-		log.Println("MESSAGE PUBLISHED")
-	}
+	go func() {
+		log.Println("Publishing data", data)
+		ob.outChannel <- schemas.ResultChannel{
+			DataType: dataType,
+			Data:     data,
+			Error:    err,
+		}
+	}()
 }
 
 func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas.OrderBook {
