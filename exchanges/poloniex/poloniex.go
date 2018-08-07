@@ -13,7 +13,7 @@ const (
 	exchangeName = "poloniex"
 
 	restURL = "https://poloniex.com/public"
-	wsURL   = "wss://api2.poloniex.com/realm1"
+	wsURL   = "wss://api2.poloniex.com"
 )
 
 const (

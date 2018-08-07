@@ -88,50 +88,54 @@ func (ob *OrderBookGroup) subscribe() {
 func (ob *OrderBookGroup) listen() {
 	log.Println("Start listening")
 	go func() {
-		for msg := range ob.bus.dch {
-			var data []interface{}
+		for {
+			select {
+			case msg := <-ob.bus.dch:
+				var data []interface{}
 
-			log.Println("RAW ORDERBOOK", msg)
-			if err := json.Unmarshal(msg, &data); err != nil {
-				log.Println("Error parsing message: ", err)
-				continue
-			}
-			if _, ok := data[0].([]interface{}); ok {
-				continue
-			}
-			pairID := int64(data[0].(float64))
-			if len(data) > 1 {
-				if d, ok := data[2].([]interface{}); ok {
-					for _, a := range d {
-						if c, ok := a.([]interface{}); ok {
-							dataType := c[0].(string)
-							if dataType == "i" {
-								// handling snapshot
-								log.Println("DataType I")
-								snapshot := c[1].(map[string]interface{})
-								symbol, _, _ := parseSymbol(snapshot["currencyPair"].(string))
-								book := snapshot["orderBook"].([]interface{})
+				log.Println("RAW ORDERBOOK", msg)
+				if err := json.Unmarshal(msg, &data); err != nil {
+					log.Println("Error parsing message: ", err)
+					continue
+				}
+				if _, ok := data[0].([]interface{}); ok {
+					log.Printf("data: %+v\n", data)
+					continue
+				}
+				pairID := int64(data[0].(float64))
+				if len(data) > 1 {
+					if d, ok := data[2].([]interface{}); ok {
+						for _, a := range d {
+							if c, ok := a.([]interface{}); ok {
+								dataType := c[0].(string)
+								if dataType == "i" {
+									// handling snapshot
+									log.Println("DataType I")
+									snapshot := c[1].(map[string]interface{})
+									symbol, _, _ := parseSymbol(snapshot["currencyPair"].(string))
+									book := snapshot["orderBook"].([]interface{})
 
-								mappedBook := ob.mapSnapshot(symbol, book)
-								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
-									ob.publish(mappedBook, "s", nil)
+									mappedBook := ob.mapSnapshot(symbol, book)
+									if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
+										ob.publish(mappedBook, "s", nil)
+										continue
+									}
 									continue
 								}
-								continue
-							}
-							if dataType == "o" {
-								// handling update
-								log.Println("DataType O")
-								mappedBook := ob.mapUpdate(pairID, c)
-								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
-									ob.publish(mappedBook, "u", nil)
+								if dataType == "o" {
+									// handling update
+									log.Println("DataType O")
+									mappedBook := ob.mapUpdate(pairID, c)
+									if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
+										ob.publish(mappedBook, "u", nil)
+										continue
+									}
 									continue
 								}
+							} else {
+								log.Printf("a: %+v\n", a)
 								continue
 							}
-						} else {
-							log.Printf("a: %+v\n", a)
-							continue
 						}
 					}
 				}
@@ -139,9 +143,11 @@ func (ob *OrderBookGroup) listen() {
 		}
 	}()
 	go func() {
-		for msg := range ob.bus.ech {
-			log.Println("Error: ", msg)
-			continue
+		for {
+			select {
+			case msg := <-ob.bus.ech:
+				log.Println("Error: ", msg)
+			}
 		}
 	}()
 }
