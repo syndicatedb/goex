@@ -148,10 +148,15 @@ func (ob *OrderBookGroup) listen() {
 
 func (ob *OrderBookGroup) publish(data schemas.OrderBook, dataType string, err error) {
 	log.Println("Publishing data", data)
-	ob.bus.resChannel <- schemas.ResultChannel{
+	msg := schemas.ResultChannel{
 		DataType: dataType,
 		Data:     data,
 		Error:    err,
+	}
+
+	select {
+	case ob.bus.resChannel <- msg:
+		log.Println("MESSAGE PUBLISHED")
 	}
 }
 
