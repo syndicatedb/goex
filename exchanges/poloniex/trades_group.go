@@ -32,7 +32,13 @@ type TradesGroup struct {
 	wsClient   *websocket.Client
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
-	bus        bus
+	bus        tradesBus
+}
+
+type tradesBus struct {
+	resChannel chan schemas.ResultChannel
+	dch        chan []byte
+	ech        chan error
 }
 
 // NewTradesGroup - TradesGroup constructor
@@ -45,7 +51,7 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
 		pairs:      pairs,
-		bus: bus{
+		bus: tradesBus{
 			dch: make(chan []byte),
 			ech: make(chan error),
 		},
