@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"sync"
 
 	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/internal/websocket"
@@ -26,8 +25,6 @@ type OrderBookGroup struct {
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
 	bus        bus
-
-	sync.RWMutex
 }
 
 type bus struct {
@@ -243,8 +240,6 @@ func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book sche
 }
 
 func (ob *OrderBookGroup) getSymbolByID(pairID int64) (string, error) {
-	ob.Lock()
-	ob.Unlock()
 	if symbol, ok := ob.pairs[int(pairID)]; ok {
 		return symbol, nil
 	}

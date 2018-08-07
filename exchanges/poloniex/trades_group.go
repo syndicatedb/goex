@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -34,8 +33,6 @@ type TradesGroup struct {
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
 	bus        bus
-
-	sync.RWMutex
 }
 
 // NewTradesGroup - TradesGroup constructor
@@ -248,8 +245,6 @@ func (tg *TradesGroup) mapUpdate(pairID int64, data []interface{}) schemas.Trade
 
 // getSymbolByID - getting symbol name by it's id
 func (tg *TradesGroup) getSymbolByID(pairID int) (string, error) {
-	tg.Lock()
-	tg.Unlock()
 	if symbol, ok := tg.pairs[pairID]; ok {
 		return symbol, nil
 	}
