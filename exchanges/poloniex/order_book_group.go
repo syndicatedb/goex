@@ -117,7 +117,7 @@ func (ob *OrderBookGroup) listen() {
 
 									mappedBook := ob.mapSnapshot(symbol, book)
 									if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
-										ob.publish(mappedBook, "s", nil)
+										go ob.publish(mappedBook, "s", nil)
 										continue
 									}
 									continue
@@ -127,7 +127,7 @@ func (ob *OrderBookGroup) listen() {
 									log.Println("DataType O")
 									mappedBook := ob.mapUpdate(pairID, c)
 									if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
-										ob.publish(mappedBook, "u", nil)
+										go ob.publish(mappedBook, "u", nil)
 										continue
 									}
 									continue
