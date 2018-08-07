@@ -61,11 +61,12 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 // TODO: reconnect method!!!
 func (ob *OrderBookGroup) connect() {
 	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
+	ob.wsClient.Listen(ob.bus.dch, ob.bus.ech)
+	ob.wsClient.ChangeKeepAlive(true)
 	ob.wsClient.UsePingMessage(".")
 	if err := ob.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
 	}
-	ob.wsClient.Listen(ob.bus.dch, ob.bus.ech)
 }
 
 // TODO: resubscribe method

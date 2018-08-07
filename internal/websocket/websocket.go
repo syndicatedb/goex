@@ -115,6 +115,7 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 			}
 
 			if c.channel != nil {
+				log.Println("MESSAGE IN WS CLIENT", message)
 				c.channel <- message
 			}
 		}
