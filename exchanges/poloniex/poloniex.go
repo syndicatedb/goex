@@ -26,6 +26,7 @@ const (
 	commandCompleteBalances = "returnCompleteBalances"
 	commandOrderBook        = "returnOrderBook"
 	commandVolumes          = "return24hVolume"
+	commandTicker           = "returnTicker"
 	commandOpenOrders       = "returnOpenOrders"
 	commandTrades           = "returnTradeHistory"
 )

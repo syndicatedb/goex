@@ -2,6 +2,7 @@ package poloniex
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -15,6 +16,15 @@ import (
 type tickerSubscribeMsg struct {
 	Command string `json:"command"`
 	Channel int    `json:"channel"`
+}
+
+type quote struct {
+	Last          string `json:"last"`
+	LowestAsk     string `json:"lowestAsk"`
+	HighestBid    string `json:"highestBid"`
+	PercentChange string `json:"percentChange"`
+	BaseVolume    string `json:"baseVolume"`
+	QuoteVolume   string `json:"quoteVolume"`
 }
 
 // QuotesProvider - quotes provider structure
@@ -49,10 +59,27 @@ func (qp *QuotesProvider) SetSymbols(symbols []schemas.Symbol) schemas.QuotesPro
 }
 
 // Get - getting quotes by symbol
-// TODO: get method
 func (qp *QuotesProvider) Get(symbol schemas.Symbol) (q schemas.Quote, err error) {
-	// group := NewQuotesGroup([]schemas.Symbol{symbol}, qp.httpProxy)
-	// return group.Get()
+	var b []byte
+	var resp map[string]quote
+
+	query := httpclient.Params()
+	query.Set("command", commandTicker)
+
+	if b, err = qp.httpClient.Get(restURL, query, false); err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	ticks := qp.mapSnapshot(resp)
+	for _, t := range ticks {
+		if t.Symbol == symbol.Name {
+			return t, nil
+		}
+	}
+
+	err = fmt.Errorf("No quotes found for %v", symbol.Name)
 	return
 }
 
@@ -110,7 +137,7 @@ func (qp *QuotesProvider) listen() {
 			if len(data) > 2 {
 				for i := 2; i < len(data); i++ {
 					if t, ok := data[i].([]interface{}); ok {
-						mappedQuote := qp.mapQuote(t)
+						mappedQuote := qp.mapUpdate(t)
 						if len(mappedQuote.Symbol) > 0 {
 							qp.publish(mappedQuote, "u", nil)
 						}
@@ -135,7 +162,38 @@ func (qp *QuotesProvider) publish(data interface{}, dataType string, e error) {
 	}
 }
 
-func (qp *QuotesProvider) mapQuote(d []interface{}) schemas.Quote {
+func (qp *QuotesProvider) mapSnapshot(data map[string]quote) (quotes []schemas.Quote) {
+	for symb, q := range data {
+		var valueChange float64
+		symbol, _, _ := parseSymbol(symb)
+		lastPrice, _ := strconv.ParseFloat(q.Last, 64)
+		percentChange, _ := strconv.ParseFloat(q.PercentChange, 64)
+		if percentChange > 0 {
+			valueChange = lastPrice - ((lastPrice * (100 + percentChange)) / 100.00)
+		}
+		if percentChange < 0 {
+			valueChange = -(lastPrice - ((lastPrice * (100 + percentChange)) / 100.00))
+		}
+		if percentChange == 0 {
+			valueChange = 0
+		}
+
+		quotes = append(quotes, schemas.Quote{
+			Symbol:          symbol,
+			Price:           q.Last,
+			High:            q.HighestBid,
+			Low:             q.LowestAsk,
+			DrawdownPercent: q.PercentChange,
+			DrawdownValue:   strconv.FormatFloat(valueChange, 'f', 8, 64),
+			VolumeBase:      q.QuoteVolume,
+			VolumeQuote:     q.BaseVolume,
+		})
+	}
+
+	return
+}
+
+func (qp *QuotesProvider) mapUpdate(d []interface{}) schemas.Quote {
 	var valueChange float64
 
 	smb := qp.getSymbol(int(d[0].(float64)))
