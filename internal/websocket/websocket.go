@@ -70,7 +70,8 @@ func (c *Client) Connect() (err error) {
 	if len(ip) > 0 {
 		proxyURL, _ := url.Parse(c.proxyProvider.IP())
 		dialer = websocket.Dialer{
-			Proxy: http.ProxyURL(proxyURL),
+			Proxy:            http.ProxyURL(proxyURL),
+			HandshakeTimeout: 30 * time.Second,
 		}
 	} else {
 		dialer = websocket.Dialer{}
