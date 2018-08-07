@@ -98,6 +98,7 @@ func (c *Client) Exit() (err error) {
 
 // Listen - starting to receive messages
 func (c *Client) Listen(ch chan []byte, ech chan error) {
+	log.Println("START LISTENING IN WS CLIENT")
 	if c.conn == nil {
 		log.Printf("c.conn: %+v\n", c.conn)
 	}
@@ -109,13 +110,13 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 		defer close(c.done)
 		for {
 			_, message, err := c.conn.ReadMessage()
+			log.Println("MESSAGE IN WS CLIENT", message)
 			if err != nil {
 				c.errorChannel <- NewReadError(err)
 				continue
 			}
 
 			if c.channel != nil {
-				log.Println("MESSAGE IN WS CLIENT", message)
 				c.channel <- message
 			}
 		}
