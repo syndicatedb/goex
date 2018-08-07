@@ -62,6 +62,8 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 		go gr.Start(ch)
 		time.Sleep(100 * time.Millisecond)
 	}
+
+	log.Println("CHANNEL IN ADAPTER IS", ch)
 	return ch
 }
 

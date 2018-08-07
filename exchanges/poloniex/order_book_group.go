@@ -20,7 +20,7 @@ type ordersSubscribeMsg struct {
 
 type OrderBookGroup struct {
 	symbols []schemas.Symbol
-	pairs   map[int64]string
+	pairs   map[int]string
 
 	wsClient   *websocket.Client
 	httpClient *httpclient.Client
@@ -44,7 +44,7 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
-		pairs:      make(map[int64]string),
+		pairs:      currencPairs,
 		bus: bus{
 			dch: make(chan []byte),
 			ech: make(chan error),
@@ -108,7 +108,6 @@ func (ob *OrderBookGroup) listen() {
 								log.Println("DataType I")
 								snapshot := c[1].(map[string]interface{})
 								symbol, _, _ := parseSymbol(snapshot["currencyPair"].(string))
-								ob.addPair(pairID, symbol)
 								book := snapshot["orderBook"].([]interface{})
 
 								mappedBook := ob.mapSnapshot(symbol, book)
@@ -135,14 +134,14 @@ func (ob *OrderBookGroup) listen() {
 		}
 	}()
 	go func() {
-		for err := range ob.bus.ech {
-			log.Println("Error: ", err)
+		for msg := range ob.bus.ech {
+			log.Println("Error: ", msg)
 		}
 	}()
 }
 
 func (ob *OrderBookGroup) publish(data schemas.OrderBook, dataType string, err error) {
-	log.Println("Publishing data")
+	log.Println("Publishing data", data)
 	ob.bus.resChannel <- schemas.ResultChannel{
 		DataType: dataType,
 		Data:     data,
@@ -246,14 +245,8 @@ func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book sche
 func (ob *OrderBookGroup) getSymbolByID(pairID int64) (string, error) {
 	ob.Lock()
 	ob.Unlock()
-	if symbol, ok := ob.pairs[pairID]; ok {
+	if symbol, ok := ob.pairs[int(pairID)]; ok {
 		return symbol, nil
 	}
 	return "", fmt.Errorf("Symbol %d not found", pairID)
-}
-
-func (ob *OrderBookGroup) addPair(id int64, pair string) {
-	ob.Lock()
-	defer ob.Unlock()
-	ob.pairs[id] = pair
 }

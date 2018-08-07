@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -26,8 +25,6 @@ type QuotesProvider struct {
 	bus        bus
 
 	pairs map[int]string
-
-	sync.RWMutex
 }
 
 // NewQuotesProvider - QuotesProvider constructor
