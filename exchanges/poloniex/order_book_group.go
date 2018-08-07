@@ -66,6 +66,7 @@ func (ob *OrderBookGroup) connect() {
 		log.Println("Error connecting to poloniex WS API: ", err)
 	}
 	ob.wsClient.Listen(ob.bus.dch, ob.bus.ech)
+	log.Println("CONNECTION ESTABLIISHED")
 }
 
 // TODO: resubscribe method
