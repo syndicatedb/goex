@@ -76,10 +76,13 @@ func (ob *OrderBookGroup) subscribe() {
 			Command: commandSubscribe,
 			Channel: symb.OriginalName,
 		}
+		log.Println("MSG", msg)
 		if err := ob.wsClient.Write(msg); err != nil {
 			log.Printf("Error subsciring to %v order books", symb.Name)
+			continue
 		}
 	}
+	log.Println("Subscription ok")
 }
 
 func (ob *OrderBookGroup) listen() {
