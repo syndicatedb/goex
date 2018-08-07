@@ -124,6 +124,7 @@ func (tg *TradesGroup) listen() {
 
 			if err := json.Unmarshal(msg, &data); err != nil {
 				log.Println("Error parsing message: ", err)
+				continue
 			}
 			if _, ok := data[0].([]interface{}); ok {
 				continue

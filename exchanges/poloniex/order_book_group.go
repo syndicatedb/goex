@@ -2,6 +2,7 @@ package poloniex
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -17,6 +18,14 @@ type ordersSubscribeMsg struct {
 	Channel string `json:"channel"`
 }
 
+type orderbook struct {
+	Asks     [][]interface{} `json:"asks"`
+	Bids     [][]interface{} `json:"bids"`
+	IsFrozen string          `json:"isFrozen"`
+	Seq      int64           `json:"seq"`
+}
+
+// OrderBookGroup - order book group structure
 type OrderBookGroup struct {
 	symbols []schemas.Symbol
 	pairs   map[int]string
@@ -33,6 +42,7 @@ type bus struct {
 	ech        chan error
 }
 
+// NewOrderBookGroup - OrderBookGroup constructor
 func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *OrderBookGroup {
 	log.Println("NEW ORDERBOOK GROUP")
 	proxyClient := httpProxy.NewClient(exchangeName)
@@ -49,6 +59,35 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 	}
 }
 
+// Get - getting orderbook snapshot
+func (ob *OrderBookGroup) Get() (books []schemas.OrderBook, err error) {
+	var b []byte
+	var resp orderbook
+	if len(ob.symbols) == 0 {
+		err = errors.New("Symbol is empty")
+		return
+	}
+
+	for _, symb := range ob.symbols {
+		symbol := symb.OriginalName
+		query := httpclient.Params()
+		query.Set("command", commandOrderBook)
+		query.Set("currencyPair", symbol)
+		query.Set("depth", "200")
+
+		if b, err = ob.httpClient.Get(restURL, query, false); err != nil {
+			return
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
+			return
+		}
+		books = append(books, ob.mapHTTPSnapshot(symb.Name, resp))
+	}
+
+	return
+}
+
+// Start - starting updates
 func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	log.Println("STARTING POLONIEX ORDERBOOK UPDATES")
 	ob.bus.resChannel = ch
@@ -61,7 +100,7 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 // TODO: reconnect method!!!
 func (ob *OrderBookGroup) connect() {
 	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
-	// ob.wsClient.UsePingMessage(".")
+	ob.wsClient.UsePingMessage(".")
 	if err := ob.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
 	}
@@ -79,7 +118,6 @@ func (ob *OrderBookGroup) subscribe() {
 		log.Println("MSG", msg)
 		if err := ob.wsClient.Write(msg); err != nil {
 			log.Printf("Error subsciring to %v order books", symb.Name)
-			continue
 		}
 	}
 	log.Println("Subscription ok")
@@ -257,6 +295,37 @@ func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book sche
 	}
 	book.Symbol = smb
 	return
+}
+
+func (ob *OrderBookGroup) mapHTTPSnapshot(symbol string, data orderbook) schemas.OrderBook {
+	book := schemas.OrderBook{
+		Symbol: symbol,
+	}
+
+	for _, asks := range data.Asks {
+		price, err := strconv.ParseFloat(asks[0].(string), 10)
+		if err != nil {
+			log.Println("Error mapping orderbook snapshot: ", err)
+		}
+		book.Sell = append(book.Sell, schemas.Order{
+			Symbol: symbol,
+			Price:  price,
+			Amount: asks[1].(float64),
+		})
+	}
+	for _, bids := range data.Bids {
+		price, err := strconv.ParseFloat(bids[0].(string), 10)
+		if err != nil {
+			log.Println("Error mapping orderbook snapshot: ", err)
+		}
+		book.Buy = append(book.Buy, schemas.Order{
+			Symbol: symbol,
+			Price:  price,
+			Amount: bids[1].(float64),
+		})
+	}
+
+	return book
 }
 
 func (ob *OrderBookGroup) getSymbolByID(pairID int64) (string, error) {
