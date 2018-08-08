@@ -73,7 +73,7 @@ func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r c
 // SubscribeAll - subscribing all groups
 func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
 	log.Println("NEW ORDERBOOK PROVIDER")
-	ch := make(chan schemas.ResultChannel)
+	ch := make(chan schemas.ResultChannel, 300)
 
 	for _, gr := range ob.groups {
 		go gr.Start(ch)
