@@ -3,6 +3,7 @@ package goex
 import (
 	"github.com/syndicatedb/goex/exchanges/binance"
 	"github.com/syndicatedb/goex/exchanges/bitfinex"
+	"github.com/syndicatedb/goex/exchanges/kucoin"
 	"github.com/syndicatedb/goex/exchanges/poloniex"
 	"github.com/syndicatedb/goex/exchanges/tidex"
 
@@ -40,6 +41,9 @@ func New(opts schemas.Options) API {
 	}
 	if opts.Name == Poloniex {
 		return poloniex.New(opts)
+	}
+	if opts.Name == Kucoin {
+		return kucoin.New(opts)
 	}
 	return nil
 }
