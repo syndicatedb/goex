@@ -1,6 +1,7 @@
 package kucoin
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -51,7 +52,12 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
 	orderBookGroup := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
 	m, err := orderBookGroup.Get()
-	return m[symbol.OriginalName], err
+	if ordr, ok := m[symbol.Name]; ok {
+		return ordr, nil
+	}
+
+	err = fmt.Errorf("No orderbooks found for %s", symbol.Name)
+	return
 }
 
 // Subscribe - getting all symbols from Exchange
