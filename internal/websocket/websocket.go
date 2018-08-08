@@ -113,7 +113,9 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 		defer close(c.done)
 		for {
 			_, message, err := c.conn.ReadMessage()
+			log.Println("MESSAGE IN WS CLIENT", message)
 			if err != nil {
+				log.Println("ERROR IN WS CLIENT", err)
 				c.errorChannel <- NewReadError(err)
 				continue
 			}
