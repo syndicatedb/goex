@@ -14,6 +14,7 @@ const (
 	apiSymbols   = "https://api.kucoin.com/v1/market/open/symbols"
 	apiOrderBook = "https://api.kucoin.com/v1/open/orders"
 	apiTrades    = "https://api.kucoin.com/v1/open/deal-orders"
+	apiTicker    = "https://api.kucoin.com/v1/open/tick"
 )
 
 const (
@@ -42,7 +43,7 @@ func New(opts schemas.Options) *Kucoin {
 			Symbol:        NewSymbolsProvider(proxyProvider),
 			Orders:        NewOrdersProvider(proxyProvider),
 			Trades:        NewTradesProvider(proxyProvider),
-			// Quotes:        NewQuotesProvider(proxyProvider),
+			Quotes:        NewQuotesProvider(proxyProvider),
 			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
