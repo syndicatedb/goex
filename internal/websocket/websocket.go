@@ -68,7 +68,10 @@ func (c *Client) Connect() (err error) {
 	ip := c.proxyProvider.IP()
 	log.Println("IP:", ip)
 	if len(ip) > 0 {
-		proxyURL, _ := url.Parse(c.proxyProvider.IP())
+		proxyURL, err := url.Parse(c.proxyProvider.IP())
+		if err != nil {
+			log.Println("Error while connecting through proxy", err)
+		}
 		dialer = websocket.Dialer{
 			Proxy:            http.ProxyURL(proxyURL),
 			HandshakeTimeout: 30 * time.Second,
