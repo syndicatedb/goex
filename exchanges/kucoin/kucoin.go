@@ -1,6 +1,9 @@
 package kucoin
 
 import (
+	"strings"
+	"time"
+
 	"github.com/syndicatedb/goex/internal/proxy"
 	"github.com/syndicatedb/goex/schemas"
 )
@@ -8,7 +11,16 @@ import (
 const (
 	exchangeName = "kucoin"
 
-	apiSymbols = "https://api.kucoin.com/v1/market/open/symbols"
+	apiSymbols   = "https://api.kucoin.com/v1/market/open/symbols"
+	apiOrderBook = "https://api.kucoin.com/v1/open/orders"
+)
+
+const (
+	// SubscriptionInterval - default subscription interval
+	SubscriptionInterval  = 1 * time.Second
+	orderBookSymbolsLimit = 10
+	tradesSymbolsLimit    = 10
+	quotesSymbolsLimit    = 10
 )
 
 // Kucoin - kucoin exchange structure
@@ -27,7 +39,7 @@ func New(opts schemas.Options) *Kucoin {
 			Credentials:   opts.Credentials,
 			ProxyProvider: proxyProvider,
 			Symbol:        NewSymbolsProvider(proxyProvider),
-			// Orders:        NewOrdersProvider(proxyProvider),
+			Orders:        NewOrdersProvider(proxyProvider),
 			// Quotes:        NewQuotesProvider(proxyProvider),
 			// Trades:        NewTradesProvider(proxyProvider),
 			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
@@ -35,7 +47,11 @@ func New(opts schemas.Options) *Kucoin {
 	}
 }
 
-// TODO: parseSymbol function
 func parseSymbol(s string) (name, coin, baseCoin string) {
+	sa := strings.Split(s, "-")
+	coin = strings.ToUpper(sa[0])
+	baseCoin = strings.ToUpper(sa[1])
+	name = coin + "-" + baseCoin
+
 	return
 }

@@ -2,6 +2,7 @@ package kucoin
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -9,12 +10,9 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-type response struct {
-	Success   bool     `json:"success"`
-	Code      string   `json:"code"`
-	Message   string   `json:"msg"`
-	Timestamp int64    `json:"timestamp"`
-	Data      []symbol `json:"data"`
+type symbolsResponse struct {
+	responseHeader
+	Data []symbol `json:"data"`
 }
 
 // SymbolsProvider structure
@@ -33,11 +31,15 @@ func NewSymbolsProvider(httpProxy proxy.Provider) *SymbolsProvider {
 // Get - loading symbols from exchange
 func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 	var b []byte
-	var resp response
+	var resp symbolsResponse
 	if b, err = sp.httpClient.Get(apiSymbols, httpclient.Params(), false); err != nil {
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if !resp.Success {
+		err = fmt.Errorf("Error getting symbols: %v", resp.Message)
 		return
 	}
 	for _, smb := range resp.Data {

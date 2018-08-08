@@ -4,6 +4,12 @@ import (
 	"github.com/syndicatedb/goex/schemas"
 )
 
+type responseHeader struct {
+	Success   bool   `json:"success"`
+	Code      string `json:"code"`
+	Message   string `json:"msg"`
+	Timestamp int64  `json:"timestamp"`
+}
 type symbol struct {
 	CoinType      string  `json:"coinType"`
 	Trading       bool    `json:"trading"`

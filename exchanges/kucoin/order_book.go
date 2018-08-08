@@ -1,7 +1,6 @@
-package tidex
+package kucoin
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -9,11 +8,12 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-// OrdersProvider - order book provider
+// OrdersProvider - order book provider structure
 type OrdersProvider struct {
 	httpProxy proxy.Provider
 	symbols   []schemas.Symbol
-	books     []*OrderBookGroup
+	groups    []*OrderBookGroup
+
 	sync.Mutex
 }
 
@@ -26,20 +26,19 @@ func NewOrdersProvider(httpProxy proxy.Provider) *OrdersProvider {
 
 // SetSymbols - getting all symbols from Exchange
 func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersProvider {
-	log.Println("Symbols: ", len(symbols))
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
 	capacity := orderBookSymbolsLimit
 	for {
 		if len(slice) <= capacity {
-			ob.books = append(
-				ob.books,
+			ob.groups = append(
+				ob.groups,
 				NewOrderBookGroup(slice, ob.httpProxy),
 			)
 			break
 		}
-		ob.books = append(
-			ob.books,
+		ob.groups = append(
+			ob.groups,
 			NewOrderBookGroup(slice[0:capacity], ob.httpProxy),
 		)
 
@@ -64,8 +63,8 @@ func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r c
 func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
 
-	for _, orderBook := range ob.books {
-		go orderBook.subscribe(ch, d)
+	for _, orderBook := range ob.groups {
+		go orderBook.Subscribe(ch, d)
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch
