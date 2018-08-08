@@ -2,6 +2,7 @@ package goex
 
 import (
 	"github.com/syndicatedb/goex/exchanges/binance"
+	"github.com/syndicatedb/goex/exchanges/bitfinex"
 	"github.com/syndicatedb/goex/exchanges/kucoin"
 	"github.com/syndicatedb/goex/exchanges/poloniex"
 	"github.com/syndicatedb/goex/exchanges/tidex"
