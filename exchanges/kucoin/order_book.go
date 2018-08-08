@@ -61,8 +61,11 @@ func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, er
 }
 
 // Subscribe - getting all symbols from Exchange
-func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r chan schemas.ResultChannel) {
-	return
+func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
+	ch := make(chan schemas.ResultChannel)
+	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
+	go group.Subscribe(ch, d)
+	return ch
 }
 
 // SubscribeAll - getting all symbols from Exchange

@@ -124,7 +124,9 @@ func (qp *QuotesProvider) getBySymbol(symbol schemas.Symbol) (quote schemas.Quot
 	var b []byte
 	var resp symbolQuoteResp
 
-	if b, err = qp.httpClient.Get(apiTicker, httpclient.Params(), false); err != nil {
+	query := httpclient.Params()
+	query.Set("symbol", symbol.OriginalName)
+	if b, err = qp.httpClient.Get(apiTicker, query, false); err != nil {
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
