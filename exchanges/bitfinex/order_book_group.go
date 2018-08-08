@@ -1,4 +1,4 @@
-package binance
+package bitfinex
 
 import (
 	"encoding/json"
