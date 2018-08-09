@@ -9,6 +9,7 @@ import (
 
 // TradesProvider - provides quotes/ticker
 type TradesProvider struct {
+	symbols   []schemas.Symbol
 	groups    []*TradesGroup
 	httpProxy proxy.Provider
 }
@@ -22,6 +23,7 @@ func NewTradesProvider(httpProxy proxy.Provider) *TradesProvider {
 
 // SetSymbols - getting all symbols from Exchange
 func (tp *TradesProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradesProvider {
+	tp.symbols = symbols
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
 	capacity := tradesSymbolsLimit
@@ -65,7 +67,8 @@ func (tp *TradesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan
 
 // SubscribeAll - subscribing to all quotes with interval
 func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	ch := make(chan schemas.ResultChannel)
+	bufLength := 2 * len(tp.symbols)
+	ch := make(chan schemas.ResultChannel, bufLength)
 
 	for _, group := range tp.groups {
 		go group.subscribe(ch, d)

@@ -119,7 +119,6 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 				c.errorChannel <- NewReadError(err)
 				continue
 			}
-
 			if c.channel != nil {
 				c.channel <- message
 			}
