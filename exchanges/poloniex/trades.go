@@ -72,8 +72,8 @@ func (tp *TradesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan
 
 // SubscribeAll - subscribing all groups
 func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	bufLength := len(tp.symbols)
-	ch := make(chan schemas.ResultChannel, 2*bufLength)
+	bufLength := len(tp.symbols) * len(tp.groups)
+	ch := make(chan schemas.ResultChannel, bufLength)
 
 	for _, group := range tp.groups {
 		go group.Start(ch)
