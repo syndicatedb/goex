@@ -56,8 +56,8 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
 		pairs:      currencPairs,
-		dch:        make(chan []byte),
-		ech:        make(chan error),
+		dch:        make(chan []byte, 2*len(symbols)),
+		ech:        make(chan error, 2*len(symbols)),
 	}
 }
 

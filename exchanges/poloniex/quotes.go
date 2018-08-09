@@ -48,8 +48,8 @@ func NewQuotesProvider(httpProxy proxy.Provider) *QuotesProvider {
 		httpClient: httpclient.New(proxyClient),
 		pairs:      pairs,
 		bus: bus{
-			dch: make(chan []byte),
-			ech: make(chan error),
+			dch: make(chan []byte, 2*len(pairs)),
+			ech: make(chan error, 2*len(pairs)),
 		},
 	}
 }
