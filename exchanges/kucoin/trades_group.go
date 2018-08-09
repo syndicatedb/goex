@@ -3,6 +3,7 @@ package kucoin
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -40,6 +41,7 @@ func (tg *TradesGroup) Subscribe(ch chan schemas.ResultChannel, d time.Duration)
 				Data:  trades,
 				Error: err,
 			}
+			log.Println("AFTER PUBLISHING TO CHANNEL")
 			continue
 		}
 		for _, b := range trades {
