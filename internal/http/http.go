@@ -80,7 +80,6 @@ func (client *Client) Post(url string, params, payload KeyValue, isSigned bool) 
 func (client *Client) Request(method, endpoint string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
 	var formData string
 	rawurl := endpoint
-	log.Println("ENDPOINT", rawurl)
 	if method == methodGET {
 		var URL *url.URL
 		URL, err = url.Parse(rawurl)
@@ -136,7 +135,6 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		// log.Println("Resp status is:", resp.Status)
 		err = fmt.Errorf("Status code is: %v", resp.StatusCode)
 		return
 	}
