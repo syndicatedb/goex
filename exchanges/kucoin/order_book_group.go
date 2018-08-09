@@ -45,6 +45,7 @@ func (ob *OrderBookGroup) Subscribe(ch chan schemas.ResultChannel, d time.Durati
 				Data:  book,
 				Error: err,
 			}
+			continue
 		}
 		log.Println("Continuing...")
 		for _, b := range book {
