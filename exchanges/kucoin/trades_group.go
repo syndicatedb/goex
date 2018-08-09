@@ -42,7 +42,6 @@ func (tg *TradesGroup) Subscribe(ch chan schemas.ResultChannel, d time.Duration)
 					Error: err,
 				}
 			}()
-			// log.Println("AFTER PUBLISHING TO CHANNEL")
 			continue
 		}
 		for _, b := range trades {

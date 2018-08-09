@@ -123,7 +123,6 @@ func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.Order
 		if v == "hb" {
 			return
 		}
-		log.Println("string: ", v)
 		// return
 	}
 	if v, ok := data[1].([]interface{}); ok {

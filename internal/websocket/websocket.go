@@ -112,7 +112,6 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 		for {
 			_, message, err := c.conn.ReadMessage()
 			if err != nil {
-				log.Println("Err", err)
 				c.errorChannel <- NewReadError(err)
 				return
 			}

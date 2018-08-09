@@ -38,7 +38,6 @@ func NewSymbolsProvider(httpProxy proxy.Provider) *SymbolsProvider {
 
 // Get - getting all symbols from Exchange
 func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
-	log.Println("Get symbols")
 	var b []byte
 	var resp []Symbol
 	if b, err = sp.httpClient.Get(apiSymbols, httpclient.Params(), false); err != nil {

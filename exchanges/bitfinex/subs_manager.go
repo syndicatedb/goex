@@ -91,7 +91,6 @@ type ChannelMessage struct {
 
 // NewSubsManager - SubsManager constructor
 func NewSubsManager(channel string, symbols []string, conn *websocket.Client, dch chan ChannelMessage) *SubsManager {
-	log.Println("WS:", conn)
 	return &SubsManager{
 		channel:     channel,
 		dataChannel: dch,
@@ -201,7 +200,6 @@ func (sm *SubsManager) subscribeToSymbol(symbol string, conn *websocket.Client) 
 			Length:    "100",
 		}
 	}
-	log.Println("Subscribing: ", message)
 	if err := conn.Write(message); err != nil {
 		fmt.Println("Error subscribing to books: ", err)
 	}

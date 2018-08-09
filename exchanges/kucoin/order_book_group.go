@@ -41,7 +41,6 @@ func (ob *OrderBookGroup) Subscribe(ch chan schemas.ResultChannel, d time.Durati
 		book, err := ob.Get()
 		if err != nil {
 			go func() {
-				log.Println("Error in Subscribe", err)
 				ch <- schemas.ResultChannel{
 					Data:  book,
 					Error: err,
@@ -49,7 +48,6 @@ func (ob *OrderBookGroup) Subscribe(ch chan schemas.ResultChannel, d time.Durati
 			}()
 			continue
 		}
-		log.Println("Continuing...")
 		for _, b := range book {
 			ch <- schemas.ResultChannel{
 				DataType: "s",
@@ -77,7 +75,6 @@ func (ob *OrderBookGroup) Get() (books map[string]schemas.OrderBook, err error) 
 			log.Println("Error sending request", err)
 			return
 		}
-		log.Println("YOU FUCKED UP")
 		if err = json.Unmarshal(b, &resp); err != nil {
 			return
 		}
