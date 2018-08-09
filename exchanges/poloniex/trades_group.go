@@ -95,17 +95,20 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	tg.subscribe()
 }
 
-// TODO: reconnect method!!!
+func (tg *TradesGroup) restart() {
+	tg.Start(tg.outChannel)
+}
+
 func (tg *TradesGroup) connect() {
 	tg.wsClient = websocket.NewClient(wsURL, tg.httpProxy)
 	tg.wsClient.UsePingMessage(".")
 	if err := tg.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
+		tg.restart()
 	}
 	tg.wsClient.Listen(tg.dch, tg.ech)
 }
 
-// TODO: resubscribe method
 func (tg *TradesGroup) subscribe() {
 	for _, symb := range tg.symbols {
 		msg := ordersSubscribeMsg{
@@ -114,6 +117,7 @@ func (tg *TradesGroup) subscribe() {
 		}
 		if err := tg.wsClient.Write(msg); err != nil {
 			log.Printf("Error subsciring to %v order books", symb.Name)
+			tg.restart()
 		}
 	}
 }
@@ -157,6 +161,7 @@ func (tg *TradesGroup) listen() {
 	go func() {
 		for err := range tg.ech {
 			log.Println("Error: ", err)
+			tg.restart()
 		}
 	}()
 }

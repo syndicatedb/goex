@@ -105,12 +105,17 @@ func (qp *QuotesProvider) start(ch chan schemas.ResultChannel) {
 	qp.subscribe()
 }
 
+func (qp *QuotesProvider) restart() {
+	qp.start(qp.bus.resChannel)
+}
+
 // TODO: reconnect method
 func (qp *QuotesProvider) connect() {
 	qp.wsClient = websocket.NewClient(wsURL, qp.httpProxy)
 	qp.wsClient.UsePingMessage(".")
 	if err := qp.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
+		qp.restart()
 	}
 	qp.wsClient.Listen(qp.bus.dch, qp.bus.ech)
 }
@@ -123,6 +128,7 @@ func (qp *QuotesProvider) subscribe() {
 	}
 	if err := qp.wsClient.Write(msg); err != nil {
 		log.Printf("Error subsciring to poloniex ticker")
+		qp.restart()
 	}
 }
 
@@ -152,6 +158,7 @@ func (qp *QuotesProvider) listen() {
 	go func() {
 		for err := range qp.bus.ech {
 			log.Println("Error: ", err)
+			qp.restart()
 		}
 	}()
 }

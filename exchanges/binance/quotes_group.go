@@ -69,8 +69,8 @@ func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesG
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
-		dataCh:     make(chan []byte),
-		errorCh:    make(chan error),
+		dataCh:     make(chan []byte, 2*len(symbols)),
+		errorCh:    make(chan error, 2*len(symbols)),
 	}
 }
 
@@ -79,6 +79,10 @@ func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 	q.resultCh = ch
 	q.listen()
 	q.connect()
+}
+
+func (q *QuotesGroup) restart() {
+	q.Start(q.resultCh)
 }
 
 // connect - creating new WS client and establishing connection
@@ -91,7 +95,7 @@ func (q *QuotesGroup) connect() {
 	q.wsClient = websocket.NewClient(wsURL+strings.Join(smbls, "@ticker/")+"@ticker", q.httpProxy)
 	if err := q.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to binance API: ", err)
-		return
+		q.restart()
 	}
 	q.wsClient.Listen(q.dataCh, q.errorCh)
 }
@@ -113,6 +117,7 @@ func (q *QuotesGroup) listen() {
 				Error: err,
 			}
 			log.Println("Error listening:", err)
+			q.restart()
 		}
 	}()
 }

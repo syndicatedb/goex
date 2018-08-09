@@ -65,8 +65,8 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
-		dataCh:     make(chan []byte),
-		errorCh:    make(chan error),
+		dataCh:     make(chan []byte, 2*len(symbols)),
+		errorCh:    make(chan error, 2*len(symbols)),
 	}
 }
 
@@ -81,6 +81,10 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 		}
 	}()
 	tg.connect()
+}
+
+func (tg *TradesGroup) restart() {
+	tg.Start(tg.resultCh)
 }
 
 // Get - getting trades snapshot by symbol
@@ -149,7 +153,7 @@ func (tg *TradesGroup) connect() {
 	tg.wsClient = ws
 	if err := tg.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to binance API: ", err)
-		return
+		tg.restart()
 	}
 	tg.wsClient.Listen(tg.dataCh, tg.errorCh)
 }
@@ -174,6 +178,7 @@ func (tg *TradesGroup) listen() {
 				Error: err,
 			}
 			log.Println("Error listening:", err)
+			tg.restart()
 		}
 	}()
 }

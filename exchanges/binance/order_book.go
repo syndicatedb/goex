@@ -57,7 +57,8 @@ func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r c
 
 // SubscribeAll - subscribing all groups
 func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	ch := make(chan schemas.ResultChannel)
+	bufLength := len(ob.symbols)
+	ch := make(chan schemas.ResultChannel, 2*bufLength)
 
 	for _, orderBook := range ob.books {
 		go orderBook.Start(ch)

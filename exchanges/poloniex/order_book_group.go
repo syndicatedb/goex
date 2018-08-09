@@ -103,7 +103,6 @@ func (ob *OrderBookGroup) restart() {
 	ob.Start(ob.outChannel)
 }
 
-// TODO: reconnect method!!!
 func (ob *OrderBookGroup) connect() {
 	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
 	ob.wsClient.UsePingMessage(".")
@@ -115,7 +114,6 @@ func (ob *OrderBookGroup) connect() {
 	log.Println("CONNECTION ESTABLIISHED")
 }
 
-// TODO: resubscribe method
 func (ob *OrderBookGroup) subscribe() {
 	for _, symb := range ob.symbols {
 		msg := ordersSubscribeMsg{
