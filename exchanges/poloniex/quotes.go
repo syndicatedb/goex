@@ -91,7 +91,8 @@ func (qp *QuotesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan
 
 // SubscribeAll - subscribing to all quotes with interval
 func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	ch := make(chan schemas.ResultChannel)
+	bufLength := len(qp.pairs)
+	ch := make(chan schemas.ResultChannel, 2*bufLength)
 	go qp.start(ch)
 	return ch
 }

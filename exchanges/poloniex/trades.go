@@ -10,6 +10,7 @@ import (
 
 // TradesProvider - trades provider structure
 type TradesProvider struct {
+	symbols   []schemas.Symbol
 	groups    []*TradesGroup
 	httpProxy proxy.Provider
 
@@ -25,6 +26,7 @@ func NewTradesProvider(httpProxy proxy.Provider) *TradesProvider {
 
 // SetSymbols - setting symbols to TradesProvider
 func (tp *TradesProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradesProvider {
+	tp.symbols = symbols
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
 	capacity := orderBookSymbolsLimit
@@ -70,7 +72,8 @@ func (tp *TradesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan
 
 // SubscribeAll - subscribing all groups
 func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	ch := make(chan schemas.ResultChannel)
+	bufLength := len(tp.symbols)
+	ch := make(chan schemas.ResultChannel, 2*bufLength)
 
 	for _, group := range tp.groups {
 		go group.Start(ch)
