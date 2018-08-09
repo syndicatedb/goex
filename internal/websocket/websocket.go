@@ -116,15 +116,10 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 				c.errorChannel <- NewReadError(err)
 				return
 			}
-<<<<<<< HEAD
-			if c.channel != nil {
-				c.channel <- message
-=======
 
 			if c.channel == nil {
 				c.errorChannel <- NewChannelNilError()
 				return
->>>>>>> 79444a6aad3a96bcda4357050cb9a2b0e92d73dd
 			}
 			c.channel <- message
 		}
