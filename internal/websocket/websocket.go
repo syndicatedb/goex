@@ -66,7 +66,6 @@ func (c *Client) Connect() (err error) {
 	var dialer websocket.Dialer
 	var resp *http.Response
 	ip := c.proxyProvider.IP()
-	log.Println("IP:", ip)
 	if len(ip) > 0 {
 		proxyURL, err := url.Parse(c.proxyProvider.IP())
 		if err != nil {
@@ -80,7 +79,6 @@ func (c *Client) Connect() (err error) {
 		dialer = websocket.Dialer{}
 	}
 	c.conn, resp, err = dialer.Dial(c.getAddressURL(), nil)
-	// c.conn, resp, err = websocket.DefaultDialer.Dial(c.getAddressURL(), nil)
 	if err != nil {
 		log.Println("ws connection error: ", err)
 		log.Println("ws connection error response: ", resp)
@@ -113,16 +111,17 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 		defer close(c.done)
 		for {
 			_, message, err := c.conn.ReadMessage()
-			log.Println("MESSAGE IN WS CLIENT", message)
 			if err != nil {
-				log.Println("ERROR IN WS CLIENT", err)
+				log.Println("Err", err)
 				c.errorChannel <- NewReadError(err)
-				continue
+				return
 			}
 
 			if c.channel != nil {
 				c.channel <- message
 			}
+			c.errorChannel <- NewChannelNilError()
+			return
 		}
 	}()
 	if c.keepalive {

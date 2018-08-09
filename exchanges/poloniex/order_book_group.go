@@ -99,12 +99,17 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	ob.subscribe()
 }
 
+func (ob *OrderBookGroup) restart() {
+	ob.Start(ob.outChannel)
+}
+
 // TODO: reconnect method!!!
 func (ob *OrderBookGroup) connect() {
 	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
 	ob.wsClient.UsePingMessage(".")
 	if err := ob.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
+		ob.restart()
 	}
 	ob.wsClient.Listen(ob.dch, ob.ech)
 	log.Println("CONNECTION ESTABLIISHED")
@@ -120,6 +125,7 @@ func (ob *OrderBookGroup) subscribe() {
 		log.Println("MSG", msg)
 		if err := ob.wsClient.Write(msg); err != nil {
 			log.Printf("Error subsciring to %v order books", symb.Name)
+			ob.restart()
 		}
 	}
 	log.Println("Subscription ok")
@@ -180,6 +186,7 @@ func (ob *OrderBookGroup) listen() {
 	go func() {
 		for msg := range ob.ech {
 			log.Println("Error: ", msg)
+			ob.restart()
 		}
 	}()
 }

@@ -1,7 +1,6 @@
 package poloniex
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -72,14 +71,13 @@ func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r c
 
 // SubscribeAll - subscribing all groups
 func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	bufLength := len(ob.symbols) * len(ob.groups)
-	ch := make(chan schemas.ResultChannel, bufLength)
+	bufLength := len(ob.symbols)
+	ch := make(chan schemas.ResultChannel, 2*bufLength)
 
 	for _, gr := range ob.groups {
 		go gr.Start(ch)
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	log.Println("CHANNEL IN ADAPTER IS", ch)
 	return ch
 }
