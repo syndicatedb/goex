@@ -40,11 +40,13 @@ func (ob *OrderBookGroup) Subscribe(ch chan schemas.ResultChannel, d time.Durati
 	for {
 		book, err := ob.Get()
 		if err != nil {
+			log.Println("Error in Subscribe", err)
 			ch <- schemas.ResultChannel{
 				Data:  book,
 				Error: err,
 			}
 		}
+		log.Println("Continuing...")
 		for _, b := range book {
 			ch <- schemas.ResultChannel{
 				DataType: "s",
