@@ -128,79 +128,68 @@ func (ob *OrderBookGroup) subscribe() {
 func (ob *OrderBookGroup) listen() {
 	log.Println("Start listening")
 	go func() {
-		for {
-			select {
-			case msg := <-ob.dch:
-				var data []interface{}
+		for msg := range ob.dch {
+			var data []interface{}
 
-				log.Println("RAW ORDERBOOK", msg)
-				if err := json.Unmarshal(msg, &data); err != nil {
-					log.Println("Error parsing message: ", err)
-					continue
-				}
-				if _, ok := data[0].([]interface{}); ok {
-					log.Printf("data: %+v\n", data)
-					continue
-				}
-				pairID := int64(data[0].(float64))
-				if len(data) > 1 {
-					if d, ok := data[2].([]interface{}); ok {
-						for _, a := range d {
-							if c, ok := a.([]interface{}); ok {
-								dataType := c[0].(string)
-								if dataType == "i" {
-									// handling snapshot
-									log.Println("DataType I")
-									snapshot := c[1].(map[string]interface{})
-									symbol, _, _ := parseSymbol(snapshot["currencyPair"].(string))
-									book := snapshot["orderBook"].([]interface{})
+			if err := json.Unmarshal(msg, &data); err != nil {
+				log.Println("Error parsing message: ", err)
+				continue
+			}
+			if _, ok := data[0].([]interface{}); ok {
+				log.Printf("data: %+v\n", data)
+				continue
+			}
+			pairID := int64(data[0].(float64))
+			if len(data) > 1 {
+				if d, ok := data[2].([]interface{}); ok {
+					for _, a := range d {
+						if c, ok := a.([]interface{}); ok {
+							dataType := c[0].(string)
+							if dataType == "i" {
+								// handling snapshot
+								log.Println("DataType I")
+								snapshot := c[1].(map[string]interface{})
+								symbol, _, _ := parseSymbol(snapshot["currencyPair"].(string))
+								book := snapshot["orderBook"].([]interface{})
 
-									mappedBook := ob.mapSnapshot(symbol, book)
-									if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
-										ob.publish(mappedBook, "s", nil)
-										continue
-									}
-									continue
+								mappedBook := ob.mapSnapshot(symbol, book)
+								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
+									go ob.publish(mappedBook, "s", nil)
 								}
-								if dataType == "o" {
-									// handling update
-									log.Println("DataType O")
-									mappedBook := ob.mapUpdate(pairID, c)
-									if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
-										ob.publish(mappedBook, "u", nil)
-										continue
-									}
-									continue
-								}
-							} else {
-								log.Printf("a: %+v\n", a)
-								continue
 							}
+							if dataType == "o" {
+								// handling update
+								log.Println("DataType O")
+								mappedBook := ob.mapUpdate(pairID, c)
+								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
+									go ob.publish(mappedBook, "u", nil)
+								}
+							}
+						} else {
+							log.Printf("a: %+v\n", a)
 						}
 					}
+				} else {
+					continue
 				}
+			} else {
+				continue
 			}
 		}
 	}()
 	go func() {
-		for {
-			select {
-			case msg := <-ob.ech:
-				log.Println("Error: ", msg)
-			}
+		for msg := range ob.ech {
+			log.Println("Error: ", msg)
 		}
 	}()
 }
 
 func (ob *OrderBookGroup) publish(data schemas.OrderBook, dataType string, err error) {
-	go func() {
-		log.Println("Publishing data", data)
-		ob.outChannel <- schemas.ResultChannel{
-			DataType: dataType,
-			Data:     data,
-			Error:    err,
-		}
-	}()
+	ob.outChannel <- schemas.ResultChannel{
+		DataType: dataType,
+		Data:     data,
+		Error:    err,
+	}
 }
 
 func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas.OrderBook {

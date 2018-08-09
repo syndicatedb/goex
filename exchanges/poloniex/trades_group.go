@@ -141,15 +141,16 @@ func (tg *TradesGroup) listen() {
 								// handling trade
 								mappedTrade := tg.mapUpdate(pairID, c)
 								if len(mappedTrade.Symbol) > 0 {
-									tg.publish([]schemas.Trade{mappedTrade}, "u", nil)
+									go tg.publish([]schemas.Trade{mappedTrade}, "u", nil)
 								}
-								continue
 							}
 						} else {
 							log.Printf("a: %+v\n", a)
 						}
 					}
 				}
+			} else {
+				continue
 			}
 		}
 	}()
@@ -162,13 +163,11 @@ func (tg *TradesGroup) listen() {
 
 // publish - publishing data into result channel
 func (tg *TradesGroup) publish(data interface{}, dataType string, err error) {
-	go func() {
-		tg.outChannel <- schemas.ResultChannel{
-			DataType: dataType,
-			Data:     data,
-			Error:    err,
-		}
-	}()
+	tg.outChannel <- schemas.ResultChannel{
+		DataType: dataType,
+		Data:     data,
+		Error:    err,
+	}
 }
 
 // sendSnapshot - preparing and sending snapshot into result channel
