@@ -117,11 +117,11 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 				return
 			}
 
-			if c.channel != nil {
-				c.channel <- message
+			if c.channel == nil {
+				c.errorChannel <- NewChannelNilError()
+				return
 			}
-			c.errorChannel <- NewChannelNilError()
-			return
+			c.channel <- message
 		}
 	}()
 	if c.keepalive {
