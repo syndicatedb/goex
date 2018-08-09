@@ -51,6 +51,7 @@ func (qp *QuotesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan
 					Error:    err,
 					DataType: "s",
 				}
+				continue
 			}
 			ch <- schemas.ResultChannel{
 				Data:     quote,
@@ -78,6 +79,7 @@ func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 					Error:    err,
 					DataType: "s",
 				}
+				continue
 			}
 			for _, b := range quotes {
 				ch <- schemas.ResultChannel{

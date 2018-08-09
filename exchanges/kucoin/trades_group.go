@@ -40,6 +40,7 @@ func (tg *TradesGroup) Subscribe(ch chan schemas.ResultChannel, d time.Duration)
 				Data:  trades,
 				Error: err,
 			}
+			continue
 		}
 		for _, b := range trades {
 			if len(b) > 0 {
