@@ -151,7 +151,6 @@ func (ob *OrderBookGroup) listen() {
 							dataType := c[0].(string)
 							if dataType == "i" {
 								// handling snapshot
-								log.Println("DataType I")
 								snapshot := c[1].(map[string]interface{})
 								symbol, _, _ := parseSymbol(snapshot["currencyPair"].(string))
 								book := snapshot["orderBook"].([]interface{})
@@ -163,7 +162,6 @@ func (ob *OrderBookGroup) listen() {
 							}
 							if dataType == "o" {
 								// handling update
-								log.Println("DataType O")
 								mappedBook := ob.mapUpdate(pairID, c)
 								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
 									go ob.publish(mappedBook, "u", nil)
