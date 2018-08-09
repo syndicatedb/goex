@@ -1,5 +1,7 @@
 package websocket
 
+import "errors"
+
 const (
 	// ErrorConnection - error when connecting
 	ErrorConnection = iota + 100
@@ -12,6 +14,9 @@ const (
 
 	// ErrorStartServer - error when starting ws server
 	ErrorStartServer
+
+	// ErrorNilChannel - error rwhen data channel is nil
+	ErrorNilChannel
 )
 
 // Error - error structure
@@ -38,6 +43,12 @@ func NewError(t int, err error) error {
 // NewReadError - NewError decorator
 func NewReadError(err error) error {
 	return NewError(ErrorRead, err)
+}
+
+// NewChannelNilError - NewError decorator
+func NewChannelNilError() error {
+	err := errors.New("Datachannel is nil")
+	return NewError(ErrorNilChannel, err)
 }
 
 // NewKeepaliveError - NewError decorator

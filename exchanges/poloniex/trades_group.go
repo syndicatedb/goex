@@ -95,17 +95,20 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	tg.subscribe()
 }
 
-// TODO: reconnect method!!!
+func (tg *TradesGroup) restart() {
+	tg.Start(tg.outChannel)
+}
+
 func (tg *TradesGroup) connect() {
 	tg.wsClient = websocket.NewClient(wsURL, tg.httpProxy)
 	tg.wsClient.UsePingMessage(".")
 	if err := tg.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
+		tg.restart()
 	}
 	tg.wsClient.Listen(tg.dch, tg.ech)
 }
 
-// TODO: resubscribe method
 func (tg *TradesGroup) subscribe() {
 	for _, symb := range tg.symbols {
 		msg := ordersSubscribeMsg{
@@ -114,6 +117,7 @@ func (tg *TradesGroup) subscribe() {
 		}
 		if err := tg.wsClient.Write(msg); err != nil {
 			log.Printf("Error subsciring to %v order books", symb.Name)
+			tg.restart()
 		}
 	}
 }
@@ -141,34 +145,34 @@ func (tg *TradesGroup) listen() {
 								// handling trade
 								mappedTrade := tg.mapUpdate(pairID, c)
 								if len(mappedTrade.Symbol) > 0 {
-									tg.publish([]schemas.Trade{mappedTrade}, "u", nil)
+									go tg.publish([]schemas.Trade{mappedTrade}, "u", nil)
 								}
-								continue
 							}
 						} else {
 							log.Printf("a: %+v\n", a)
 						}
 					}
 				}
+			} else {
+				continue
 			}
 		}
 	}()
 	go func() {
 		for err := range tg.ech {
 			log.Println("Error: ", err)
+			tg.restart()
 		}
 	}()
 }
 
 // publish - publishing data into result channel
 func (tg *TradesGroup) publish(data interface{}, dataType string, err error) {
-	go func() {
-		tg.outChannel <- schemas.ResultChannel{
-			DataType: dataType,
-			Data:     data,
-			Error:    err,
-		}
-	}()
+	tg.outChannel <- schemas.ResultChannel{
+		DataType: dataType,
+		Data:     data,
+		Error:    err,
+	}
 }
 
 // sendSnapshot - preparing and sending snapshot into result channel

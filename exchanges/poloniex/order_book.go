@@ -1,7 +1,6 @@
 package poloniex
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -80,6 +79,5 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	log.Println("CHANNEL IN ADAPTER IS", ch)
 	return ch
 }

@@ -58,8 +58,8 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 		httpProxy:    httpProxy,
 		httpClient:   httpclient.New(proxyClient),
 		lastUpdateID: make(map[string]int64),
-		dataCh:       make(chan []byte),
-		errorCh:      make(chan error),
+		dataCh:       make(chan []byte, 2*len(symbols)),
+		errorCh:      make(chan error, 2*len(symbols)),
 	}
 }
 
@@ -99,6 +99,10 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	ob.connect()
 }
 
+func (ob *OrderBookGroup) restart() {
+	ob.Start(ob.resultCh)
+}
+
 // connect - creating new WS client and establishing connection
 func (ob *OrderBookGroup) connect() {
 	var smbls []string
@@ -110,7 +114,7 @@ func (ob *OrderBookGroup) connect() {
 	ob.wsClient = ws
 	if err := ob.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to binance API: ", err)
-		return
+		ob.restart()
 	}
 	ob.wsClient.Listen(ob.dataCh, ob.errorCh)
 }
@@ -134,6 +138,7 @@ func (ob *OrderBookGroup) listen() {
 				Error: err,
 			}
 			log.Println("Error listening:", err)
+			ob.restart()
 		}
 	}()
 }
