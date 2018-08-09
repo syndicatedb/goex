@@ -27,6 +27,7 @@ func NewOrdersProvider(httpProxy proxy.Provider) *OrdersProvider {
 
 // SetSymbols - getting all symbols from Exchange
 func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersProvider {
+	ob.symbols = symbols
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
 	capacity := orderBookSymbolsLimit
@@ -70,7 +71,8 @@ func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan
 
 // SubscribeAll - getting all symbols from Exchange
 func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	ch := make(chan schemas.ResultChannel)
+	bufLength := len(ob.symbols)
+	ch := make(chan schemas.ResultChannel, 2*bufLength)
 
 	for _, orderBook := range ob.groups {
 		go orderBook.Subscribe(ch, d)
