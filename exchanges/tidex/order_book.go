@@ -62,7 +62,8 @@ func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r c
 
 // SubscribeAll - getting all symbols from Exchange
 func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	ch := make(chan schemas.ResultChannel)
+	bufLength := 2 * len(ob.symbols)
+	ch := make(chan schemas.ResultChannel, bufLength)
 
 	for _, orderBook := range ob.books {
 		go orderBook.subscribe(ch, d)

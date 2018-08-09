@@ -11,10 +11,10 @@ import (
 
 const (
 	exchangeName = "binance"
-	apiSymbols   = "http://api.binance.com/api/v1/exchangeInfo"
-	apiOrderBook = "http://api.binance.com/api/v1/depth"
-	apiTrades    = "http://api.binance.com/api/v1/trades"
-	apiQuotes    = "http://api.binance.com/api/v1/ticker/24hr"
+	apiSymbols   = "https://api.binance.com/api/v1/exchangeInfo"
+	apiOrderBook = "https://api.binance.com/api/v1/depth"
+	apiTrades    = "https://api.binance.com/api/v1/trades"
+	apiQuotes    = "https://api.binance.com/api/v1/ticker/24hr"
 
 	wsURL = "wss://stream.binance.com:9443/stream?streams="
 )
