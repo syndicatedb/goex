@@ -3,7 +3,6 @@ package kucoin
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/syndicatedb/goex/schemas"
@@ -90,8 +89,6 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data map[string]interface{}
 	book := schemas.OrderBook{
 		Symbol: symbol,
 	}
-	log.Println("SYMBOL", symbol)
-
 	if _, ok := data["SELL"]; ok {
 		if s, ok := data["SELL"].([]interface{}); ok {
 			for _, el := range s {
