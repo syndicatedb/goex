@@ -71,6 +71,7 @@ func (ob *OrderBookGroup) Get(symbol string) (book schemas.OrderBook, err error)
 	url := apiOrderBook + "?" + "symbol=" + strings.ToUpper(symbol) + "&limit=100"
 
 	if b, err = ob.httpClient.Get(url, httpclient.Params(), false); err != nil {
+		log.Println(string(b))
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
