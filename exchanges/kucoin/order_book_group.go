@@ -3,6 +3,7 @@ package kucoin
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/syndicatedb/goex/schemas"
@@ -68,8 +69,10 @@ func (ob *OrderBookGroup) Get() (books map[string]schemas.OrderBook, err error) 
 		query.Set("limit", "200")
 
 		if b, err = ob.httpClient.Get(apiOrderBook, query, false); err != nil {
+			log.Println("Error sending request", err)
 			return
 		}
+		log.Println("YOU FUCKED UP")
 		if err = json.Unmarshal(b, &resp); err != nil {
 			return
 		}
