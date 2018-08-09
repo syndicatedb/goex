@@ -58,7 +58,7 @@ func (sp *SymbolsProvider) mapSymbol(symbol string, data map[string]interface{})
 
 // Subscribe - getting all symbols from exchange with interval d
 func (sp *SymbolsProvider) Subscribe(d time.Duration) chan schemas.ResultChannel {
-	ch := make(chan schemas.ResultChannel)
+	ch := make(chan schemas.ResultChannel, 300)
 
 	go func() {
 		for {
