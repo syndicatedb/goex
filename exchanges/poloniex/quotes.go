@@ -97,6 +97,7 @@ func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	return ch
 }
 
+// start - starting quotes updates
 func (qp *QuotesProvider) start(ch chan schemas.ResultChannel) {
 	qp.bus.resChannel = ch
 
@@ -105,11 +106,12 @@ func (qp *QuotesProvider) start(ch chan schemas.ResultChannel) {
 	qp.subscribe()
 }
 
+// restart - calling start.
+// Need for restarting provider on errors.
 func (qp *QuotesProvider) restart() {
 	qp.start(qp.bus.resChannel)
 }
 
-// TODO: reconnect method
 func (qp *QuotesProvider) connect() {
 	qp.wsClient = websocket.NewClient(wsURL, qp.httpProxy)
 	qp.wsClient.UsePingMessage(".")
@@ -121,7 +123,7 @@ func (qp *QuotesProvider) connect() {
 	qp.wsClient.Listen(qp.bus.dch, qp.bus.ech)
 }
 
-// TODO: resubscribe method
+// subscribe - subscribing to quotes updates on WS connection
 func (qp *QuotesProvider) subscribe() {
 	msg := tickerSubscribeMsg{
 		Command: commandSubscribe,
@@ -134,6 +136,7 @@ func (qp *QuotesProvider) subscribe() {
 	}
 }
 
+// listen - listening to WS updates
 func (qp *QuotesProvider) listen() {
 	go func() {
 		for msg := range qp.bus.dch {
@@ -166,6 +169,7 @@ func (qp *QuotesProvider) listen() {
 	}()
 }
 
+// publish - publishing messages into outChannel
 func (qp *QuotesProvider) publish(data interface{}, dataType string, e error) {
 	qp.bus.resChannel <- schemas.ResultChannel{
 		DataType: dataType,
@@ -174,11 +178,16 @@ func (qp *QuotesProvider) publish(data interface{}, dataType string, e error) {
 	}
 }
 
+// mapSnapshot - mapping incoming data into common Quote model
 func (qp *QuotesProvider) mapSnapshot(data map[string]quote) (quotes []schemas.Quote) {
 	for symb, q := range data {
 		var valueChange float64
 		symbol, _, _ := parseSymbol(symb)
 		lastPrice, _ := strconv.ParseFloat(q.Last, 64)
+		high, _ := strconv.ParseFloat(q.HighestBid, 64)
+		low, _ := strconv.ParseFloat(q.LowestAsk, 64)
+		volumeBase, _ := strconv.ParseFloat(q.QuoteVolume, 64)
+		volumeQuote, _ := strconv.ParseFloat(q.BaseVolume, 64)
 		percent, _ := strconv.ParseFloat(q.PercentChange, 64)
 		percentChange := math.Abs(percent)
 		if percent > 0 {
@@ -193,19 +202,20 @@ func (qp *QuotesProvider) mapSnapshot(data map[string]quote) (quotes []schemas.Q
 
 		quotes = append(quotes, schemas.Quote{
 			Symbol:          symbol,
-			Price:           q.Last,
-			High:            q.HighestBid,
-			Low:             q.LowestAsk,
-			DrawdownPercent: q.PercentChange,
-			DrawdownValue:   strconv.FormatFloat(valueChange, 'f', 8, 64),
-			VolumeBase:      q.QuoteVolume,
-			VolumeQuote:     q.BaseVolume,
+			Price:           lastPrice,
+			High:            high,
+			Low:             low,
+			DrawdownPercent: percent,
+			DrawdownValue:   valueChange,
+			VolumeBase:      volumeBase,
+			VolumeQuote:     volumeQuote,
 		})
 	}
 
 	return
 }
 
+// mapUpdate - mapping incoming data into common Quote model
 func (qp *QuotesProvider) mapUpdate(d []interface{}) schemas.Quote {
 	var valueChange float64
 
@@ -215,8 +225,12 @@ func (qp *QuotesProvider) mapUpdate(d []interface{}) schemas.Quote {
 	}
 
 	symbolName, _, _ := parseSymbol(smb)
-	lastPrice, _ := strconv.ParseFloat(d[1].(string), 64)
-	percent, _ := strconv.ParseFloat(d[4].(string), 64)
+	lastPrice := parseFloat(d[1].(string))
+	high := parseFloat(d[1].(string))
+	low := parseFloat(d[8].(string))
+	volumeBase := parseFloat(d[6].(string))
+	volumeQuote := parseFloat(d[5].(string))
+	percent := parseFloat(d[4].(string))
 	percentChange := math.Abs(percent)
 	if percent > 0 {
 		valueChange = lastPrice - ((lastPrice * (100 - percentChange)) / 100.00)
@@ -230,19 +244,29 @@ func (qp *QuotesProvider) mapUpdate(d []interface{}) schemas.Quote {
 
 	return schemas.Quote{
 		Symbol:          symbolName,
-		Price:           d[1].(string),
-		High:            d[8].(string),
-		Low:             d[9].(string),
-		DrawdownValue:   strconv.FormatFloat(valueChange, 'f', 8, 64),
-		DrawdownPercent: d[4].(string),
-		VolumeBase:      d[6].(string),
-		VolumeQuote:     d[5].(string),
+		Price:           lastPrice,
+		High:            high,
+		Low:             low,
+		DrawdownValue:   valueChange,
+		DrawdownPercent: percent,
+		VolumeBase:      volumeBase,
+		VolumeQuote:     volumeQuote,
 	}
 }
 
+// getSymbol - loading symbol from map to match it with currencyPair ID
 func (qp *QuotesProvider) getSymbol(id int) string {
 	if smb, ok := qp.pairs[id]; ok {
 		return smb
 	}
 	return ""
+}
+
+func parseFloat(s string) (d float64) {
+	d, err := strconv.ParseFloat(s, 65)
+	if err != nil {
+		log.Println("Error parsing string to float64: ", err)
+	}
+
+	return
 }
