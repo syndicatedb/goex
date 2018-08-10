@@ -108,6 +108,11 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 	c.done = make(chan struct{})
 
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("Recovered after error: ", err)
+			}
+		}()
 		defer close(c.done)
 		for {
 			var data interface{}
