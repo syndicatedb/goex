@@ -148,8 +148,6 @@ func (tg *TradesGroup) listen() {
 									go tg.publish([]schemas.Trade{mappedTrade}, "u", nil)
 								}
 							}
-						} else {
-							log.Printf("a: %+v\n", a)
 						}
 					}
 				}

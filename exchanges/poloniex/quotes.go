@@ -137,7 +137,7 @@ func (qp *QuotesProvider) listen() {
 		for msg := range qp.bus.dch {
 			var data []interface{}
 
-			log.Printf("DATA %+v", msg)
+			// log.Printf("DATA %+v", msg)
 			if err := json.Unmarshal(msg, &data); err != nil {
 				log.Println("Error parsing message:", err)
 				continue

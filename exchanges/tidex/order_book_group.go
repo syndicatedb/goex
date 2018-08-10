@@ -32,7 +32,7 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 
 // SubscribeAll - getting all symbols from Exchange
 func (ob *OrderBookGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
-	i := 0
+	// i := 0
 	for {
 		book, err := ob.Get()
 		if err != nil {
@@ -48,12 +48,12 @@ func (ob *OrderBookGroup) subscribe(ch chan schemas.ResultChannel, d time.Durati
 				Error:    err,
 			}
 		}
-		i++
-		if i%5 == 0 {
-			if len(ob.emptySymbols) > 0 {
-				log.Println("Empty: ", ob.emptySymbols)
-			}
-		}
+		// i++
+		// if i%5 == 0 {
+		// 	if len(ob.emptySymbols) > 0 {
+		// 		log.Println("Empty: ", ob.emptySymbols)
+		// 	}
+		// }
 		time.Sleep(d)
 	}
 }

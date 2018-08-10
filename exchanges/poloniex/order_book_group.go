@@ -140,7 +140,7 @@ func (ob *OrderBookGroup) listen() {
 				continue
 			}
 			if _, ok := data[0].([]interface{}); ok {
-				log.Printf("data: %+v\n", data)
+				// log.Printf("data: %+v\n", data)
 				continue
 			}
 			pairID := int64(data[0].(float64))
@@ -167,8 +167,6 @@ func (ob *OrderBookGroup) listen() {
 									go ob.publish(mappedBook, "u", nil)
 								}
 							}
-						} else {
-							log.Printf("a: %+v\n", a)
 						}
 					}
 				} else {
