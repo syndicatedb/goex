@@ -1,11 +1,15 @@
 package bitfinex
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
+	"sync"
+	"unicode"
 
 	"github.com/syndicatedb/goex/internal/http"
 
@@ -14,6 +18,13 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
+// tradeSubsMessage - message that will be sent to Bitfinex to subscribe
+type tradeSubsMessage struct {
+	Event   string `json:"event"`
+	Channel string `json:"channel"`
+	Symbol  string `json:"symbol"`
+}
+
 // TradesGroup - trades group structure
 type TradesGroup struct {
 	symbols []schemas.Symbol
@@ -21,13 +32,16 @@ type TradesGroup struct {
 	wsClient   *websocket.Client
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
-	subs       *SubsManager
+	subs       map[int64]event
 	bus        tradesBus
+
+	sync.RWMutex
 }
 
 type tradesBus struct {
-	serviceChannel chan ChannelMessage
-	dataChannel    chan schemas.ResultChannel
+	dch        chan []byte
+	ech        chan error
+	outChannel chan schemas.ResultChannel
 }
 
 // NewTradesGroup - TradesGroup constructor
@@ -38,8 +52,10 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
+		subs:       make(map[int64]event),
 		bus: tradesBus{
-			serviceChannel: make(chan ChannelMessage),
+			dch: make(chan []byte, 2*len(symbols)),
+			ech: make(chan error, 2*len(symbols)),
 		},
 	}
 }
@@ -78,75 +94,160 @@ func (tg *TradesGroup) Get() (trades []schemas.Trade, err error) {
 
 // Start - starting updates
 func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
-	tg.bus.dataChannel = ch
+	tg.bus.outChannel = ch
 
 	tg.listen()
 	tg.connect()
 	tg.subscribe()
 }
 
+// restart - calling start with outChannel.
+// need for restarting group after error.
+func (tg *TradesGroup) restart() {
+	tg.Start(tg.bus.outChannel)
+}
+
 // connect - creating new WS client and establishing connection
 func (tg *TradesGroup) connect() {
-	ws := websocket.NewClient(wsURL, tg.httpProxy)
-	if err := ws.Connect(); err != nil {
+	tg.wsClient = websocket.NewClient(wsURL, tg.httpProxy)
+	if err := tg.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to bitfinex API: ", err)
 		return
 	}
-
-	tg.wsClient = ws
+	tg.wsClient.Listen(tg.bus.dch, tg.bus.ech)
 }
 
 // subscribe - subscribing to books by symbols
 func (tg *TradesGroup) subscribe() {
-	var smbls []string
 	for _, s := range tg.symbols {
-		smbls = append(smbls, s.OriginalName)
+		message := tradeSubsMessage{
+			Event:   eventSubscribe,
+			Channel: channelTrades,
+			Symbol:  "t" + strings.ToUpper(s.OriginalName),
+		}
+		if err := tg.wsClient.Write(message); err != nil {
+			log.Printf("Error subsciring to %v trades", s.Name)
+			tg.restart()
+			return
+		}
 	}
-	tg.subs = NewSubsManager("trades", smbls, tg.wsClient, tg.bus.serviceChannel)
-	tg.subs.Subscribe()
+	log.Println("Subscription ok")
 }
 
 // listen - listening to updates from WS
 func (tg *TradesGroup) listen() {
 	go func() {
-		for msg := range tg.bus.serviceChannel {
-			trades, datatype := tg.handleMessage(msg)
-			if len(trades) > 0 {
-				tg.bus.dataChannel <- schemas.ResultChannel{
-					DataType: datatype,
-					Data:     trades,
-				}
-			}
+		for msg := range tg.bus.dch {
+			tg.parseMessage(msg)
+		}
+	}()
+	go func() {
+		for err := range tg.bus.ech {
+			log.Printf("Error listen: %+v", err)
+			tg.restart()
+			return
 		}
 	}()
 }
 
-// handleMessage - handling WS message
-func (tg *TradesGroup) handleMessage(cm ChannelMessage) (trades []schemas.Trade, dataType string) {
-	symbol := cm.Symbol
-	data := cm.Data
+// publish - publishing data into outChannel
+func (tg *TradesGroup) publish(data interface{}, dataType string, err error) {
+	tg.bus.outChannel <- schemas.ResultChannel{
+		DataType: dataType,
+		Data:     data,
+		Error:    err,
+	}
+}
 
-	if ut, ok := data[1].(string); ok {
+// parseMessage - parsing incoming WS message.
+// Calls handleEvent() or handleMessage().
+func (tg *TradesGroup) parseMessage(msg []byte) {
+	t := bytes.TrimLeftFunc(msg, unicode.IsSpace)
+	var err error
+	// either a channel data array or an event object, raw json encoding
+	if bytes.HasPrefix(t, []byte("[")) {
+		tg.handleMessage(msg)
+	} else if bytes.HasPrefix(t, []byte("{")) {
+		if err = tg.handleEvent(msg); err != nil {
+			log.Println("Error handling event: ", err)
+		}
+	} else {
+		err = fmt.Errorf("unexpected message: %s", msg)
+	}
+	if err != nil {
+		fmt.Println("[ERROR] handleMessage: ", err, string(msg))
+	}
+}
+
+// handleEvent - handling incoming WS event message
+func (tg *TradesGroup) handleEvent(msg []byte) (err error) {
+	var event event
+	if err = json.Unmarshal(msg, &event); err != nil {
+		return
+	}
+	if event.Event == eventInfo {
+		if event.Code == wsCodeStopping {
+			tg.restart()
+			return
+		}
+	}
+	if event.Event == eventSubscribed {
+		if event.Channel == channelCandles {
+			event.Symbol = strings.Replace(event.Key, "trade:1m:t", "", 1)
+			event.Pair = event.Symbol
+		}
+		tg.add(event)
+		return
+	}
+	log.Println("Unprocessed event: ", string(msg))
+	return
+}
+
+// handleMessage - handling incoming WS data message
+func (tg *TradesGroup) handleMessage(msg []byte) {
+	var resp []interface{}
+	var e event
+	var err error
+
+	if err := json.Unmarshal(msg, &resp); err != nil {
+		return
+	}
+	chanID := int64Value(resp[0])
+	if chanID > 0 {
+		e, err = tg.get(chanID)
+		if err != nil {
+			log.Println("Error getting subscriptions: ", chanID, err)
+			return
+		}
+	} else {
+		return
+	}
+
+	if ut, ok := resp[1].(string); ok {
 		if ut == "hb" {
 			return
 		}
 		if ut == "tu" {
-			dataType = "update"
-			if d, ok := data[2].([]interface{}); ok {
-				trades = append(trades, tg.mapTrade(symbol, d))
+			// handling update
+			dataType := "u"
+			if d, ok := resp[2].([]interface{}); ok {
+				trade := tg.mapTrade(e.Symbol, d)
+				go tg.publish([]schemas.Trade{trade}, dataType, nil)
 				return
 			}
-			log.Printf("Warning: trade update contains no trade info: %+v\n", cm)
-			return
 		}
 	}
-	if snap, ok := data[1].([]interface{}); ok {
-		dataType = "s"
+	if snap, ok := resp[1].([]interface{}); ok {
+		// handling snapshot
+		var trades []schemas.Trade
+		dataType := "s"
 		for _, trade := range snap {
 			if d, ok := trade.([]interface{}); ok {
-				trades = append(trades, tg.mapTrade(symbol, d))
+				trades = append(trades, tg.mapTrade(e.Symbol, d))
 			}
 		}
+		go tg.publish(trades, dataType, nil)
+		return
 	}
 	return
 }
@@ -161,4 +262,24 @@ func (tg *TradesGroup) mapTrade(symbol string, d []interface{}) schemas.Trade {
 		Amount:    d[2].(float64),
 		Timestamp: int64(d[1].(float64)),
 	}
+}
+
+// add - adding channel info with it's ID.
+// Need for matching symbol with channel ID.
+func (tg *TradesGroup) add(e event) {
+	tg.Lock()
+	defer tg.Unlock()
+	tg.subs[e.ChanID] = e
+}
+
+// get - loading channel info by it's ID
+// Need for matching symbol with channel ID.
+func (tg *TradesGroup) get(chanID int64) (e event, err error) {
+	var ok bool
+	tg.RLock()
+	defer tg.RUnlock()
+	if e, ok = tg.subs[chanID]; ok {
+		return
+	}
+	return e, errors.New("subscription not found")
 }

@@ -68,6 +68,7 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
+		subs:       make(map[int64]event),
 		bus: ordersBus{
 			dch: make(chan []byte, 2*len(symbols)),
 			ech: make(chan error, 2*len(symbols)),
@@ -111,25 +112,25 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	ob.subscribe()
 }
 
+// restart - calling start with outChannel.
+// need for restarting group after error.
 func (ob *OrderBookGroup) restart() {
 	ob.Start(ob.bus.outChannel)
 }
 
 // connect - creating new WS client and establishing connection
 func (ob *OrderBookGroup) connect() {
-	ws := websocket.NewClient(wsURL, ob.httpProxy)
-	if err := ws.Connect(); err != nil {
+	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
+	if err := ob.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to bitfinex API: ", err)
 		ob.restart()
 		return
 	}
-
-	ob.wsClient = ws
+	ob.wsClient.Listen(ob.bus.dch, ob.bus.ech)
 }
 
 // subscribe - subscribing to books by symbols
 func (ob *OrderBookGroup) subscribe() {
-	var smbls []string
 	for _, s := range ob.symbols {
 		message := orderBookSubsMessage{
 			Event:     eventSubscribe,
@@ -146,7 +147,6 @@ func (ob *OrderBookGroup) subscribe() {
 			return
 		}
 	}
-
 	log.Println("Subscription ok")
 }
 
@@ -166,6 +166,17 @@ func (ob *OrderBookGroup) listen() {
 	}()
 }
 
+// publish - publishing data into outChannel
+func (ob *OrderBookGroup) publish(data interface{}, dataType string, err error) {
+	ob.bus.outChannel <- schemas.ResultChannel{
+		DataType: dataType,
+		Data:     data,
+		Error:    err,
+	}
+}
+
+// parseMessage - parsing incoming WS message.
+// Calls handleEvent() or handleMessage().
 func (ob *OrderBookGroup) parseMessage(msg []byte) {
 	t := bytes.TrimLeftFunc(msg, unicode.IsSpace)
 	var err error
@@ -184,6 +195,7 @@ func (ob *OrderBookGroup) parseMessage(msg []byte) {
 	}
 }
 
+// handleEvent - handling event message from WS
 func (ob *OrderBookGroup) handleEvent(msg []byte) (err error) {
 	var event event
 	if err = json.Unmarshal(msg, &event); err != nil {
@@ -207,22 +219,24 @@ func (ob *OrderBookGroup) handleEvent(msg []byte) (err error) {
 	return
 }
 
-// handleMessage - handling message from WS
+// handleMessage - handling data message from WS
 func (ob *OrderBookGroup) handleMessage(msg []byte) {
 	var resp []interface{}
 	var e event
+	var err error
 
 	if err := json.Unmarshal(msg, &resp); err != nil {
 		return
 	}
 	chanID := int64Value(resp[0])
 	if chanID > 0 {
-		e, err := ob.get(chanID)
+		e, err = ob.get(chanID)
 		if err != nil {
 			log.Println("Error getting subscriptions: ", chanID, err)
 			return
 		}
-
+	} else {
+		return
 	}
 
 	if v, ok := resp[1].(string); ok {
@@ -234,7 +248,7 @@ func (ob *OrderBookGroup) handleMessage(msg []byte) {
 		if _, ok := v[0].([]interface{}); ok {
 			// handlung snapshot
 			orders, dataType := ob.mapSnapshot(e.Symbol, v)
-			go ob.publish(orders, "s", nil)
+			go ob.publish(orders, dataType, nil)
 			return
 		}
 
@@ -246,14 +260,6 @@ func (ob *OrderBookGroup) handleMessage(msg []byte) {
 
 	log.Println("Unrecognized: ", resp)
 	return
-}
-
-func (ob *OrderBookGroup) publish(data interface{}, dataType string, err error) {
-	ob.bus.outChannel <- schemas.ResultChannel{
-		DataType: dataType,
-		Data:     data,
-		Error:    err,
-	}
 }
 
 // handleSnapshot - handling snapshot message
@@ -293,12 +299,16 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 	return orderBook
 }
 
+// add - adding channel info with it's ID.
+// Need for matching symbol with channel ID.
 func (ob *OrderBookGroup) add(e event) {
 	ob.Lock()
 	defer ob.Unlock()
 	ob.subs[e.ChanID] = e
 }
 
+// get - loading channel info by it's ID
+// Need for matching symbol with channel ID.
 func (ob *OrderBookGroup) get(chanID int64) (e event, err error) {
 	var ok bool
 	ob.RLock()
@@ -309,12 +319,12 @@ func (ob *OrderBookGroup) get(chanID int64) (e event, err error) {
 	return e, errors.New("subscription not found")
 }
 
-func int64Value(v interface{}) int64 {
-	if f, ok := v.(float64); ok {
-		return int64(f)
-	}
-	if i, ok := v.(int64); ok {
-		return i
-	}
-	return 0
-}
+// func int64Value(v interface{}) int64 {
+// 	if f, ok := v.(float64); ok {
+// 		return int64(f)
+// 	}
+// 	if i, ok := v.(int64); ok {
+// 		return i
+// 	}
+// 	return 0
+// }
