@@ -110,8 +110,18 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 	go func() {
 		defer close(c.done)
 		for {
-			_, message, err := c.conn.ReadMessage()
+			var data interface{}
+			// _, message, err := c.conn.ReadJSON(&data)
+			err := c.conn.ReadJSON(&data)
 			if err != nil {
+				log.Println("Err", err)
+				c.errorChannel <- NewReadError(err)
+				return
+			}
+
+			message, err := json.Marshal(data)
+			if err != nil {
+				log.Println("Err", err)
 				c.errorChannel <- NewReadError(err)
 				return
 			}
