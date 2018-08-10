@@ -116,6 +116,7 @@ func (qp *QuotesProvider) connect() {
 	if err := qp.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
 		qp.restart()
+		return
 	}
 	qp.wsClient.Listen(qp.bus.dch, qp.bus.ech)
 }
@@ -129,6 +130,7 @@ func (qp *QuotesProvider) subscribe() {
 	if err := qp.wsClient.Write(msg); err != nil {
 		log.Printf("Error subsciring to poloniex ticker")
 		qp.restart()
+		return
 	}
 }
 
@@ -159,6 +161,7 @@ func (qp *QuotesProvider) listen() {
 		for err := range qp.bus.ech {
 			log.Println("Error: ", err)
 			qp.restart()
+			return
 		}
 	}()
 }

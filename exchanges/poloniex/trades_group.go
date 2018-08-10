@@ -105,6 +105,7 @@ func (tg *TradesGroup) connect() {
 	if err := tg.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
 		tg.restart()
+		return
 	}
 	tg.wsClient.Listen(tg.dch, tg.ech)
 }
@@ -118,6 +119,7 @@ func (tg *TradesGroup) subscribe() {
 		if err := tg.wsClient.Write(msg); err != nil {
 			log.Printf("Error subsciring to %v order books", symb.Name)
 			tg.restart()
+			return
 		}
 	}
 }
@@ -160,6 +162,7 @@ func (tg *TradesGroup) listen() {
 		for err := range tg.ech {
 			log.Println("Error: ", err)
 			tg.restart()
+			return
 		}
 	}()
 }

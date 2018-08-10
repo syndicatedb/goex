@@ -97,6 +97,7 @@ func (client *Client) Post(url string, params, payload KeyValue, isSigned bool) 
 func (client *Client) Request(method, endpoint string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
 	var formData string
 	rawurl := endpoint
+	log.Println("ENDPOINT", rawurl)
 	if method == methodGET {
 		var URL *url.URL
 		URL, err = url.Parse(rawurl)
