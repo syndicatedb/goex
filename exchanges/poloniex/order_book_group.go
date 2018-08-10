@@ -109,9 +109,9 @@ func (ob *OrderBookGroup) connect() {
 	if err := ob.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to poloniex WS API: ", err)
 		ob.restart()
+		return
 	}
 	ob.wsClient.Listen(ob.dch, ob.ech)
-	log.Println("CONNECTION ESTABLIISHED")
 }
 
 func (ob *OrderBookGroup) subscribe() {
@@ -124,6 +124,7 @@ func (ob *OrderBookGroup) subscribe() {
 		if err := ob.wsClient.Write(msg); err != nil {
 			log.Printf("Error subsciring to %v order books", symb.Name)
 			ob.restart()
+			return
 		}
 	}
 	log.Println("Subscription ok")
@@ -181,6 +182,7 @@ func (ob *OrderBookGroup) listen() {
 		for msg := range ob.ech {
 			log.Println("Error: ", msg)
 			ob.restart()
+			return
 		}
 	}()
 }
