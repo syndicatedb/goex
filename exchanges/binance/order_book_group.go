@@ -94,6 +94,7 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	ob.resultCh = ch
 	for _, s := range ob.symbols {
 		ob.Get(s.OriginalName)
+		time.Sleep(100 * time.Millisecond)
 	}
 	ob.listen()
 	ob.connect()

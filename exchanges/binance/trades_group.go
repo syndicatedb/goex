@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
 
@@ -78,6 +79,7 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	go func() {
 		for _, s := range tg.symbols {
 			tg.Get(s.OriginalName)
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	tg.connect()
