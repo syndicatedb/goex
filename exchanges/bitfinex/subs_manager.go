@@ -122,6 +122,7 @@ func (sm *SubsManager) reSubscribe() {
 func (sm *SubsManager) connect() {
 	if err := sm.conn.Connect(); err != nil {
 		log.Println("Error connecting: ", err)
+		sm.reSubscribe()
 	}
 }
 func (sm *SubsManager) start() {
@@ -137,6 +138,7 @@ func (sm *SubsManager) listen() {
 	go func() {
 		for err := range sm.bus.errors {
 			log.Printf("[SM] Error listen: %+v", err)
+			sm.reSubscribe()
 		}
 	}()
 }
@@ -202,6 +204,7 @@ func (sm *SubsManager) subscribeToSymbol(symbol string, conn *websocket.Client) 
 	}
 	if err := conn.Write(message); err != nil {
 		fmt.Println("Error subscribing to books: ", err)
+		sm.reSubscribe()
 	}
 }
 

@@ -83,7 +83,7 @@ func (ob *OrderBookGroup) connect() {
 	ws := websocket.NewClient(wsURL, ob.httpProxy)
 	if err := ws.Connect(); err != nil {
 		log.Println("Error connecting to bitfinex API: ", err)
-		return
+		ob.connect()
 	}
 
 	ob.wsClient = ws
