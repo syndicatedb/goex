@@ -116,7 +116,7 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 		defer close(c.done)
 		for {
 			var data interface{}
-			// _, message, err := c.conn.ReadJSON(&data)
+			// _, message, err := c.conn.ReadMessage()
 			err := c.conn.ReadJSON(&data)
 			if err != nil {
 				log.Println("Err", err)
