@@ -253,8 +253,9 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas
 }
 
 func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book schemas.OrderBook) {
-	// log.Printf("RAW ORDERBOOK UPDATE %+v", data)
 	var price, size float64
+
+	remove := 0
 	symbol, err := ob.getSymbolByID(pairID)
 	if err != nil {
 		log.Println("Error getting symbol: ", err)
@@ -268,11 +269,16 @@ func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book sche
 	if size, err = strconv.ParseFloat(data[3].(string), 64); err != nil {
 		return
 	}
+	if size == 0 {
+		remove = 1
+	}
+
 	if int(data[1].(float64)) == 1 {
 		book.Buy = append(book.Buy, schemas.Order{
 			Symbol: smb,
 			Price:  price,
 			Amount: size,
+			Remove: remove,
 		})
 	}
 	if int(data[1].(float64)) == 0 {
@@ -280,6 +286,7 @@ func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book sche
 			Symbol: smb,
 			Price:  price,
 			Amount: size,
+			Remove: remove,
 		})
 	}
 	book.Symbol = smb
