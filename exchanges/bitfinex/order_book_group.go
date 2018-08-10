@@ -16,31 +16,6 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-//Event - Bitfinex Websocket event
-type event struct {
-	Event     string `json:"event"`
-	Code      int64  `json:"code"`
-	Msg       string `json:"msg"`
-	Channel   string `json:"channel"`
-	ChanID    int64  `json:"chanId"`
-	Symbol    string `json:"symbol"`
-	Precision string `json:"prec"`
-	Frequency string `json:"freq"`
-	Length    string `json:"len"`
-	Pair      string `json:"pair"`
-	Key       string `json:"key"`
-}
-
-// OrderBookSubsMessage - message that will be sent to Bitfinex to subscribe
-type orderBookSubsMessage struct {
-	Event     string `json:"event"`
-	Channel   string `json:"channel"`
-	Symbol    string `json:"symbol"`
-	Precision string `json:"prec"`
-	Frequency string `json:"freq"`
-	Length    string `json:"len"`
-}
-
 // OrderBookGroup - order book group structure
 type OrderBookGroup struct {
 	symbols []schemas.Symbol
@@ -49,15 +24,9 @@ type OrderBookGroup struct {
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
 	subs       map[int64]event
-	bus        ordersBus
+	bus        bus
 
 	sync.RWMutex
-}
-
-type ordersBus struct {
-	dch        chan []byte
-	ech        chan error
-	outChannel chan schemas.ResultChannel
 }
 
 // NewOrderBookGroup - OrderBookGroup constructor
@@ -69,7 +38,7 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
 		subs:       make(map[int64]event),
-		bus: ordersBus{
+		bus: bus{
 			dch: make(chan []byte, 2*len(symbols)),
 			ech: make(chan error, 2*len(symbols)),
 		},
@@ -318,13 +287,3 @@ func (ob *OrderBookGroup) get(chanID int64) (e event, err error) {
 	}
 	return e, errors.New("subscription not found")
 }
-
-// func int64Value(v interface{}) int64 {
-// 	if f, ok := v.(float64); ok {
-// 		return int64(f)
-// 	}
-// 	if i, ok := v.(int64); ok {
-// 		return i
-// 	}
-// 	return 0
-// }

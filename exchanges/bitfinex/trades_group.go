@@ -18,13 +18,6 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-// tradeSubsMessage - message that will be sent to Bitfinex to subscribe
-type tradeSubsMessage struct {
-	Event   string `json:"event"`
-	Channel string `json:"channel"`
-	Symbol  string `json:"symbol"`
-}
-
 // TradesGroup - trades group structure
 type TradesGroup struct {
 	symbols []schemas.Symbol
@@ -33,15 +26,9 @@ type TradesGroup struct {
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
 	subs       map[int64]event
-	bus        tradesBus
+	bus        bus
 
 	sync.RWMutex
-}
-
-type tradesBus struct {
-	dch        chan []byte
-	ech        chan error
-	outChannel chan schemas.ResultChannel
 }
 
 // NewTradesGroup - TradesGroup constructor
@@ -53,7 +40,7 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
 		subs:       make(map[int64]event),
-		bus: tradesBus{
+		bus: bus{
 			dch: make(chan []byte, 2*len(symbols)),
 			ech: make(chan error, 2*len(symbols)),
 		},

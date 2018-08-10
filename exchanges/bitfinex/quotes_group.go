@@ -1,11 +1,15 @@
 package bitfinex
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
+	"sync"
+	"unicode"
 
 	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/internal/websocket"
@@ -19,13 +23,16 @@ type QuotesGroup struct {
 	wsClient   *websocket.Client
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
-	subs       *SubsManager
-	bus        quotesBus
+	subs       map[int64]event
+	bus        bus
+
+	sync.RWMutex
 }
 
 type quotesBus struct {
-	serviceChannel chan ChannelMessage
-	dataChannel    chan schemas.ResultChannel
+	dch        chan []byte
+	ech        chan error
+	outChannel chan schemas.ResultChannel
 }
 
 // NewQuotesGroup - QuotesGroup constructor
@@ -36,8 +43,10 @@ func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesG
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
-		bus: quotesBus{
-			serviceChannel: make(chan ChannelMessage),
+		subs:       make(map[int64]event),
+		bus: bus{
+			dch: make(chan []byte, 2*len(symbols)),
+			ech: make(chan error, 2*len(symbols)),
 		},
 	}
 }
@@ -71,63 +80,150 @@ func (q *QuotesGroup) Get() (quote schemas.Quote, err error) {
 
 // Start - starting updates
 func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
-	q.bus.dataChannel = ch
+	q.bus.outChannel = ch
 
 	q.listen()
 	q.connect()
 	q.subscribe()
 }
 
+// restart - calling start with outChannel.
+// need for restarting group after error.
+func (q *QuotesGroup) restart() {
+	q.Start(q.bus.outChannel)
+}
+
 // connect - creating new WS client and establishing connection
 func (q *QuotesGroup) connect() {
-	ws := websocket.NewClient(wsURL, q.httpProxy)
-	if err := ws.Connect(); err != nil {
+	q.wsClient = websocket.NewClient(wsURL, q.httpProxy)
+	if err := q.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to bitfinex API: ", err)
 		return
 	}
-
-	q.wsClient = ws
+	q.wsClient.Listen(q.bus.dch, q.bus.ech)
 }
 
 // subscribe - subscribing to books by symbols
 func (q *QuotesGroup) subscribe() {
-	var smbls []string
 	for _, s := range q.symbols {
-		smbls = append(smbls, s.OriginalName)
+		message := tickerSubsMessage{
+			Event:     eventSubscribe,
+			Channel:   "ticker",
+			Symbol:    "t" + strings.ToUpper(s.OriginalName),
+			Precision: "P0",
+			Frequency: "F0",
+			Length:    "100",
+		}
+
+		if err := q.wsClient.Write(message); err != nil {
+			log.Printf("Error subsciring to %v quotes", s.Name)
+			q.restart()
+			return
+		}
 	}
-	q.subs = NewSubsManager("ticker", smbls, q.wsClient, q.bus.serviceChannel)
-	q.subs.Subscribe()
+	log.Println("Subscription ok")
 }
 
 // listen - listening to updates from WS
 func (q *QuotesGroup) listen() {
 	go func() {
-		for msg := range q.bus.serviceChannel {
-			quote, datatype := q.handleMessage(msg)
-			if len(quote.Symbol) > 0 {
-				q.bus.dataChannel <- schemas.ResultChannel{
-					DataType: datatype,
-					Data:     quote,
-				}
-			}
+		for msg := range q.bus.dch {
+			q.parseMessage(msg)
+		}
+	}()
+	go func() {
+		for err := range q.bus.ech {
+			log.Printf("Error listen: %+v", err)
+			q.restart()
+			return
 		}
 	}()
 }
 
-// handleMessage - handling incoming WS message
-func (q *QuotesGroup) handleMessage(cm ChannelMessage) (quote schemas.Quote, dataType string) {
-	symbol := cm.Symbol
-	data := cm.Data
+// publish - publishing data into outChannel
+func (q *QuotesGroup) publish(data interface{}, dataType string, err error) {
+	q.bus.outChannel <- schemas.ResultChannel{
+		DataType: dataType,
+		Data:     data,
+		Error:    err,
+	}
+}
 
-	if ut, ok := data[1].(string); ok {
+// parseMessage - parsing incoming WS message.
+// Calls handleEvent() or handleMessage().
+func (q *QuotesGroup) parseMessage(msg []byte) {
+	t := bytes.TrimLeftFunc(msg, unicode.IsSpace)
+	var err error
+	// either a channel data array or an event object, raw json encoding
+	if bytes.HasPrefix(t, []byte("[")) {
+		q.handleMessage(msg)
+	} else if bytes.HasPrefix(t, []byte("{")) {
+		if err = q.handleEvent(msg); err != nil {
+			log.Println("Error handling event: ", err)
+		}
+	} else {
+		err = fmt.Errorf("unexpected message: %s", msg)
+	}
+	if err != nil {
+		fmt.Println("[ERROR] handleMessage: ", err, string(msg))
+	}
+}
+
+// handleEvent - handling event message from WS
+func (q *QuotesGroup) handleEvent(msg []byte) (err error) {
+	var event event
+	if err = json.Unmarshal(msg, &event); err != nil {
+		return
+	}
+	if event.Event == eventInfo {
+		if event.Code == wsCodeStopping {
+			q.restart()
+			return
+		}
+	}
+	if event.Event == eventSubscribed {
+		if event.Channel == channelCandles {
+			event.Symbol = strings.Replace(event.Key, "trade:1m:t", "", 1)
+			event.Pair = event.Symbol
+		}
+		q.add(event)
+		return
+	}
+	log.Println("Unprocessed event: ", string(msg))
+	return
+}
+
+// handleMessage - handling incoming WS message
+func (q *QuotesGroup) handleMessage(msg []byte) {
+	var resp []interface{}
+	var e event
+	var err error
+
+	if err := json.Unmarshal(msg, &resp); err != nil {
+		return
+	}
+	chanID := int64Value(resp[0])
+	if chanID > 0 {
+		e, err = q.get(chanID)
+		if err != nil {
+			log.Println("Error getting subscriptions: ", chanID, err)
+			return
+		}
+	} else {
+		return
+	}
+
+	if ut, ok := resp[1].(string); ok {
 		if ut == "hb" {
 			return
 		}
 	}
-	if upd, ok := data[1].([]interface{}); ok {
-		dataType = "u"
-		quote = q.mapQuote(symbol, upd)
-		return
+	if upd, ok := resp[1].([]interface{}); ok {
+		dataType := "u"
+		quote := q.mapQuote(e.Symbol, upd)
+		if len(quote.Symbol) > 0 {
+			go q.publish(quote, dataType, nil)
+		}
 	}
 
 	return
@@ -148,4 +244,24 @@ func (q *QuotesGroup) mapQuote(symbol string, d []interface{}) schemas.Quote {
 		VolumeBase:      strconv.FormatFloat(volumeBase, 'f', 8, 64),
 		VolumeQuote:     strconv.FormatFloat(d[7].(float64), 'f', 8, 64),
 	}
+}
+
+// add - adding channel info with it's ID.
+// Need for matching symbol with channel ID.
+func (q *QuotesGroup) add(e event) {
+	q.Lock()
+	defer q.Unlock()
+	q.subs[e.ChanID] = e
+}
+
+// get - loading channel info by it's ID
+// Need for matching symbol with channel ID.
+func (q *QuotesGroup) get(chanID int64) (e event, err error) {
+	var ok bool
+	q.RLock()
+	defer q.RUnlock()
+	if e, ok = q.subs[chanID]; ok {
+		return
+	}
+	return e, errors.New("subscription not found")
 }
