@@ -1,17 +1,20 @@
-package tidex
+package poloniex
 
 import (
+	"sync"
 	"time"
 
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-// TradesProvider - provides quotes/ticker
+// TradesProvider - trades provider structure
 type TradesProvider struct {
 	symbols   []schemas.Symbol
 	groups    []*TradesGroup
 	httpProxy proxy.Provider
+
+	sync.Mutex
 }
 
 // NewTradesProvider - TradesProvider constructor
@@ -21,12 +24,12 @@ func NewTradesProvider(httpProxy proxy.Provider) *TradesProvider {
 	}
 }
 
-// SetSymbols - getting all symbols from Exchange
+// SetSymbols - setting symbols to TradesProvider
 func (tp *TradesProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradesProvider {
 	tp.symbols = symbols
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
-	capacity := tradesSymbolsLimit
+	capacity := orderBookSymbolsLimit
 	for {
 		if len(slice) <= capacity {
 			tp.groups = append(
@@ -42,36 +45,38 @@ func (tp *TradesProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradesPro
 
 		slice = slice[capacity:]
 	}
-
 	return tp
 }
 
-// Get - getting quotes by symbol
+// Get - getting trades snapshot by symbol
 func (tp *TradesProvider) Get(symbol schemas.Symbol) (q []schemas.Trade, err error) {
-	var data [][]schemas.Trade
 	group := NewTradesGroup([]schemas.Symbol{symbol}, tp.httpProxy)
-	data, err = group.Get()
+	d, err := group.Get()
 	if err != nil {
 		return
 	}
-	return data[0], nil
+	if len(d) > 0 {
+		return d[0], nil
+	}
+
+	return
 }
 
-// Subscribe - subscribing to quote by symbol and interval
+// Subscribe - subscribing to trades by one symbol
 func (tp *TradesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
 	group := NewTradesGroup([]schemas.Symbol{symbol}, tp.httpProxy)
-	go group.subscribe(ch, d)
+	go group.Start(ch)
 	return ch
 }
 
-// SubscribeAll - subscribing to all quotes with interval
+// SubscribeAll - subscribing all groups
 func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	bufLength := 2 * len(tp.symbols)
-	ch := make(chan schemas.ResultChannel, bufLength)
+	bufLength := len(tp.symbols)
+	ch := make(chan schemas.ResultChannel, 2*bufLength)
 
 	for _, group := range tp.groups {
-		go group.subscribe(ch, d)
+		go group.Start(ch)
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch

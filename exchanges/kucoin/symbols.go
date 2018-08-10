@@ -1,7 +1,8 @@
-package tidex
+package kucoin
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -9,12 +10,17 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-// SymbolsProvider - order book provider
+type symbolsResponse struct {
+	responseHeader
+	Data []symbol `json:"data"`
+}
+
+// SymbolsProvider structure
 type SymbolsProvider struct {
 	httpClient *httpclient.Client
 }
 
-// NewSymbolsProvider - SymbolsProvider constructor
+// NewSymbolsProvider  - SymbolsProvider constructor
 func NewSymbolsProvider(httpProxy proxy.Provider) *SymbolsProvider {
 	proxyClient := httpProxy.NewClient(exchangeName)
 	return &SymbolsProvider{
@@ -22,36 +28,28 @@ func NewSymbolsProvider(httpProxy proxy.Provider) *SymbolsProvider {
 	}
 }
 
-// Get - getting all symbols from Exchange
+// Get - loading symbols from exchange
 func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 	var b []byte
+	var resp symbolsResponse
 	if b, err = sp.httpClient.Get(apiSymbols, httpclient.Params(), false); err != nil {
 		return
 	}
-	var resp SymbolResponse
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-	for sname, d := range resp.Pairs {
-		if d.Hidden == 0 {
-			name, coin, baseCoin := parseSymbol(sname)
-			symbols = append(symbols, schemas.Symbol{
-				Name:         name,
-				OriginalName: sname,
-				Coin:         coin,
-				BaseCoin:     baseCoin,
-				Fee:          d.Fee,
-				MinPrice:     d.MinPrice,
-				MaxPrice:     d.MaxPrice,
-				MinAmount:    d.MinAmount,
-				MaxAmount:    d.MaxAmount,
-			})
-		}
+	if !resp.Success {
+		err = fmt.Errorf("Error getting symbols: %v", resp.Message)
+		return
 	}
+	for _, smb := range resp.Data {
+		symbols = append(symbols, smb.Map())
+	}
+
 	return
 }
 
-// Subscribe - getting all symbols from Exchange
+// Subscribe - subscribing to symbols updates with period 'd'
 func (sp *SymbolsProvider) Subscribe(d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
 
@@ -59,11 +57,14 @@ func (sp *SymbolsProvider) Subscribe(d time.Duration) chan schemas.ResultChannel
 		for {
 			symbols, err := sp.Get()
 			ch <- schemas.ResultChannel{
-				Data:  symbols,
-				Error: err,
+				DataType: "s",
+				Data:     symbols,
+				Error:    err,
 			}
+
 			time.Sleep(d)
 		}
 	}()
+
 	return ch
 }

@@ -1,7 +1,6 @@
-package tidex
+package poloniex
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -9,11 +8,12 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-// OrdersProvider - order book provider
+// OrdersProvider - orders provider structure
 type OrdersProvider struct {
 	httpProxy proxy.Provider
 	symbols   []schemas.Symbol
-	books     []*OrderBookGroup
+	groups    []*OrderBookGroup
+
 	sync.Mutex
 }
 
@@ -24,22 +24,21 @@ func NewOrdersProvider(httpProxy proxy.Provider) *OrdersProvider {
 	}
 }
 
-// SetSymbols - getting all symbols from Exchange
+// SetSymbols - setting symbols to order provider and creating groups
 func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersProvider {
-	log.Println("Symbols: ", len(symbols))
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
 	capacity := orderBookSymbolsLimit
 	for {
 		if len(slice) <= capacity {
-			ob.books = append(
-				ob.books,
+			ob.groups = append(
+				ob.groups,
 				NewOrderBookGroup(slice, ob.httpProxy),
 			)
 			break
 		}
-		ob.books = append(
-			ob.books,
+		ob.groups = append(
+			ob.groups,
 			NewOrderBookGroup(slice[0:capacity], ob.httpProxy),
 		)
 
@@ -48,26 +47,37 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 	return ob
 }
 
-// Get - getting all symbols from Exchange
+// Get - getting orderbook snapshot by symbol
 func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
-	orderBookGroup := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
-	m, err := orderBookGroup.Get()
-	return m[symbol.OriginalName], err
-}
+	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
+	d, err := group.Get()
+	if err != nil {
+		return
+	}
+	if len(d) > 0 {
+		book = d[0]
+	}
 
-// Subscribe - getting all symbols from Exchange
-func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r chan schemas.ResultChannel) {
 	return
 }
 
-// SubscribeAll - getting all symbols from Exchange
-func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	bufLength := 2 * len(ob.symbols)
-	ch := make(chan schemas.ResultChannel, bufLength)
+// Subscribe - subscribing to quote by one symbol
+func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r chan schemas.ResultChannel) {
+	ch := make(chan schemas.ResultChannel)
+	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
+	go group.Start(ch)
+	return ch
+}
 
-	for _, orderBook := range ob.books {
-		go orderBook.subscribe(ch, d)
+// SubscribeAll - subscribing all groups
+func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
+	bufLength := len(ob.symbols)
+	ch := make(chan schemas.ResultChannel, 2*bufLength)
+
+	for _, gr := range ob.groups {
+		go gr.Start(ch)
 		time.Sleep(100 * time.Millisecond)
 	}
+
 	return ch
 }

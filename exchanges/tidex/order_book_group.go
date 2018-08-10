@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/syndicatedb/goex/clients"
+	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -15,7 +15,7 @@ import (
 // OrderBookGroup - order book
 type OrderBookGroup struct {
 	symbols      []schemas.Symbol
-	httpClient   *clients.HTTP
+	httpClient   *httpclient.Client
 	emptySymbols map[string]string
 }
 
@@ -25,14 +25,14 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 
 	return &OrderBookGroup{
 		symbols:      symbols,
-		httpClient:   clients.NewHTTP(proxyClient),
+		httpClient:   httpclient.New(proxyClient),
 		emptySymbols: make(map[string]string),
 	}
 }
 
 // SubscribeAll - getting all symbols from Exchange
 func (ob *OrderBookGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
-	i := 0
+	// i := 0
 	for {
 		book, err := ob.Get()
 		if err != nil {
@@ -48,12 +48,12 @@ func (ob *OrderBookGroup) subscribe(ch chan schemas.ResultChannel, d time.Durati
 				Error:    err,
 			}
 		}
-		i++
-		if i%5 == 0 {
-			if len(ob.emptySymbols) > 0 {
-				log.Println("Empty: ", ob.emptySymbols)
-			}
-		}
+		// i++
+		// if i%5 == 0 {
+		// 	if len(ob.emptySymbols) > 0 {
+		// 		log.Println("Empty: ", ob.emptySymbols)
+		// 	}
+		// }
 		time.Sleep(d)
 	}
 }
@@ -67,7 +67,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 	for _, symbol := range ob.symbols {
 		symbols = append(symbols, symbol.OriginalName)
 	}
-	params := clients.Params()
+	params := httpclient.Params()
 	params.Set("limit", "2000")
 	if by, err = ob.httpClient.Get(apiOrderBook+strings.Join(symbols, "-"), params, false); err != nil {
 		return
@@ -83,7 +83,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 		return
 	}
 	if resp.Error != "" {
-		log.Println("Error in Order response: ", resp.Error)
+		log.Println("[TIDEX] Error in Order response: ", resp.Error)
 		return
 	}
 	var booksResponse OrderBookResponse

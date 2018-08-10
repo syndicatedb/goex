@@ -3,10 +3,13 @@ package tidex
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/syndicatedb/goex/clients"
+	"github.com/syndicatedb/goex/internal/http"
+	"github.com/syndicatedb/goex/internal/state"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -14,7 +17,8 @@ import (
 // QuotesGroup - group of quotes to group requests
 type QuotesGroup struct {
 	symbols    []schemas.Symbol
-	httpClient *clients.HTTP
+	httpClient *httpclient.Client
+	data       *state.State
 }
 
 // NewQuotesGroup - OrderBook constructor
@@ -23,7 +27,8 @@ func NewQuotesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *QuotesG
 
 	return &QuotesGroup{
 		symbols:    symbols,
-		httpClient: clients.NewHTTP(proxyClient),
+		httpClient: httpclient.New(proxyClient),
+		data:       state.New(),
 	}
 }
 
@@ -33,14 +38,16 @@ func (q *QuotesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) 
 		quotes, err := q.Get()
 		if err != nil {
 			ch <- schemas.ResultChannel{
-				Data:  quotes,
-				Error: err,
+				Data:     quotes,
+				Error:    err,
+				DataType: "s",
 			}
 		}
 		for _, b := range quotes {
 			ch <- schemas.ResultChannel{
-				Data:  b,
-				Error: err,
+				Data:     b,
+				Error:    err,
+				DataType: "s",
 			}
 		}
 		time.Sleep(d)
@@ -54,7 +61,7 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	for _, symbol := range q.symbols {
 		symbols = append(symbols, symbol.OriginalName)
 	}
-	if b, err = q.httpClient.Get(apiQuotes+strings.Join(symbols, "-"), clients.Params(), false); err != nil {
+	if b, err = q.httpClient.Get(apiQuotes+strings.Join(symbols, "-"), httpclient.Params(), false); err != nil {
 		return
 	}
 	var resp QuoteResponse
@@ -64,7 +71,29 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	}
 	for sname, d := range resp {
 		name, _, _ := parseSymbol(sname)
-		quotes = append(quotes, d.Map(name))
+		quote := d.Map(name)
+
+		oldPriceStr, err := q.data.Get("price_" + name)
+		if err != nil {
+			log.Println(err)
+			oldPriceStr = "0"
+		}
+		oldPrice, err := strconv.ParseFloat(oldPriceStr, 64)
+		if err != nil {
+			log.Println(err)
+		}
+		newPrice, err := strconv.ParseFloat(quote.Price, 64)
+		if err != nil {
+			log.Println(err)
+		}
+
+		quote.DrawdownValue = strconv.FormatFloat(newPrice-oldPrice, 'f', 8, 64)
+
+		quote.DrawdownPercent = strconv.FormatFloat(100*(newPrice-oldPrice)/newPrice, 'f', 4, 64)
+
+		quotes = append(quotes, quote)
+
+		q.data.Set("price_"+name, quote.Price)
 	}
 	return
 }

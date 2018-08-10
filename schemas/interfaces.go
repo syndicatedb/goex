@@ -17,7 +17,7 @@ type SymbolProvider interface {
 // OrdersProvider - provides access to Order book
 type OrdersProvider interface {
 	SetSymbols(symbols []Symbol) OrdersProvider
-	GetOrderBook(symbol Symbol) (book OrderBook, err error)
+	Get(symbol Symbol) (book OrderBook, err error)
 	subscriber
 }
 

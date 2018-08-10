@@ -2,6 +2,7 @@ package tidex
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/syndicatedb/goex/schemas"
@@ -59,16 +60,12 @@ type Quote struct {
 // Map - mapping Tidex model to common model
 func (q Quote) Map(name string) schemas.Quote {
 	return schemas.Quote{
-		Symbol:    name,
-		High:      q.High,
-		Low:       q.Low,
-		Avg:       q.Avg,
-		Volume:    q.Vol,
-		VolCur:    q.VolCur,
-		LastTrade: q.Last,
-		Buy:       q.Buy,
-		Sell:      q.Sell,
-		Updated:   int64(q.Updated),
+		Symbol:      name,
+		High:        strconv.FormatFloat(q.High, 'f', 8, 64),
+		Low:         strconv.FormatFloat(q.Low, 'f', 8, 64),
+		Price:       strconv.FormatFloat(q.Last, 'f', 8, 64),
+		VolumeBase:  strconv.FormatFloat(q.VolCur, 'f', 8, 64),
+		VolumeQuote: strconv.FormatFloat(q.Vol, 'f', 8, 64),
 	}
 }
 
@@ -86,10 +83,17 @@ type Trade struct {
 
 // Map - mapping Tidex trade to common
 func (t Trade) Map(symbol string) schemas.Trade {
+	var trType string
+	if strings.ToLower(t.Type) == "ask" {
+		trType = "buy"
+	}
+	if strings.ToLower(t.Type) == "bid" {
+		trType = "sell"
+	}
 	return schemas.Trade{
 		ID:        fmt.Sprintf("%v", t.Tid),
 		Symbol:    symbol,
-		Type:      t.Type,
+		Type:      trType,
 		Price:     t.Price,
 		Amount:    t.Amount,
 		Timestamp: t.Timestamp,

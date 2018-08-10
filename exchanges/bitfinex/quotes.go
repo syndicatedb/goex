@@ -1,17 +1,20 @@
-package tidex
+package bitfinex
 
 import (
+	"sync"
 	"time"
 
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-// QuotesProvider - provides quotes/ticker
+// QuotesProvider - quotes provider structure
 type QuotesProvider struct {
+	httpProxy proxy.Provider
 	symbols   []schemas.Symbol
 	groups    []*QuotesGroup
-	httpProxy proxy.Provider
+
+	sync.Mutex
 }
 
 // NewQuotesProvider - QuotesProvider constructor
@@ -21,12 +24,11 @@ func NewQuotesProvider(httpProxy proxy.Provider) *QuotesProvider {
 	}
 }
 
-// SetSymbols - getting all symbols from Exchange
+// SetSymbols - setting symbols and creating groups by symbols chunks
 func (qp *QuotesProvider) SetSymbols(symbols []schemas.Symbol) schemas.QuotesProvider {
-	qp.symbols = symbols
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
-	capacity := quotesSymbolsLimit
+	capacity := orderBookSymbolsLimit
 	for {
 		if len(slice) <= capacity {
 			qp.groups = append(
@@ -42,36 +44,29 @@ func (qp *QuotesProvider) SetSymbols(symbols []schemas.Symbol) schemas.QuotesPro
 
 		slice = slice[capacity:]
 	}
-
 	return qp
 }
 
 // Get - getting quotes by symbol
 func (qp *QuotesProvider) Get(symbol schemas.Symbol) (q schemas.Quote, err error) {
-	var data []schemas.Quote
 	group := NewQuotesGroup([]schemas.Symbol{symbol}, qp.httpProxy)
-	data, err = group.Get()
-	if err != nil {
-		return
-	}
-	return data[0], nil
+	return group.Get()
 }
 
-// Subscribe - subscribing to quote by symbol and interval
+// Subscribe - subscribing to quote by one symbol
 func (qp *QuotesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
 	group := NewQuotesGroup([]schemas.Symbol{symbol}, qp.httpProxy)
-	go group.subscribe(ch, d)
+	go group.Start(ch)
 	return ch
 }
 
 // SubscribeAll - subscribing to all quotes with interval
 func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	bufLength := 2 * len(qp.symbols)
-	ch := make(chan schemas.ResultChannel, bufLength)
+	ch := make(chan schemas.ResultChannel)
 
 	for _, group := range qp.groups {
-		go group.subscribe(ch, d)
+		go group.Start(ch)
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/syndicatedb/goex/clients"
+	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -15,7 +15,7 @@ import (
 type TradingProvider struct {
 	credentials schemas.Credentials
 	httpProxy   proxy.Provider
-	httpClient  *clients.HTTP
+	httpClient  *httpclient.Client
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -24,18 +24,18 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	return &TradingProvider{
 		credentials: credentials,
 		httpProxy:   httpProxy,
-		httpClient:  clients.NewSignedHTTP(credentials, proxyClient),
+		httpClient:  httpclient.NewSigned(credentials, proxyClient),
 	}
 }
 
 // Info - provides user info: Keys access, balances
 func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	var b []byte
-	payload := clients.Params()
+	payload := httpclient.Params()
 	payload.Set("method", "getInfoExt")
 	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
 
-	b, err = trading.httpClient.Post(apiUserInfo, clients.Params(), payload, true)
+	b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}
@@ -89,7 +89,7 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 // Orders - getting user active orders
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
 	var b []byte
-	payload := clients.Params()
+	payload := httpclient.Params()
 	payload.Set("method", "ActiveOrders")
 	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
 	if len(symbols) > 0 {
@@ -99,7 +99,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 		}
 		payload.Set("pair", strings.Join(pairs, "-"))
 	}
-	b, err = trading.httpClient.Post(apiUserInfo, clients.Params(), payload, true)
+	b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}
@@ -113,7 +113,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 // Trades - getting user trades
 func (trading *TradingProvider) Trades(opts schemas.TradeHistoryOptions) (trades []schemas.Trade, err error) {
 	var b []byte
-	payload := clients.Params()
+	payload := httpclient.Params()
 	payload.Set("method", "TradeHistory")
 	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
 
@@ -133,7 +133,7 @@ func (trading *TradingProvider) Trades(opts schemas.TradeHistoryOptions) (trades
 		payload.Set("from_id", opts.FromID)
 	}
 
-	b, err = trading.httpClient.Post(apiUserInfo, clients.Params(), payload, true)
+	b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}
@@ -148,7 +148,7 @@ func (trading *TradingProvider) Trades(opts schemas.TradeHistoryOptions) (trades
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
 	var b []byte
 
-	payload := clients.Params()
+	payload := httpclient.Params()
 	payload.Set("method", "Trade")
 	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
 
@@ -158,7 +158,7 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	payload.Set("rate", fmt.Sprintf("%f", order.Price))
 	payload.Set("amount", fmt.Sprintf("%f", order.Amount))
 
-	b, err = trading.httpClient.Post(apiUserInfo, clients.Params(), payload, true)
+	b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}
@@ -175,13 +175,13 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	var b []byte
 
-	payload := clients.Params()
+	payload := httpclient.Params()
 	payload.Set("method", "CancelOrder")
 	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
 
 	payload.Set("order_id", order.ID)
 
-	b, err = trading.httpClient.Post(apiUserInfo, clients.Params(), payload, true)
+	b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}

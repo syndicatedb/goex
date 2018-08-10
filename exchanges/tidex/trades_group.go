@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/syndicatedb/goex/clients"
+	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -15,7 +15,7 @@ import (
 // TradesGroup - group of quotes to group requests
 type TradesGroup struct {
 	symbols    []schemas.Symbol
-	httpClient *clients.HTTP
+	httpClient *httpclient.Client
 }
 
 // NewTradesGroup - OrderBook constructor
@@ -24,7 +24,7 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 
 	return &TradesGroup{
 		symbols:    symbols,
-		httpClient: clients.NewHTTP(proxyClient),
+		httpClient: httpclient.New(proxyClient),
 	}
 }
 
@@ -58,7 +58,7 @@ func (q *TradesGroup) Get() (trades [][]schemas.Trade, err error) {
 	for _, symbol := range q.symbols {
 		symbols = append(symbols, symbol.OriginalName)
 	}
-	if b, err = q.httpClient.Get(apiTrades+strings.Join(symbols, "-"), clients.Params(), false); err != nil {
+	if b, err = q.httpClient.Get(apiTrades+strings.Join(symbols, "-"), httpclient.Params(), false); err != nil {
 		return
 	}
 	var resp Response

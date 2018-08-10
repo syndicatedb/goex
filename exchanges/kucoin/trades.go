@@ -1,13 +1,13 @@
-package tidex
+package kucoin
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-// TradesProvider - provides quotes/ticker
 type TradesProvider struct {
 	symbols   []schemas.Symbol
 	groups    []*TradesGroup
@@ -54,24 +54,29 @@ func (tp *TradesProvider) Get(symbol schemas.Symbol) (q []schemas.Trade, err err
 	if err != nil {
 		return
 	}
-	return data[0], nil
+	if len(data) > 0 {
+		return data[0], nil
+	}
+
+	err = fmt.Errorf("No trades found for %s", symbol.Name)
+	return
 }
 
 // Subscribe - subscribing to quote by symbol and interval
 func (tp *TradesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
 	group := NewTradesGroup([]schemas.Symbol{symbol}, tp.httpProxy)
-	go group.subscribe(ch, d)
+	go group.Subscribe(ch, d)
 	return ch
 }
 
 // SubscribeAll - subscribing to all quotes with interval
 func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	bufLength := 2 * len(tp.symbols)
-	ch := make(chan schemas.ResultChannel, bufLength)
+	bufLength := len(tp.symbols)
+	ch := make(chan schemas.ResultChannel, 2*bufLength)
 
 	for _, group := range tp.groups {
-		go group.subscribe(ch, d)
+		go group.Subscribe(ch, d)
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch

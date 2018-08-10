@@ -1,7 +1,6 @@
-package tidex
+package bitfinex
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -9,11 +8,12 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-// OrdersProvider - order book provider
+// OrdersProvider - order book provider structure
 type OrdersProvider struct {
 	httpProxy proxy.Provider
 	symbols   []schemas.Symbol
 	books     []*OrderBookGroup
+
 	sync.Mutex
 }
 
@@ -24,9 +24,8 @@ func NewOrdersProvider(httpProxy proxy.Provider) *OrdersProvider {
 	}
 }
 
-// SetSymbols - getting all symbols from Exchange
+// SetSymbols - setting symbols and creating groups by symbols chunks
 func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersProvider {
-	log.Println("Symbols: ", len(symbols))
 	slice := make([]schemas.Symbol, len(symbols))
 	copy(slice, symbols)
 	capacity := orderBookSymbolsLimit
@@ -48,26 +47,27 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 	return ob
 }
 
-// Get - getting all symbols from Exchange
-func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
-	orderBookGroup := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
-	m, err := orderBookGroup.Get()
-	return m[symbol.OriginalName], err
-}
-
-// Subscribe - getting all symbols from Exchange
+// Subscribe - subscribing to quote by one symbol
 func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r chan schemas.ResultChannel) {
-	return
+	ch := make(chan schemas.ResultChannel)
+	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
+	go group.Start(ch)
+	return ch
 }
 
-// SubscribeAll - getting all symbols from Exchange
+// SubscribeAll - subscribing all groups
 func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
-	bufLength := 2 * len(ob.symbols)
-	ch := make(chan schemas.ResultChannel, bufLength)
+	ch := make(chan schemas.ResultChannel)
 
 	for _, orderBook := range ob.books {
-		go orderBook.subscribe(ch, d)
+		go orderBook.Start(ch)
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch
+}
+
+// Get - getting orderbook snapshot by symbol
+func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
+	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
+	return group.Get()
 }
