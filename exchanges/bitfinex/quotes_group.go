@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"sync"
 	"unicode"
@@ -236,13 +235,13 @@ func (q *QuotesGroup) mapQuote(symbol string, d []interface{}) schemas.Quote {
 
 	return schemas.Quote{
 		Symbol:          smb,
-		Price:           strconv.FormatFloat(d[6].(float64), 'f', 8, 64),
-		High:            strconv.FormatFloat(d[8].(float64), 'f', 8, 64),
-		Low:             strconv.FormatFloat(d[9].(float64), 'f', 8, 64),
-		DrawdownValue:   strconv.FormatFloat(d[4].(float64), 'f', 8, 64),
-		DrawdownPercent: strconv.FormatFloat(d[5].(float64), 'f', 4, 64),
-		VolumeBase:      strconv.FormatFloat(volumeBase, 'f', 8, 64),
-		VolumeQuote:     strconv.FormatFloat(d[7].(float64), 'f', 8, 64),
+		Price:           d[6].(float64),
+		High:            d[8].(float64),
+		Low:             d[9].(float64),
+		DrawdownValue:   d[4].(float64),
+		DrawdownPercent: d[5].(float64),
+		VolumeBase:      volumeBase,
+		VolumeQuote:     d[7].(float64),
 	}
 }
 

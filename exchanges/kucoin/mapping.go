@@ -1,9 +1,12 @@
 package kucoin
 
 import (
+<<<<<<< HEAD
 	"fmt"
 	"strconv"
 
+=======
+>>>>>>> origin/quotes
 	"github.com/syndicatedb/goex/schemas"
 )
 
@@ -71,13 +74,13 @@ func (q *quote) Map() schemas.Quote {
 
 	return schemas.Quote{
 		Symbol:          name,
-		Price:           strconv.FormatFloat(q.LastDealPrice, 'f', 8, 64),
-		High:            strconv.FormatFloat(q.High, 'f', 8, 64),
-		Low:             strconv.FormatFloat(q.Low, 'f', 8, 64),
-		DrawdownValue:   strconv.FormatFloat(q.Change, 'f', 8, 64),
-		DrawdownPercent: strconv.FormatFloat(q.ChangeRate, 'f', 8, 64),
-		VolumeBase:      strconv.FormatFloat(q.Vol, 'f', 8, 64),
-		VolumeQuote:     strconv.FormatFloat(q.VolValue, 'f', 8, 64),
+		Price:           q.LastDealPrice,
+		High:            q.High,
+		Low:             q.Low,
+		DrawdownValue:   q.Change,
+		DrawdownPercent: q.ChangeRate,
+		VolumeBase:      q.Vol,
+		VolumeQuote:     q.VolValue,
 	}
 }
 

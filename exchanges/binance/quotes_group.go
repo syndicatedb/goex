@@ -3,6 +3,7 @@ package binance
 import (
 	"encoding/json"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -181,4 +182,13 @@ func (q *QuotesGroup) mapUpdates(data QuotesChannelMessage) schemas.Quote {
 		VolumeBase:      data.VolumeBase,
 		VolumeQuote:     data.VolumeQuote,
 	}
+}
+
+func parseFloat(s string) (d float64) {
+	d, err := strconv.ParseFloat(s, 65)
+	if err != nil {
+		log.Println("Error parsing string to float64: ", err)
+	}
+
+	return
 }
