@@ -234,14 +234,14 @@ func (q *QuotesGroup) mapQuote(symbol string, d []interface{}) schemas.Quote {
 	volumeBase := d[7].(float64) * d[6].(float64)
 
 	return schemas.Quote{
-		Symbol:          smb,
-		Price:           d[6].(float64),
-		High:            d[8].(float64),
-		Low:             d[9].(float64),
-		DrawdownValue:   d[4].(float64),
-		DrawdownPercent: d[5].(float64),
-		VolumeBase:      volumeBase,
-		VolumeQuote:     d[7].(float64),
+		Symbol:      smb,
+		Price:       d[6].(float64),
+		High:        d[8].(float64),
+		Low:         d[9].(float64),
+		ChangeValue: d[4].(float64),
+		ChangeRate:  d[5].(float64),
+		VolumeBase:  volumeBase,
+		Volume:      d[7].(float64),
 	}
 }
 

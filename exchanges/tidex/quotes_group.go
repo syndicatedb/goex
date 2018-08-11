@@ -57,7 +57,7 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	var b []byte
 	var symbols []string
 	for _, symbol := range q.symbols {
-		symbols = append(symbols, symbol.OriginalName)
+		symbols = append(symbols, symbolToPair(symbol.Name))
 	}
 	if b, err = q.httpClient.Get(apiQuotes+strings.Join(symbols, "-"), httpclient.Params(), false); err != nil {
 		return

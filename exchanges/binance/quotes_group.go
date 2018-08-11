@@ -157,14 +157,14 @@ func (q *QuotesGroup) handleUpdates(data []byte) (quotes schemas.Quote, dataType
 
 func (q *QuotesGroup) mapQuote(data Quote) schemas.Quote {
 	return schemas.Quote{
-		Symbol:          data.Symbol,
-		Price:           data.Current,
-		High:            data.High,
-		Low:             data.Low,
-		DrawdownValue:   data.DrawdownValue,
-		DrawdownPercent: data.DrawdownPercent,
-		VolumeBase:      data.VolumeBase,
-		VolumeQuote:     data.VolumeQuote,
+		Symbol:      data.Symbol,
+		Price:       parseFloat(data.Current),
+		High:        parseFloat(data.High),
+		Low:         parseFloat(data.Low),
+		ChangeValue: parseFloat(data.DrawdownValue),
+		ChangeRate:  parseFloat(data.DrawdownPercent),
+		VolumeBase:  parseFloat(data.VolumeBase),
+		Volume:      parseFloat(data.VolumeQuote),
 	}
 }
 
@@ -173,14 +173,14 @@ func (q *QuotesGroup) mapUpdates(data QuotesChannelMessage) schemas.Quote {
 	smb, _, _ := parseSymbol(data.Symbol)
 
 	return schemas.Quote{
-		Symbol:          smb,
-		Price:           data.Close,
-		High:            data.High,
-		Low:             data.Low,
-		DrawdownValue:   data.DrawdownValue,
-		DrawdownPercent: data.DrawdownPercent,
-		VolumeBase:      data.VolumeBase,
-		VolumeQuote:     data.VolumeQuote,
+		Symbol:      smb,
+		Price:       parseFloat(data.Close),
+		High:        parseFloat(data.High),
+		Low:         parseFloat(data.Low),
+		ChangeValue: parseFloat(data.DrawdownValue),
+		ChangeRate:  parseFloat(data.DrawdownPercent),
+		VolumeBase:  parseFloat(data.VolumeBase),
+		Volume:      parseFloat(data.VolumeQuote),
 	}
 }
 

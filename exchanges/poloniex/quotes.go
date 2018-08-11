@@ -201,14 +201,14 @@ func (qp *QuotesProvider) mapSnapshot(data map[string]quote) (quotes []schemas.Q
 		}
 
 		quotes = append(quotes, schemas.Quote{
-			Symbol:          symbol,
-			Price:           lastPrice,
-			High:            high,
-			Low:             low,
-			DrawdownPercent: percent,
-			DrawdownValue:   valueChange,
-			VolumeBase:      volumeBase,
-			VolumeQuote:     volumeQuote,
+			Symbol:      symbol,
+			Price:       lastPrice,
+			High:        high,
+			Low:         low,
+			ChangeRate:  percent,
+			ChangeValue: valueChange,
+			VolumeBase:  volumeBase,
+			Volume:      volumeQuote,
 		})
 	}
 
@@ -243,14 +243,14 @@ func (qp *QuotesProvider) mapUpdate(d []interface{}) schemas.Quote {
 	}
 
 	return schemas.Quote{
-		Symbol:          symbolName,
-		Price:           lastPrice,
-		High:            high,
-		Low:             low,
-		DrawdownValue:   valueChange,
-		DrawdownPercent: percent,
-		VolumeBase:      volumeBase,
-		VolumeQuote:     volumeQuote,
+		Symbol:      symbolName,
+		Price:       lastPrice,
+		High:        high,
+		Low:         low,
+		ChangeValue: valueChange,
+		ChangeRate:  percent,
+		VolumeBase:  volumeBase,
+		Volume:      volumeQuote,
 	}
 }
 

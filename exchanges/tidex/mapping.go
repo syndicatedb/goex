@@ -59,12 +59,12 @@ type Quote struct {
 // Map - mapping Tidex model to common model
 func (q Quote) Map(name string) schemas.Quote {
 	return schemas.Quote{
-		Symbol:      name,
-		High:        q.High,
-		Low:         q.Low,
-		Price:       q.Last,
-		VolumeBase:  q.VolCur,
-		VolumeQuote: q.Vol,
+		Symbol:     name,
+		High:       q.High,
+		Low:        q.Low,
+		Price:      q.Last,
+		VolumeBase: q.VolCur,
+		Volume:     q.Vol,
 	}
 }
 
