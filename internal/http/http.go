@@ -97,7 +97,7 @@ func (client *Client) Post(url string, params, payload KeyValue, isSigned bool) 
 func (client *Client) Request(method, endpoint string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
 	var formData string
 	rawurl := endpoint
-	log.Println("ENDPOINT", rawurl)
+	// log.Println("ENDPOINT", rawurl)
 	if method == methodGET {
 		var URL *url.URL
 		URL, err = url.Parse(rawurl)
@@ -133,13 +133,12 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 	if isSigned {
 		req = client.sign(req)
 	}
-
+	log.Println("req.URL: ", req.URL)
 	if len(client.Headers.data) > 0 {
 		for key, v := range client.Headers.data {
 			req.Header.Add(key, v)
 		}
 	}
-
 	resp, err := client.proxy.Do(req)
 	if err != nil {
 		fmt.Println("Error: ", err)
@@ -154,7 +153,6 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		log.Println("Data:", string(body), "Error:", err)
-
 		// log.Println("Resp status is:", resp.Status)
 		err = fmt.Errorf("Status code is: %v", resp.StatusCode)
 		return

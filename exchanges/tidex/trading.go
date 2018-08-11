@@ -3,6 +3,7 @@ package tidex
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -73,7 +74,7 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 				Data:  o,
 				Error: err,
 			}
-			t, err := trading.Trades(schemas.TradeHistoryOptions{
+			t, _, err := trading.Trades(schemas.FilterOptions{
 				FromID: lastTradeID,
 			})
 			utc <- schemas.UserTradesChannel{
@@ -110,8 +111,17 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	return resp.Map(), nil
 }
 
+func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan schemas.UserTradesChannel {
+	ch := make(chan schemas.UserTradesChannel)
+
+	trades, paging, err := trading.Trades(opts)
+	log.Println("paging: ", len(trades), paging, err)
+
+	return ch
+}
+
 // Trades - getting user trades
-func (trading *TradingProvider) Trades(opts schemas.TradeHistoryOptions) (trades []schemas.Trade, err error) {
+func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
 	var b []byte
 	payload := httpclient.Params()
 	payload.Set("method", "TradeHistory")
@@ -120,7 +130,7 @@ func (trading *TradingProvider) Trades(opts schemas.TradeHistoryOptions) (trades
 	if len(opts.Symbols) > 0 {
 		var pairs []string
 		for _, s := range opts.Symbols {
-			pairs = append(pairs, s.OriginalName)
+			pairs = append(pairs, symbolToPair(s.Name))
 		}
 		payload.Set("pair", strings.Join(pairs, "-"))
 	}
@@ -132,7 +142,6 @@ func (trading *TradingProvider) Trades(opts schemas.TradeHistoryOptions) (trades
 	if opts.FromID != "" {
 		payload.Set("from_id", opts.FromID)
 	}
-
 	b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
 	if err != nil {
 		return
@@ -141,7 +150,7 @@ func (trading *TradingProvider) Trades(opts schemas.TradeHistoryOptions) (trades
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-	return resp.Map(), nil
+	return resp.Map(), p, nil
 }
 
 // Create - creating order
