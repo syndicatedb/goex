@@ -60,7 +60,7 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 	sa := strings.Split(s, "_")
 	basecoin = sa[1]
 	quoteCoin = sa[0]
-	name = basecoin + "_" + quoteCoin
+	name = basecoin + "-" + quoteCoin
 
 	return
 }
