@@ -27,6 +27,7 @@ const (
 	apiUserBalance  = "https://api.kucoin.com/v1/account/balance"
 	apiActiveOrders = "https://api.kucoin.com/v1/order/active"
 	apiUserTrades   = "https://api.kucoin.com/v1/order/dealt"
+	apiCandles      = "https://api.kucoin.com/v1/open/chart/history"
 )
 
 const (
@@ -57,6 +58,7 @@ func New(opts schemas.Options) *Kucoin {
 			Orders:        NewOrdersProvider(proxyProvider),
 			Trades:        NewTradesProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
+			Candles:       NewCandlesProvider(proxyProvider),
 			Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}

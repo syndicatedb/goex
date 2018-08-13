@@ -1,4 +1,4 @@
-package bitfinex
+package kucoin
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
-// CandlesProvider - bitfinex candles provider structure
+// CandlesProvider - kucoin candles provider structure
 type CandlesProvider struct {
 	httpProxy proxy.Provider
 	symbols   []schemas.Symbol
@@ -60,14 +60,14 @@ func (cp *CandlesProvider) Get(symbol schemas.Symbol) ([]schemas.Candle, error) 
 		return d[0], nil
 	}
 
-	return nil, fmt.Errorf("Candles snapshot by %s not found", symbol.Name)
+	return nil, fmt.Errorf("No candles snapshot for %s", symbol.Name)
 }
 
 // Subscribe - subscribing to candles data by one symbol
 func (cp *CandlesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) chan schemas.ResultChannel {
 	ch := make(chan schemas.ResultChannel)
-	// group := NewCandlesGroup([]schemas.Symbol{symbol}, ob.httpProxy)
-	// go group.Start(ch)
+	group := NewCandlesGroup([]schemas.Symbol{symbol}, cp.httpProxy)
+	go group.Subscribe(ch, d)
 	return ch
 }
 
@@ -76,7 +76,7 @@ func (cp *CandlesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChan
 	ch := make(chan schemas.ResultChannel)
 
 	for _, orderBook := range cp.groups {
-		go orderBook.Start(ch)
+		go orderBook.Subscribe(ch, d)
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch
