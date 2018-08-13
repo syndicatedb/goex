@@ -136,9 +136,10 @@ func (tg *TradesGroup) mapSnapshot(data []recentTrade, symbol string) (trades []
 			log.Println("Error mapping public trades snapshot", err)
 			return nil, err
 		}
+		symb, _, _ := parseSymbol(symbol)
 		trades = append(trades, schemas.Trade{
 			OrderID:   strconv.Itoa(t.ID),
-			Symbol:    symbol,
+			Symbol:    symb,
 			Price:     price,
 			Amount:    qty,
 			Timestamp: t.Timestamp,
