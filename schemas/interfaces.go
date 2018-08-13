@@ -35,6 +35,13 @@ type TradesProvider interface {
 	subscriber
 }
 
+// CandlesProvider - provides access to candles
+type CandlesProvider interface {
+	SetSymbols(symbols []Symbol) CandlesProvider
+	Get(symbol Symbol) ([]Candle, error)
+	subscriber
+}
+
 // subscriber - provides public trades
 type subscriber interface {
 	Subscribe(symbol Symbol, d time.Duration) chan ResultChannel

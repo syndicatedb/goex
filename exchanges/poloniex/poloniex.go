@@ -51,6 +51,7 @@ func New(opts schemas.Options) *Poloniex {
 			Orders:        NewOrdersProvider(proxyProvider),
 			Trades:        NewTradesProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
+			Candles:       NewCandlesProvider(proxyProvider),
 			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}

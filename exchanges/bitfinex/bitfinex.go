@@ -15,6 +15,7 @@ const (
 	apiOrderBook = "https://api.bitfinex.com/v2/book"
 	apiTrades    = "https://api.bitfinex.com/v2/trades"
 	apiQuotes    = "https://api.bitfinex.com/v2/ticker"
+	apiCandles   = "https://api.bitfinex.com/v2/candles"
 
 	wsURL = "wss://api.bitfinex.com/ws/2"
 )
@@ -47,6 +48,7 @@ func New(opts schemas.Options) *Bitfinex {
 			Orders:        NewOrdersProvider(proxyProvider),
 			Trades:        NewTradesProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
+			Candles:       NewCandlesProvider(proxyProvider),
 			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}

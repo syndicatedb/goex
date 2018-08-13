@@ -19,10 +19,11 @@ type Exchange struct {
 	Credentials   Credentials
 	ProxyProvider proxy.Provider
 
-	Orders OrdersProvider
-	Symbol SymbolProvider
-	Quotes QuotesProvider
-	Trades TradesProvider
+	Orders  OrdersProvider
+	Symbol  SymbolProvider
+	Quotes  QuotesProvider
+	Trades  TradesProvider
+	Candles CandlesProvider
 
 	Trading TradingProvider
 }
@@ -45,6 +46,11 @@ func (ex *Exchange) QuotesProvider() QuotesProvider {
 // TradesProvider - getter
 func (ex *Exchange) TradesProvider() TradesProvider {
 	return ex.Trades
+}
+
+// CandlesProvider - getter
+func (ex *Exchange) CandlesProvider() CandlesProvider {
+	return ex.Candles
 }
 
 // TradingProvider - getter
