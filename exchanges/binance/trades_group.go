@@ -86,6 +86,9 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 }
 
 func (tg *TradesGroup) restart() {
+	if err := tg.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
 	tg.Start(tg.resultCh)
 }
 

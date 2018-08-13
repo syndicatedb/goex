@@ -22,7 +22,7 @@ type Quote struct {
 	Low             string `json:"lowPrice"`
 	VolumeBase      string `json:"volume"`
 	VolumeQuote     string `json:"quoteVolume"`
-	Time            string `json:"symbol"`
+	Time            string `json:"closeTime"`
 }
 
 type QuotesChannelMessage struct {
@@ -83,6 +83,9 @@ func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 }
 
 func (q *QuotesGroup) restart() {
+	if err := q.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
 	q.Start(q.resultCh)
 }
 

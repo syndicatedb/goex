@@ -48,7 +48,6 @@ type bus struct {
 
 // NewOrderBookGroup - OrderBookGroup constructor
 func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *OrderBookGroup {
-	log.Println("NEW ORDERBOOK GROUP")
 	proxyClient := httpProxy.NewClient(exchangeName)
 
 	return &OrderBookGroup{
@@ -100,6 +99,9 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 }
 
 func (ob *OrderBookGroup) restart() {
+	if err := ob.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
 	ob.Start(ob.outChannel)
 }
 

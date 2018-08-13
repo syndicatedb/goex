@@ -109,6 +109,9 @@ func (qp *QuotesProvider) start(ch chan schemas.ResultChannel) {
 // restart - calling start.
 // Need for restarting provider on errors.
 func (qp *QuotesProvider) restart() {
+	if err := qp.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
 	qp.start(qp.bus.resChannel)
 }
 

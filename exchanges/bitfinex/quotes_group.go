@@ -89,6 +89,9 @@ func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 // restart - calling start with outChannel.
 // need for restarting group after error.
 func (q *QuotesGroup) restart() {
+	if err := q.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
 	q.Start(q.bus.outChannel)
 }
 

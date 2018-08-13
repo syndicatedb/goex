@@ -91,6 +91,9 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 // restart - calling start with outChannel.
 // need for restarting group after error.
 func (tg *TradesGroup) restart() {
+	if err := tg.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
 	tg.Start(tg.bus.outChannel)
 }
 

@@ -84,6 +84,9 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 // restart - calling start with outChannel.
 // need for restarting group after error.
 func (ob *OrderBookGroup) restart() {
+	if err := ob.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
 	ob.Start(ob.bus.outChannel)
 }
 

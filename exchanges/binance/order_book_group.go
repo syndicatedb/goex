@@ -101,6 +101,9 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 }
 
 func (ob *OrderBookGroup) restart() {
+	if err := ob.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
 	ob.Start(ob.resultCh)
 }
 
