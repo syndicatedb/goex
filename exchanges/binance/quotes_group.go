@@ -180,7 +180,7 @@ func (q *QuotesGroup) mapQuote(data Quote) schemas.Quote {
 func (q *QuotesGroup) mapUpdates(data QuotesChannelMessage) schemas.Quote {
 	smb, _, _ := parseSymbol(data.Symbol)
 
-	price := parseFloat(data.Current)
+	price := parseFloat(data.Close)
 	high := parseFloat(data.High)
 	low := parseFloat(data.Low)
 	ddValue := parseFloat(data.DrawdownValue)
