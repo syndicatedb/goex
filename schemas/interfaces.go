@@ -35,10 +35,10 @@ type TradesProvider interface {
 	subscriber
 }
 
-// CandelsProvider - provides access to candles
+// CandlesProvider - provides access to candles
 type CandlesProvider interface {
-	SetSymbols(symbols []Symbol) OrdersProvider
-	Get(symbol Symbol) (book OrderBook, err error)
+	SetSymbols(symbols []Symbol) CandlesProvider
+	Get(symbol Symbol) ([]Candle, error)
 	subscriber
 }
 

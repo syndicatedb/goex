@@ -45,6 +45,7 @@ func (cp *CandlesProvider) SetSymbols(symbols []schemas.Symbol) schemas.CandlesP
 
 		slice = slice[capacity:]
 	}
+
 	return cp
 }
 

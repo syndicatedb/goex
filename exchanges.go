@@ -26,6 +26,7 @@ type API interface {
 	QuotesProvider() schemas.QuotesProvider
 	TradesProvider() schemas.TradesProvider
 	TradingProvider() schemas.TradingProvider
+	CandlesProvider() schemas.CandlesProvider
 }
 
 // New - exchange constructor

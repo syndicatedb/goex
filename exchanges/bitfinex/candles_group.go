@@ -49,7 +49,6 @@ func NewCandlesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Candle
 func (cg *CandlesGroup) Get() (candles [][]schemas.Candle, err error) {
 	var b []byte
 	var resp interface{}
-	var symbol string
 
 	if len(cg.symbols) == 0 {
 		err = errors.New("Symbol is empty")
@@ -202,7 +201,7 @@ func (cg *CandlesGroup) handleMessage(msg []byte) {
 	}
 	chanID := int64Value(resp[0])
 	if chanID > 0 {
-		e, err := cg.get(chanID)
+		e, err = cg.get(chanID)
 		if err != nil {
 			log.Println("Error getting subscriptions: ", chanID, err)
 			return
@@ -217,12 +216,12 @@ func (cg *CandlesGroup) handleMessage(msg []byte) {
 		}
 	}
 	if data, ok := resp[1].([]interface{}); ok {
-		if len(data) == 1 {
+		if _, ok := data[1].(float64); ok {
 			candle := cg.mapUpdate(e.Symbol, data)
 			go cg.publish(candle, "u", nil)
 			return
 		}
-		if len(data) > 1 {
+		if _, ok := data[1].([]interface{}); ok {
 			candles := cg.mapSnapshot(e.Symbol, data)
 			go cg.publish(candles, "s", nil)
 			return
@@ -254,6 +253,7 @@ func (cg *CandlesGroup) mapSnapshot(symbol string, data []interface{}) (candles 
 
 // mapUpdate - mapping incoming candle update message into common Candle model
 func (cg *CandlesGroup) mapUpdate(symbol string, data []interface{}) schemas.Candle {
+	log.Println("Map Update")
 	return schemas.Candle{
 		Symbol:    symbol,
 		Open:      data[1].(float64),
