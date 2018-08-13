@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -146,7 +147,8 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 // Write - writing to websocket
 func (c *Client) Write(data interface{}) (err error) {
 	if c.conn == nil {
-		log.Printf("c.conn: %+v\n", c.conn)
+		err = fmt.Errorf("WS connection is nil: %v", err)
+		return
 	}
 	var b []byte
 	if b, err = json.Marshal(data); err != nil {
