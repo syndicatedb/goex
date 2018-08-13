@@ -98,7 +98,7 @@ func (cg *CandlesGroup) connect() {
 	cg.wsClient = websocket.NewClient(wsURL, cg.httpProxy)
 	if err := cg.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to bitfinex API: ", err)
-		// cg.restart()
+		cg.restart()
 		return
 	}
 	cg.wsClient.Listen(cg.bus.dch, cg.bus.ech)
@@ -115,7 +115,7 @@ func (cg *CandlesGroup) subscribe() {
 
 		if err := cg.wsClient.Write(message); err != nil {
 			log.Printf("Error subsciring to %v candles", symb.Name)
-			// cg.restart()
+			cg.restart()
 			return
 		}
 	}
@@ -132,7 +132,7 @@ func (cg *CandlesGroup) listen() {
 	go func() {
 		for err := range cg.bus.ech {
 			log.Printf("Error listen: %+v", err)
-			// cg.restart()
+			cg.restart()
 			return
 		}
 	}()
@@ -175,7 +175,7 @@ func (cg *CandlesGroup) handleEvent(msg []byte) (err error) {
 	}
 	if event.Event == eventInfo {
 		if event.Code == wsCodeStopping {
-			// ob.restart()
+			cg.restart()
 			return
 		}
 	}

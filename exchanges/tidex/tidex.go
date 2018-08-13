@@ -55,6 +55,7 @@ func New(opts schemas.Options) *Tidex {
 			Orders:        NewOrdersProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
 			Trades:        NewTradesProvider(proxyProvider),
+			Candles:       NewCandlesProvider(proxyProvider),
 			Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
