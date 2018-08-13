@@ -237,13 +237,14 @@ func (cg *CandlesGroup) mapSnapshot(symbol string, data []interface{}) (candles 
 	for _, c := range data {
 		if cand, ok := c.([]interface{}); ok {
 			candles = append(candles, schemas.Candle{
-				Symbol:    symbol,
-				Open:      cand[1].(float64),
-				Close:     cand[2].(float64),
-				High:      cand[3].(float64),
-				Low:       cand[4].(float64),
-				Volume:    cand[5].(float64),
-				Timestamp: int64(cand[0].(float64)),
+				Symbol:         symbol,
+				Open:           cand[1].(float64),
+				Close:          cand[2].(float64),
+				High:           cand[3].(float64),
+				Low:            cand[4].(float64),
+				Volume:         cand[5].(float64),
+				Timestamp:      int64(cand[0].(float64)),
+				Discretization: 60,
 			})
 		}
 	}
@@ -255,13 +256,14 @@ func (cg *CandlesGroup) mapSnapshot(symbol string, data []interface{}) (candles 
 func (cg *CandlesGroup) mapUpdate(symbol string, data []interface{}) schemas.Candle {
 	log.Println("Map Update")
 	return schemas.Candle{
-		Symbol:    symbol,
-		Open:      data[1].(float64),
-		Close:     data[2].(float64),
-		High:      data[3].(float64),
-		Low:       data[4].(float64),
-		Volume:    data[5].(float64),
-		Timestamp: int64(data[0].(float64)),
+		Symbol:         symbol,
+		Open:           data[1].(float64),
+		Close:          data[2].(float64),
+		High:           data[3].(float64),
+		Low:            data[4].(float64),
+		Volume:         data[5].(float64),
+		Timestamp:      int64(data[0].(float64)),
+		Discretization: 60,
 	}
 }
 

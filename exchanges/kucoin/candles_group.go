@@ -99,13 +99,14 @@ func (cg *CandlesGroup) publish(data interface{}, dataType string, e error) {
 func (cg *CandlesGroup) mapSnapshot(symbol string, data klinesResponse) (candles []schemas.Candle) {
 	for i := range data.Close {
 		candles = append(candles, schemas.Candle{
-			Symbol:    symbol,
-			Open:      data.Open[i],
-			Close:     data.Close[i],
-			High:      data.High[i],
-			Low:       data.Low[i],
-			Volume:    data.Volume[i],
-			Timestamp: data.Timestamp[i],
+			Symbol:         symbol,
+			Open:           data.Open[i],
+			Close:          data.Close[i],
+			High:           data.High[i],
+			Low:            data.Low[i],
+			Volume:         data.Volume[i],
+			Timestamp:      data.Timestamp[i],
+			Discretization: 60,
 		})
 	}
 
