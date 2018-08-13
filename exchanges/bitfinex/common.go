@@ -42,6 +42,13 @@ type tickerSubsMessage struct {
 	Length    string `json:"len"`
 }
 
+// candlesSubsMessage - subscribing message for candles
+type candlesSubsMessage struct {
+	Event   string `json:"event"`
+	Channel string `json:"channel"`
+	Key     string `json:"key"`
+}
+
 // event - Bitfinex Websocket event structure
 type event struct {
 	Event     string `json:"event"`
