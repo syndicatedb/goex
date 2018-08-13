@@ -133,7 +133,7 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 	if isSigned {
 		req = client.sign(req)
 	}
-	log.Println("req.URL: ", req.URL)
+	// log.Println("req.URL: ", req.URL)
 	if len(client.Headers.data) > 0 {
 		for key, v := range client.Headers.data {
 			req.Header.Add(key, v)

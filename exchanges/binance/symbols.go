@@ -42,7 +42,6 @@ type infoMessage struct {
 
 // NewSymbolsProvider - SymbolsProvider constructor
 func NewSymbolsProvider(httpProxy proxy.Provider) *SymbolsProvider {
-	log.Println("Constructing symbols provider")
 	proxyClient := httpProxy.NewClient(exchangeName)
 	return &SymbolsProvider{
 		httpClient: httpclient.New(proxyClient),

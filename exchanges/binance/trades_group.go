@@ -73,7 +73,6 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 
 // Start - starting updates
 func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
-	log.Println("Trades starting")
 	tg.resultCh = ch
 	tg.listen()
 	go func() {
@@ -113,7 +112,6 @@ func (tg *TradesGroup) Get(symbol string) (trades []schemas.Trade, err error) {
 		Data:     trades,
 		Error:    err,
 	}
-	log.Println("Snapshot:", trades)
 
 	return
 }

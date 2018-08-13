@@ -165,7 +165,7 @@ func (tg *TradesGroup) parseMessage(msg []byte) {
 		err = fmt.Errorf("unexpected message: %s", msg)
 	}
 	if err != nil {
-		fmt.Println("[ERROR] handleMessage: ", err, string(msg))
+		fmt.Println("Error handleMessage: ", err, string(msg))
 	}
 }
 

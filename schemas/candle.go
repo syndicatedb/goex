@@ -1,6 +1,6 @@
 package schemas
 
-// Candle - exchange cangle (timeframe)
+// Candle - exchange candle (timeframe)
 type Candle struct {
 	Symbol         string  `json:"symbol" sql:"-"`
 	Timestamp      int64   `json:"mts"`

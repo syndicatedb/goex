@@ -1,7 +1,6 @@
 package binance
 
 import (
-	"log"
 	"strings"
 	"time"
 
@@ -33,7 +32,6 @@ type Binance struct {
 
 // New - bitfinex exchange constructor
 func New(opts schemas.Options) *Binance {
-	log.Println("Constructing binance")
 	proxyProvider := opts.ProxyProvider
 	if proxyProvider == nil {
 		proxyProvider = proxy.NewNoProxy()

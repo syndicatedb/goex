@@ -131,7 +131,7 @@ func (ob *OrderBookGroup) listen() {
 	}()
 	go func() {
 		for err := range ob.bus.ech {
-			log.Printf("[SM] Error listen: %+v", err)
+			log.Printf("Error listen: %+v", err)
 			ob.restart()
 			return
 		}
@@ -163,7 +163,7 @@ func (ob *OrderBookGroup) parseMessage(msg []byte) {
 		err = fmt.Errorf("unexpected message: %s", msg)
 	}
 	if err != nil {
-		fmt.Println("[ERROR] handleMessage: ", err, string(msg))
+		fmt.Println("Error handleMessage: ", err, string(msg))
 	}
 }
 

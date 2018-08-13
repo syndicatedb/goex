@@ -254,7 +254,6 @@ func (cg *CandlesGroup) mapSnapshot(symbol string, data []interface{}) (candles 
 
 // mapUpdate - mapping incoming candle update message into common Candle model
 func (cg *CandlesGroup) mapUpdate(symbol string, data []interface{}) schemas.Candle {
-	log.Println("Map Update")
 	return schemas.Candle{
 		Symbol:         symbol,
 		Open:           data[1].(float64),
