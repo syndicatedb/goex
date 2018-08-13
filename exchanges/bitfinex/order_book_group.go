@@ -1,10 +1,14 @@
 package bitfinex
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
+	"sync"
+	"unicode"
 
 	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/internal/websocket"
@@ -19,13 +23,10 @@ type OrderBookGroup struct {
 	wsClient   *websocket.Client
 	httpClient *httpclient.Client
 	httpProxy  proxy.Provider
-	subs       *SubsManager
-	bus        ordersBus
-}
+	subs       map[int64]event
+	bus        bus
 
-type ordersBus struct {
-	serviceChannel chan ChannelMessage
-	dataChannel    chan schemas.ResultChannel
+	sync.RWMutex
 }
 
 // NewOrderBookGroup - OrderBookGroup constructor
@@ -36,8 +37,10 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
-		bus: ordersBus{
-			serviceChannel: make(chan ChannelMessage),
+		subs:       make(map[int64]event),
+		bus: bus{
+			dch: make(chan []byte, 2*len(symbols)),
+			ech: make(chan error, 2*len(symbols)),
 		},
 	}
 }
@@ -71,76 +74,168 @@ func (ob *OrderBookGroup) Get() (book schemas.OrderBook, err error) {
 
 // Start - starting updates
 func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
-	ob.bus.dataChannel = ch
+	ob.bus.outChannel = ch
 
 	ob.listen()
 	ob.connect()
 	ob.subscribe()
 }
 
+// restart - calling start with outChannel.
+// need for restarting group after error.
+func (ob *OrderBookGroup) restart() {
+	if err := ob.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
+	ob.Start(ob.bus.outChannel)
+}
+
 // connect - creating new WS client and establishing connection
 func (ob *OrderBookGroup) connect() {
-	ws := websocket.NewClient(wsURL, ob.httpProxy)
-	if err := ws.Connect(); err != nil {
+	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
+	if err := ob.wsClient.Connect(); err != nil {
 		log.Println("Error connecting to bitfinex API: ", err)
-		ob.connect()
+		ob.restart()
+		return
 	}
-
-	ob.wsClient = ws
+	ob.wsClient.Listen(ob.bus.dch, ob.bus.ech)
 }
 
 // subscribe - subscribing to books by symbols
 func (ob *OrderBookGroup) subscribe() {
-	var smbls []string
 	for _, s := range ob.symbols {
-		smbls = append(smbls, s.OriginalName)
+		message := orderBookSubsMessage{
+			Event:     eventSubscribe,
+			Channel:   "book",
+			Symbol:    "t" + strings.ToUpper(s.OriginalName),
+			Precision: "P0",
+			Frequency: "F0",
+			Length:    "100",
+		}
+
+		if err := ob.wsClient.Write(message); err != nil {
+			log.Printf("Error subsciring to %v order books", s.Name)
+			ob.restart()
+			return
+		}
 	}
-	ob.subs = NewSubsManager("books", smbls, ob.wsClient, ob.bus.serviceChannel)
-	ob.subs.Subscribe()
+	log.Println("Subscription ok")
 }
 
 // listen - listening to updates from WS
 func (ob *OrderBookGroup) listen() {
 	go func() {
-		for msg := range ob.bus.serviceChannel {
-			orders, datatype := ob.handleMessage(msg)
-			if len(orders.Buy) > 0 || len(orders.Sell) > 0 {
-				ob.bus.dataChannel <- schemas.ResultChannel{
-					DataType: datatype,
-					Data:     orders,
-				}
-			}
+		for msg := range ob.bus.dch {
+			ob.parseMessage(msg)
+		}
+	}()
+	go func() {
+		for err := range ob.bus.ech {
+			log.Printf("[SM] Error listen: %+v", err)
+			ob.restart()
+			return
 		}
 	}()
 }
 
-// handleMessage - handling message from WS
-func (ob *OrderBookGroup) handleMessage(cm ChannelMessage) (orders schemas.OrderBook, dataType string) {
-	data := cm.Data
-	symbol := cm.Symbol
-	dataType = "u"
-	if v, ok := data[1].(string); ok {
+// publish - publishing data into outChannel
+func (ob *OrderBookGroup) publish(data interface{}, dataType string, err error) {
+	ob.bus.outChannel <- schemas.ResultChannel{
+		DataType: dataType,
+		Data:     data,
+		Error:    err,
+	}
+}
+
+// parseMessage - parsing incoming WS message.
+// Calls handleEvent() or handleMessage().
+func (ob *OrderBookGroup) parseMessage(msg []byte) {
+	t := bytes.TrimLeftFunc(msg, unicode.IsSpace)
+	var err error
+	// either a channel data array or an event object, raw json encoding
+	if bytes.HasPrefix(t, []byte("[")) {
+		ob.handleMessage(msg)
+	} else if bytes.HasPrefix(t, []byte("{")) {
+		if err = ob.handleEvent(msg); err != nil {
+			log.Println("Error handling event: ", err)
+		}
+	} else {
+		err = fmt.Errorf("unexpected message: %s", msg)
+	}
+	if err != nil {
+		fmt.Println("[ERROR] handleMessage: ", err, string(msg))
+	}
+}
+
+// handleEvent - handling event message from WS
+func (ob *OrderBookGroup) handleEvent(msg []byte) (err error) {
+	var event event
+	if err = json.Unmarshal(msg, &event); err != nil {
+		return
+	}
+	if event.Event == eventInfo {
+		if event.Code == wsCodeStopping {
+			ob.restart()
+			return
+		}
+	}
+	if event.Event == eventSubscribed {
+		if event.Channel == channelCandles {
+			event.Symbol = strings.Replace(event.Key, "trade:1m:t", "", 1)
+			event.Pair = event.Symbol
+		}
+		ob.add(event)
+		return
+	}
+	log.Println("Unprocessed event: ", string(msg))
+	return
+}
+
+// handleMessage - handling data message from WS
+func (ob *OrderBookGroup) handleMessage(msg []byte) {
+	var resp []interface{}
+	var e event
+	var err error
+
+	if err := json.Unmarshal(msg, &resp); err != nil {
+		return
+	}
+	chanID := int64Value(resp[0])
+	if chanID > 0 {
+		e, err = ob.get(chanID)
+		if err != nil {
+			log.Println("Error getting subscriptions: ", chanID, err)
+			return
+		}
+	} else {
+		return
+	}
+
+	if v, ok := resp[1].(string); ok {
 		if v == "hb" {
 			return
 		}
-		// return
 	}
-	if v, ok := data[1].([]interface{}); ok {
+	if v, ok := resp[1].([]interface{}); ok {
 		if _, ok := v[0].([]interface{}); ok {
-			return ob.handleSnapshot(symbol, v)
+			// handlung snapshot
+			orders, dataType := ob.mapSnapshot(e.Symbol, v)
+			go ob.publish(orders, dataType, nil)
+			return
 		}
 
-		sl := make([]interface{}, 0)
-		sl = append(sl, v)
-		orders = ob.mapOrderBook(symbol, sl)
-	} else {
-		log.Println("Unrecognized: ", data)
+		// handlng update
+		orders := ob.mapOrderBook(e.Symbol, []interface{}{v})
+		go ob.publish(orders, "u", nil)
+		return
 	}
+
+	log.Println("Unrecognized: ", resp)
 	return
 }
 
 // handleSnapshot - handling snapshot message
-func (ob *OrderBookGroup) handleSnapshot(symbol string, data []interface{}) (orders schemas.OrderBook, datatype string) {
+func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) (orders schemas.OrderBook, datatype string) {
 	datatype = "s"
 	orders = ob.mapOrderBook(symbol, data)
 	return
@@ -174,4 +269,24 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 	}
 
 	return orderBook
+}
+
+// add - adding channel info with it's ID.
+// Need for matching symbol with channel ID.
+func (ob *OrderBookGroup) add(e event) {
+	ob.Lock()
+	defer ob.Unlock()
+	ob.subs[e.ChanID] = e
+}
+
+// get - loading channel info by it's ID
+// Need for matching symbol with channel ID.
+func (ob *OrderBookGroup) get(chanID int64) (e event, err error) {
+	var ok bool
+	ob.RLock()
+	defer ob.RUnlock()
+	if e, ok = ob.subs[chanID]; ok {
+		return
+	}
+	return e, errors.New("subscription not found")
 }

@@ -1,6 +1,13 @@
 package kucoin
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	b64 "encoding/base64"
+	"encoding/hex"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -11,10 +18,15 @@ import (
 const (
 	exchangeName = "kucoin"
 
+	apiHost      = "https://api.kucoin.com"
 	apiSymbols   = "https://api.kucoin.com/v1/market/open/symbols"
 	apiOrderBook = "https://api.kucoin.com/v1/open/orders"
 	apiTrades    = "https://api.kucoin.com/v1/open/deal-orders"
 	apiTicker    = "https://api.kucoin.com/v1/open/tick"
+
+	apiUserBalance  = "https://api.kucoin.com/v1/account/balance"
+	apiActiveOrders = "https://api.kucoin.com/v1/order/active"
+	apiUserTrades   = "https://api.kucoin.com/v1/order/dealt"
 )
 
 const (
@@ -36,6 +48,7 @@ func New(opts schemas.Options) *Kucoin {
 	if proxyProvider == nil {
 		proxyProvider = proxy.NewNoProxy()
 	}
+	opts.Credentials.Sign = sign
 	return &Kucoin{
 		Exchange: schemas.Exchange{
 			Credentials:   opts.Credentials,
@@ -44,7 +57,7 @@ func New(opts schemas.Options) *Kucoin {
 			Orders:        NewOrdersProvider(proxyProvider),
 			Trades:        NewTradesProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
-			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
+			Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
 }
@@ -56,4 +69,37 @@ func parseSymbol(s string) (name, coin, baseCoin string) {
 	name = coin + "-" + baseCoin
 
 	return
+}
+
+// sign - signing request
+func sign(key, secret string, req *http.Request) *http.Request {
+	b, _ := req.GetBody()
+	body, _ := ioutil.ReadAll(b)
+
+	// log.Printf("req: %+v\n", req.URL.Path)
+	// log.Printf("req: %+v\n", req.URL.Query().Encode())
+	path := req.URL.Path
+	nonce := fmt.Sprintf("%v", time.Now().UnixNano()/int64(time.Millisecond))
+	var signed string
+	strForSign := path + "/" + nonce + "/" + string(body)
+	signed = signRequest(strForSign, secret)
+	req.Header.Add("KC-API-NONCE", nonce)
+	req.Header.Add("KC-API-KEY", key)
+	req.Header.Add("KC-API-SIGNATURE", signed)
+
+	return req
+}
+
+func signRequest(str, secret string) string {
+
+	// fmt.Println("strForSign", strForSign)
+	signatureStr := b64.StdEncoding.EncodeToString([]byte(str))
+	return computeHmac256(signatureStr, secret)
+}
+
+func computeHmac256(message string, secret string) string {
+	key := []byte(secret)
+	h := hmac.New(sha256.New, key)
+	h.Write([]byte(message))
+	return hex.EncodeToString(h.Sum(nil))
 }

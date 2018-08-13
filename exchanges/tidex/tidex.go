@@ -22,14 +22,15 @@ const (
 	apiUserInfo  = "https://api.tidex.com/tapi"
 )
 
-var (
+const (
 	// SubscriptionInterval - default subscription interval
 	SubscriptionInterval  = 1 * time.Second
 	orderBookSymbolsLimit = 10
 	tradesSymbolsLimit    = 10
 	quotesSymbolsLimit    = 10
-	exchangeName          = ""
 )
+
+var exchangeName = ""
 
 /*
 Tidex - exchange struct

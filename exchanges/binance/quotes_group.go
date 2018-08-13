@@ -3,6 +3,7 @@ package binance
 import (
 	"encoding/json"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -21,7 +22,7 @@ type Quote struct {
 	Low             string `json:"lowPrice"`
 	VolumeBase      string `json:"volume"`
 	VolumeQuote     string `json:"quoteVolume"`
-	Time            string `json:"symbol"`
+	Time            string `json:"closeTime"`
 }
 
 type QuotesChannelMessage struct {
@@ -82,6 +83,9 @@ func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 }
 
 func (q *QuotesGroup) restart() {
+	if err := q.wsClient.Exit(); err != nil {
+		log.Println("Error destroying connection: ", err)
+	}
 	q.Start(q.resultCh)
 }
 
@@ -155,15 +159,23 @@ func (q *QuotesGroup) handleUpdates(data []byte) (quotes schemas.Quote, dataType
 }
 
 func (q *QuotesGroup) mapQuote(data Quote) schemas.Quote {
+	price := parseFloat(data.Current)
+	high := parseFloat(data.High)
+	low := parseFloat(data.Low)
+	ddValue := parseFloat(data.DrawdownValue)
+	ddPercent := parseFloat(data.DrawdownPercent)
+	volumeBase := parseFloat(data.VolumeBase)
+	volumeQuote := parseFloat(data.VolumeQuote)
+
 	return schemas.Quote{
-		Symbol:          data.Symbol,
-		Price:           data.Current,
-		High:            data.High,
-		Low:             data.Low,
-		DrawdownValue:   data.DrawdownValue,
-		DrawdownPercent: data.DrawdownPercent,
-		VolumeBase:      data.VolumeBase,
-		VolumeQuote:     data.VolumeQuote,
+		Symbol:      data.Symbol,
+		Price:       price,
+		High:        high,
+		Low:         low,
+		ChangeValue: ddValue,
+		ChangeRate:  ddPercent,
+		VolumeBase:  volumeBase,
+		Volume:      volumeQuote,
 	}
 }
 
@@ -171,14 +183,31 @@ func (q *QuotesGroup) mapQuote(data Quote) schemas.Quote {
 func (q *QuotesGroup) mapUpdates(data QuotesChannelMessage) schemas.Quote {
 	smb, _, _ := parseSymbol(data.Symbol)
 
+	price := parseFloat(data.Close)
+	high := parseFloat(data.High)
+	low := parseFloat(data.Low)
+	ddValue := parseFloat(data.DrawdownValue)
+	ddPercent := parseFloat(data.DrawdownPercent)
+	volumeBase := parseFloat(data.VolumeBase)
+	volumeQuote := parseFloat(data.VolumeQuote)
+
 	return schemas.Quote{
-		Symbol:          smb,
-		Price:           data.Close,
-		High:            data.High,
-		Low:             data.Low,
-		DrawdownValue:   data.DrawdownValue,
-		DrawdownPercent: data.DrawdownPercent,
-		VolumeBase:      data.VolumeBase,
-		VolumeQuote:     data.VolumeQuote,
+		Symbol:      smb,
+		Price:       price,
+		High:        high,
+		Low:         low,
+		ChangeValue: ddValue,
+		ChangeRate:  ddPercent,
+		VolumeBase:  volumeBase,
+		Volume:      volumeQuote,
 	}
+}
+
+func parseFloat(s string) (d float64) {
+	d, err := strconv.ParseFloat(s, 65)
+	if err != nil {
+		log.Println("Error parsing string to float64: ", err)
+	}
+
+	return
 }

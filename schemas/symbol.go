@@ -2,7 +2,7 @@ package schemas
 
 // Symbol - exchange symbol
 type Symbol struct {
-	Name         string  `json:"symbol"`
+	Name         string  `json:"name"`
 	OriginalName string  `json:"original"`
 	Coin         string  `json:"coin"`
 	BaseCoin     string  `json:"baseCoin"`

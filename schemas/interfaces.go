@@ -50,7 +50,8 @@ type subscriber interface {
 type TradingProvider interface {
 	Info() (UserInfo, error)
 	Orders(symbols []Symbol) ([]Order, error)
-	Trades(TradeHistoryOptions) ([]Trade, error)
+	Trades(FilterOptions) ([]Trade, Paging, error)
+	ImportTrades(FilterOptions) chan UserTradesChannel
 
 	Subscribe(time.Duration) (chan UserInfoChannel, chan UserOrdersChannel, chan UserTradesChannel)
 	Create(order Order) (result Order, err error)
