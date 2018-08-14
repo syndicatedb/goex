@@ -53,6 +53,9 @@ func New(opts schemas.Options) *Bitfinex {
 }
 
 func parseSymbol(smb string) (name, basecoin, quoteCoin string) {
+	if strings.Index(smb, "t") == 0 {
+		smb = strings.Replace(smb, "t", "", 1)
+	}
 	s := strings.ToUpper(smb)
 	baseSymbols := []string{"USD", "EUR", "GBP", "JPY", "BTC", "ETH", "EOS"}
 
