@@ -207,10 +207,11 @@ func (tg *TradesGroup) mapSnapshot(symbol string, data []trade) (trades []schema
 		if size, err = strconv.ParseFloat(tr.Amount, 64); err != nil {
 			return
 		}
+		smb, _, _ := parseSymbol(symbol)
 
 		trades = append(trades, schemas.Trade{
 			ID:        strconv.FormatInt(tr.ID, 10),
-			Symbol:    symbol,
+			Symbol:    smb,
 			Type:      tr.Type,
 			Price:     price,
 			Amount:    size,
