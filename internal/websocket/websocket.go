@@ -111,10 +111,10 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 		err := fmt.Errorf("WS connection is nil")
 		c.errorChannel <- NewReadError(err)
 	}
-	if c.conn.CloseHandler() != nil {
-		err := fmt.Errorf("WS connection is nil")
-		c.errorChannel <- NewReadError(err)
-	}
+	// if c.conn.CloseHandler() != nil {
+	// 	err := fmt.Errorf("WS connection is nil")
+	// 	c.errorChannel <- NewReadError(err)
+	// }
 
 	c.channel = ch
 	c.errorChannel = ech
