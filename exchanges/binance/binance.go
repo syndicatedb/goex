@@ -56,7 +56,7 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 
 	for _, symb := range baseSymbols {
 		if strings.Contains(s, symb) {
-			if strings.LastIndex(s, symb)+2 == len(s)-1 {
+			if strings.LastIndex(s, symb)+len(symb) == len(s) {
 				quoteCoin = strings.ToUpper(symb)
 				basecoin = strings.ToUpper((strings.Replace(s, symb, "", -1)))
 			}

@@ -90,7 +90,7 @@ func (t Trade) Map(symbol string) schemas.Trade {
 		trType = "sell"
 	}
 	return schemas.Trade{
-		ID:        fmt.Sprintf("%v", t.Tid),
+		OrderID:   fmt.Sprintf("%v", t.Tid),
 		Symbol:    symbol,
 		Type:      trType,
 		Price:     t.Price,
