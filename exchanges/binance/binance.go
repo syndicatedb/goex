@@ -61,9 +61,10 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 				quoteCoin = strings.ToUpper(symb)
 				basecoin = strings.ToUpper((strings.Replace(s, symb, "", -1)))
 			}
-		} else {
-			log.Println("WRONG SYMBOL:", s)
 		}
+	}
+	if basecoin == "" && quoteCoin == "" {
+		log.Println("WRONG SYMBOL:", s)
 	}
 	name = basecoin + "-" + quoteCoin
 	return
