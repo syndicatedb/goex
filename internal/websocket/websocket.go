@@ -150,8 +150,8 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 
 // Write - writing to websocket
 func (c *Client) Write(data interface{}) (err error) {
-	c.RLock()
-	defer c.RUnlock()
+	// c.RLock()
+	// defer c.RUnlock()
 
 	if c.conn == nil {
 		err = fmt.Errorf("WS connection is nil: %v", err)
