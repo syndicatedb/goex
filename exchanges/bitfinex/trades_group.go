@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -245,13 +246,22 @@ func (tg *TradesGroup) handleMessage(msg []byte) {
 // mapTrade - mapping incoming WS message into common Trade model
 func (tg *TradesGroup) mapTrade(symbol string, d []interface{}) schemas.Trade {
 	smb, _, _ := parseSymbol(symbol)
-	return schemas.Trade{
+	amount := d[2].(float64)
+	trade := schemas.Trade{
 		ID:        strconv.FormatFloat(d[0].(float64), 'f', 8, 64),
 		Symbol:    smb,
 		Price:     d[3].(float64),
-		Amount:    d[2].(float64),
+		Amount:    math.Abs(amount),
 		Timestamp: int64(d[1].(float64)),
 	}
+	if amount > 0 {
+		trade.Type = "BUY"
+	}
+	if amount < 0 {
+		trade.Type = "SELL"
+	}
+
+	return trade
 }
 
 // add - adding channel info with it's ID.
