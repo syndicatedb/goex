@@ -104,10 +104,18 @@ func (c *Client) Exit() (err error) {
 
 // Listen - starting to receive messages
 func (c *Client) Listen(ch chan []byte, ech chan error) {
+	// c.mu.Lock()
+	// defer c.mu.Unlock()
+
 	if c.conn == nil {
 		err := fmt.Errorf("WS connection is nil")
 		c.errorChannel <- NewReadError(err)
 	}
+	if c.conn.CloseHandler() != nil {
+		err := fmt.Errorf("WS connection is nil")
+		c.errorChannel <- NewReadError(err)
+	}
+
 	c.channel = ch
 	c.errorChannel = ech
 	c.done = make(chan struct{})
@@ -184,4 +192,8 @@ func (c *Client) keepAlive() {
 func (c *Client) getAddressURL() string {
 	return c.config.URL
 	// return fmt.Sprintf("%s://%s:%d", c.config.Protocol, c.config.Host, c.config.Port)
+}
+
+func (c *Client) checkConnection(e error) bool {
+
 }
