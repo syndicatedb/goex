@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -31,6 +32,8 @@ type Client struct {
 	done             chan struct{}
 
 	proxyProvider proxy.Provider
+
+	mu sync.RWMutex
 }
 
 /*
@@ -102,7 +105,8 @@ func (c *Client) Exit() (err error) {
 // Listen - starting to receive messages
 func (c *Client) Listen(ch chan []byte, ech chan error) {
 	if c.conn == nil {
-		log.Printf("c.conn: %+v\n", c.conn)
+		err := fmt.Errorf("WS connection is nil")
+		c.errorChannel <- NewReadError(err)
 	}
 	c.channel = ch
 	c.errorChannel = ech
@@ -146,6 +150,9 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 
 // Write - writing to websocket
 func (c *Client) Write(data interface{}) (err error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if c.conn == nil {
 		err = fmt.Errorf("WS connection is nil: %v", err)
 		return
