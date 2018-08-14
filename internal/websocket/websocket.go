@@ -102,7 +102,8 @@ func (c *Client) Exit() (err error) {
 // Listen - starting to receive messages
 func (c *Client) Listen(ch chan []byte, ech chan error) {
 	if c.conn == nil {
-		log.Printf("c.conn: %+v\n", c.conn)
+		err := fmt.Errorf("WS connection is nil")
+		c.errorChannel <- NewReadError(err)
 	}
 	c.channel = ch
 	c.errorChannel = ech
