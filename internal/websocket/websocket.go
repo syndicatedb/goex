@@ -193,7 +193,3 @@ func (c *Client) getAddressURL() string {
 	return c.config.URL
 	// return fmt.Sprintf("%s://%s:%d", c.config.Protocol, c.config.Host, c.config.Port)
 }
-
-func (c *Client) checkConnection(e error) bool {
-
-}
