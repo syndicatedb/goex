@@ -33,7 +33,7 @@ type Client struct {
 
 	proxyProvider proxy.Provider
 
-	sync.RWMutex
+	mu sync.RWMutex
 }
 
 /*
@@ -150,8 +150,8 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 
 // Write - writing to websocket
 func (c *Client) Write(data interface{}) (err error) {
-	// c.RLock()
-	// defer c.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	if c.conn == nil {
 		err = fmt.Errorf("WS connection is nil: %v", err)
