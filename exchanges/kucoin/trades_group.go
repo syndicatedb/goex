@@ -3,6 +3,7 @@ package kucoin
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -89,7 +90,7 @@ func (tg *TradesGroup) mapSnapshot(symbol string, data []interface{}) (trades []
 		if tr, ok := el.([]interface{}); ok {
 			trades = append(trades, schemas.Trade{
 				Symbol:    symbol,
-				Type:      tr[1].(string),
+				Type:      strings.ToLower(tr[1].(string)),
 				Price:     tr[2].(float64),
 				Amount:    tr[3].(float64),
 				Timestamp: int64(tr[0].(float64)),
