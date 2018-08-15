@@ -255,10 +255,10 @@ func (tg *TradesGroup) mapTrade(symbol string, d []interface{}) schemas.Trade {
 		Timestamp: int64(d[1].(float64)),
 	}
 	if amount > 0 {
-		trade.Type = "BUY"
+		trade.Type = "buy"
 	}
 	if amount < 0 {
-		trade.Type = "SELL"
+		trade.Type = "sell"
 	}
 
 	return trade
