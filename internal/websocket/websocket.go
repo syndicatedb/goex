@@ -13,6 +13,19 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
+const (
+	errConnProxy = "Error while connecting through proxy: "
+	errConn      = "Ws connection error: "
+	errConnNil   = "WS connection is nil"
+	errReadMsg   = "Error reading message: "
+	errParseMsg  = "Error parsing message: "
+)
+
+const (
+	logConnecting = "Websocket connecting"
+	logConnected  = "Websocket connected"
+)
+
 /*
 Config - websocket config
 */
@@ -66,14 +79,14 @@ func (c *Client) ChangeKeepAlive(f bool) *Client {
 
 // Connect - connecting to Websocket server
 func (c *Client) Connect() (err error) {
-	log.Println("websocket connecting")
+	log.Println(logConnecting)
 	var dialer websocket.Dialer
 	var resp *http.Response
 	ip := c.proxyProvider.IP()
 	if len(ip) > 0 {
 		proxyURL, err := url.Parse(c.proxyProvider.IP())
 		if err != nil {
-			log.Println("Error while connecting through proxy", err)
+			log.Println(errConnProxy, err)
 		}
 		dialer = websocket.Dialer{
 			Proxy:            http.ProxyURL(proxyURL),
@@ -84,28 +97,35 @@ func (c *Client) Connect() (err error) {
 	}
 	c.conn, resp, err = dialer.Dial(c.getAddressURL(), nil)
 	if err != nil {
-		log.Println("ws connection error: ", err)
+		log.Println(errConn, err)
 		log.Println("ws connection error response: ", resp)
 		return NewConnectionError(err)
 	}
-	log.Println("websocket connected")
+	log.Println(logConnected)
 	return
 }
 
 // Exit - graceful exit and closing connection
 func (c *Client) Exit() (err error) {
-	err = c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	if err != nil {
-		return NewCloseConnectionError(err)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.conn != nil {
+		err = c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		if err != nil {
+			return NewCloseConnectionError(err)
+		}
+		c.conn.Close()
+		return
 	}
-	c.conn.Close()
-	return
+
+	return fmt.Errorf(errConnNil)
 }
 
 // Listen - starting to receive messages
 func (c *Client) Listen(ch chan []byte, ech chan error) {
 	if c.conn == nil {
-		err := fmt.Errorf("WS connection is nil")
+		err := fmt.Errorf(errConnNil)
 		c.errorChannel <- NewReadError(err)
 	}
 	c.channel = ch
@@ -119,23 +139,22 @@ func (c *Client) Listen(ch chan []byte, ech chan error) {
 			}
 		}()
 		defer close(c.done)
+
 		for {
 			var data interface{}
 			// _, message, err := c.conn.ReadMessage()
 			err := c.conn.ReadJSON(&data)
 			if err != nil {
-				log.Println("Err", err)
+				log.Println(errReadMsg, err)
 				c.errorChannel <- NewReadError(err)
 				return
 			}
-
 			message, err := json.Marshal(data)
 			if err != nil {
-				log.Println("Err", err)
+				log.Println(errParseMsg, err)
 				c.errorChannel <- NewReadError(err)
 				return
 			}
-
 			if c.channel == nil {
 				c.errorChannel <- NewChannelNilError()
 				return
@@ -154,7 +173,7 @@ func (c *Client) Write(data interface{}) (err error) {
 	defer c.mu.Unlock()
 
 	if c.conn == nil {
-		err = fmt.Errorf("WS connection is nil: %v", err)
+		err = fmt.Errorf(errConnNil)
 		return
 	}
 	var b []byte
@@ -183,5 +202,4 @@ func (c *Client) keepAlive() {
 
 func (c *Client) getAddressURL() string {
 	return c.config.URL
-	// return fmt.Sprintf("%s://%s:%d", c.config.Protocol, c.config.Host, c.config.Port)
 }
