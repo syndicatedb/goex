@@ -184,7 +184,7 @@ func (ob *OrderBookGroup) mapSnapshot(data orderBookSnapshot, symbol string) sch
 		}
 		buy := schemas.Order{
 			Symbol: smb,
-			Type:   "sell",
+			Type:   schemas.Sell,
 			Price:  price,
 			Amount: amount,
 		}
@@ -205,7 +205,7 @@ func (ob *OrderBookGroup) mapSnapshot(data orderBookSnapshot, symbol string) sch
 		}
 		sell := schemas.Order{
 			Symbol: smb,
-			Type:   "sell",
+			Type:   schemas.Sell,
 			Price:  price,
 			Amount: amount,
 		}
@@ -236,7 +236,7 @@ func (ob *OrderBookGroup) mapUpdates(data orderbookChannelMessage) schemas.Order
 		}
 		buy := schemas.Order{
 			Symbol: smb,
-			Type:   "sell",
+			Type:   schemas.Sell,
 			Price:  price,
 			Amount: amount,
 		}
@@ -257,7 +257,7 @@ func (ob *OrderBookGroup) mapUpdates(data orderbookChannelMessage) schemas.Order
 		}
 		sell := schemas.Order{
 			Symbol: smb,
-			Type:   "sell",
+			Type:   schemas.Sell,
 			Price:  price,
 			Amount: amount,
 		}

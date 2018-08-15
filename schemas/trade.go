@@ -1,5 +1,10 @@
 package schemas
 
+const (
+	Buy  = "buy"
+	Sell = "sell"
+)
+
 // Trade - common trade model
 type Trade struct {
 	ID        string  `json:"id"`       // 21490692,

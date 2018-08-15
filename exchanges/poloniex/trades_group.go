@@ -248,10 +248,10 @@ func (tg *TradesGroup) mapUpdate(pairID int64, data []interface{}) schemas.Trade
 	}
 
 	if int(data[2].(float64)) == 1 {
-		trade.Type = "buy"
+		trade.Type = schemas.Buy
 	}
 	if int(data[2].(float64)) == 0 {
-		trade.Type = "sell"
+		trade.Type = schemas.Sell
 	}
 
 	return trade

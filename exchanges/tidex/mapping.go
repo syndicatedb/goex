@@ -84,10 +84,10 @@ type Trade struct {
 func (t Trade) Map(symbol string) schemas.Trade {
 	var trType string
 	if strings.ToLower(t.Type) == "ask" {
-		trType = "buy"
+		trType = schemas.Buy
 	}
 	if strings.ToLower(t.Type) == "bid" {
-		trType = "sell"
+		trType = schemas.Sell
 	}
 	return schemas.Trade{
 		OrderID:   fmt.Sprintf("%v", t.Tid),

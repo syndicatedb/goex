@@ -120,9 +120,9 @@ func (tg *TradesGroup) mapSnapshot(data []recentTrade, symbol string) (trades []
 	for _, t := range data {
 		var typeStr string
 		if t.BuyerMaker {
-			typeStr = "buy"
+			typeStr = schemas.Buy
 		} else {
-			typeStr = "sell"
+			typeStr = schemas.Sell
 		}
 		price, err := strconv.ParseFloat(t.Price, 64)
 		if err != nil {
@@ -216,9 +216,9 @@ func (tg *TradesGroup) mapUpdates(data recentTradesChannelMessage) (trades []sch
 	}
 	var typeStr string
 	if data.IsMaker {
-		typeStr = "buy"
+		typeStr = schemas.Buy
 	} else {
-		typeStr = "sell"
+		typeStr = schemas.Sell
 	}
 	symb, _, _ := parseSymbol(data.Symbol)
 	trades = append(trades, schemas.Trade{
