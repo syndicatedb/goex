@@ -140,7 +140,7 @@ func (tg *TradesGroup) mapSnapshot(data []recentTrade, symbol string) (trades []
 			Symbol:    symb,
 			Price:     price,
 			Amount:    qty,
-			Timestamp: t.Timestamp,
+			Timestamp: t.Timestamp / 1000,
 			Type:      typeStr,
 		})
 	}
@@ -220,7 +220,7 @@ func (tg *TradesGroup) mapUpdates(data recentTradesChannelMessage) (trades []sch
 		Symbol:    symb,
 		Price:     price,
 		Amount:    qty,
-		Timestamp: data.Timestamp,
+		Timestamp: data.Timestamp / 1000,
 		Type:      data.Type,
 	})
 
