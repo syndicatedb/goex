@@ -215,7 +215,7 @@ func (tg *TradesGroup) mapSnapshot(symbol string, data []trade) (trades []schema
 			Type:      tr.Type,
 			Price:     price,
 			Amount:    size,
-			Timestamp: tms.UnixNano(),
+			Timestamp: tms.Unix(),
 		})
 	}
 
@@ -231,14 +231,6 @@ func (tg *TradesGroup) mapUpdate(pairID int64, data []interface{}) schemas.Trade
 		return schemas.Trade{}
 	}
 
-	ts := int64(data[5].(float64))
-	tsStr := strconv.FormatInt(ts, 64)
-
-	layout := "2006-01-02 15:04:05"
-	tms, err := time.Parse(layout, tr.Date)
-	if err != nil {
-		log.Println("Error parsing time: ", err)
-	}
 	smb, _, _ := parseSymbol(symbol)
 	if price, err = strconv.ParseFloat(data[4].(string), 64); err != nil {
 		return schemas.Trade{}
