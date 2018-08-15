@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -128,7 +127,7 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
 	}
 	req.Header.Add("Accept", "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
-	req.Header.Add("User-Agent", headers[rand.Intn(14)])
+	// req.Header.Add("User-Agent", headers[rand.Intn(14)])
 
 	if isSigned {
 		req = client.sign(req)
