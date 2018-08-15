@@ -214,6 +214,12 @@ func (tg *TradesGroup) mapUpdates(data recentTradesChannelMessage) (trades []sch
 		log.Println("Error mapping trades update:", err)
 		return nil, err
 	}
+	var typeStr string
+	if data.IsMaker {
+		typeStr = "buy"
+	} else {
+		typeStr = "sell"
+	}
 	symb, _, _ := parseSymbol(data.Symbol)
 	trades = append(trades, schemas.Trade{
 		OrderID:   strconv.Itoa(data.TradeID),
@@ -221,7 +227,7 @@ func (tg *TradesGroup) mapUpdates(data recentTradesChannelMessage) (trades []sch
 		Price:     price,
 		Amount:    qty,
 		Timestamp: data.Timestamp / 1000,
-		Type:      data.Type,
+		Type:      typeStr,
 	})
 
 	return
