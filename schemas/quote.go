@@ -4,6 +4,8 @@ package schemas
 type Quote struct {
 	Symbol      string  `json:"symbol"`
 	Price       float64 `json:"price"`
+	Sell        float64 `json:"sell"`
+	Buy         float64 `json:"buy"`
 	High        float64 `json:"high"`
 	Low         float64 `json:"low"`
 	ChangeValue float64 `json:"changeValue"`

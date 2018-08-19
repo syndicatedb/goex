@@ -71,6 +71,8 @@ func (q *quote) Map() schemas.Quote {
 	return schemas.Quote{
 		Symbol:      name,
 		Price:       q.LastDealPrice,
+		Sell:        q.Sell,
+		Buy:         q.Buy,
 		High:        q.High,
 		Low:         q.Low,
 		ChangeValue: q.Change,

@@ -2,6 +2,7 @@ package kucoin
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -180,6 +181,13 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 	var resp UserTradesResponse
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
+	}
+	if resp.Success == false {
+		log.Printf("resp error: %+v\n", resp)
+		if resp.Code == "UNAUTH" {
+			err = errors.New(resp.Msg)
+			return
+		}
 	}
 	return resp.Map(), schemas.Paging{
 		Count:   resp.Data.Total,
