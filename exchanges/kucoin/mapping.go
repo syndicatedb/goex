@@ -219,3 +219,74 @@ type UserTrade struct {
 	ID            int64   `json:"id"`            // 1845414,
 	Direction     string  `json:"direction"`     // "BUY"
 }
+
+type UserOrdersResponse struct {
+	Success   bool      `json:"success"`   // : true,
+	Code      string    `json:"code"`      // : "OK",
+	Msg       string    `json:"msg"`       // : "Operation succeeded.",
+	Timestamp int64     `json:"timestamp"` // : 1534014768145,
+	Data      OrderBook `json:"data"`
+}
+
+type OrderBook struct {
+	Sell []UserOrder
+	Buy  []UserOrder
+}
+
+func (ob *OrderBook) Map() (orders []schemas.Order) {
+	for _, o := range ob.Buy {
+		orders = append(orders, o.Map())
+	}
+	for _, o := range ob.Sell {
+		orders = append(orders, o.Map())
+	}
+	return
+}
+
+type UserOrder struct {
+	Oid           string  `json:"oid"`           // "59e59b279bd8d31d093d956e",
+	Type          string  `json:"type"`          // "SELL",
+	UserOid       string  `json:"userOid"`       // null,
+	CoinType      string  `json:"coinType"`      // "KCS",
+	CoinTypePair  string  `json:"coinTypePair"`  // "BTC",
+	Direction     string  `json:"direction"`     // "SELL",
+	Price         float64 `json:"price"`         // 0.1,
+	DealAmount    float64 `json:"dealAmount"`    // 0,
+	PendingAmount float64 `json:"pendingAmount"` // 100,
+	CreatedAt     int64   `json:"createdAt"`     // 1508219688000,
+	UpdatedAt     int64   `json:"updatedAt"`     // 1508219688000
+}
+
+func (uo *UserOrder) Map() schemas.Order {
+	return schemas.Order{
+		ID:           uo.Oid,
+		Symbol:       uo.CoinType + "-" + uo.CoinTypePair,
+		Type:         uo.Direction,
+		Price:        uo.Price,
+		Amount:       uo.DealAmount,
+		AmountFilled: (uo.DealAmount - uo.PendingAmount),
+		Count:        1,
+		CreatedAt:    uo.CreatedAt,
+		Remove:       0,
+	}
+}
+
+type OrderCreateResponse struct {
+	Success   bool   `json:"success"`   // : true,
+	Code      string `json:"code"`      // : "OK",
+	Msg       string `json:"msg"`       // : "Operation succeeded.",
+	Timestamp int64  `json:"timestamp"` // : 1534014768145,
+	Data      struct {
+		OrderOid string `json:"orderOid"`
+	} `json:"data"`
+}
+
+type OrderCancelResponse struct {
+	Success   bool   `json:"success"`   // : true,
+	Code      string `json:"code"`      // : "OK",
+	Msg       string `json:"msg"`       // : "Operation succeeded.",
+	Timestamp int64  `json:"timestamp"` // : 1534014768145,
+	Data      struct {
+		OrderOid string `json:"orderOid"`
+	} `json:"data"`
+}
