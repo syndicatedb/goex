@@ -197,7 +197,7 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 
 	payload := httpclient.Params()
 	payload.Set("symbol", order.Symbol)
-	payload.Set("type", order.Type)
+	payload.Set("type", strings.ToUpper(order.Type))
 	payload.Set("price", fmt.Sprintf("%.10f", order.Price))
 	payload.Set("amount", fmt.Sprintf("%.10f", order.Amount))
 
