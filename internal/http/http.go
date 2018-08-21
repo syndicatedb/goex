@@ -97,7 +97,7 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 	var formData string
 	rawurl := endpoint
 	// log.Println("ENDPOINT", rawurl)
-	if method == methodGET {
+	if len(params.data) > 0 {
 		var URL *url.URL
 		URL, err = url.Parse(rawurl)
 		if err != nil {
@@ -110,14 +110,14 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		formData = q.Encode()
 		URL.RawQuery = formData
 		rawurl = URL.String()
-	} else {
+	}
+	if method == methodPOST {
 		formValues := url.Values{}
 		for key, value := range payload.data {
 			formValues.Set(key, value)
 		}
 		formData = formValues.Encode()
 	}
-
 	req, err := http.NewRequest(method, rawurl, strings.NewReader(formData))
 	if err != nil {
 		return

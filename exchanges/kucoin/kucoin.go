@@ -25,9 +25,12 @@ const (
 	apiTicker    = "https://api.kucoin.com/v1/open/tick"
 
 	apiUserBalance  = "https://api.kucoin.com/v1/account/balance"
-	apiActiveOrders = "https://api.kucoin.com/v1/order/active"
+	apiActiveOrders = "https://api.kucoin.com/v1/order/active-map"
 	apiUserTrades   = "https://api.kucoin.com/v1/order/dealt"
 	apiCandles      = "https://api.kucoin.com/v1/open/chart/history"
+
+	apiCreateOrder = "https://api.kucoin.com/v1/order"
+	apiCancelOrder = "https://api.kucoin.com/v1/cancel-order"
 )
 
 const (
@@ -76,14 +79,20 @@ func parseSymbol(s string) (name, coin, baseCoin string) {
 // sign - signing request
 func sign(key, secret string, req *http.Request) *http.Request {
 	b, _ := req.GetBody()
-	body, _ := ioutil.ReadAll(b)
+	body, err := ioutil.ReadAll(b)
+	if err != nil {
+		return req
+	}
 
 	// log.Printf("req: %+v\n", req.URL.Path)
 	// log.Printf("req: %+v\n", req.URL.Query().Encode())
+	// log.Println("path: ", req.URL.String())
 	path := req.URL.Path
+	// path := req.URL.String()
 	nonce := fmt.Sprintf("%v", time.Now().UnixNano()/int64(time.Millisecond))
 	var signed string
 	strForSign := path + "/" + nonce + "/" + string(body)
+	// log.Println("strForSign: ", strForSign)
 	signed = signRequest(strForSign, secret)
 	req.Header.Add("KC-API-NONCE", nonce)
 	req.Header.Add("KC-API-KEY", key)

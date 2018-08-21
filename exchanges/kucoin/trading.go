@@ -2,6 +2,7 @@ package kucoin
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -89,27 +90,20 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 
 // Orders - getting user active orders
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
-	// var b []byte
-	// payload := httpclient.Params()
-	// payload.Set("method", "ActiveOrders")
-	// payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
-	// if len(symbols) > 0 {
-	// 	var pairs []string
-	// 	for _, s := range symbols {
-	// 		pairs = append(pairs, s.OriginalName)
-	// 	}
-	// 	payload.Set("pair", strings.Join(pairs, "-"))
-	// }
-	// b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
-	// if err != nil {
-	// 	return
-	// }
-	// var resp UserOrdersResponse
-	// if err = json.Unmarshal(b, &resp); err != nil {
-	// 	return
-	// }
-	// return resp.Map(), nil
-	return
+	var b []byte
+	b, err = trading.httpClient.Get(apiActiveOrders, httpclient.Params(), true)
+	if err != nil {
+		return
+	}
+	var resp UserOrdersResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if resp.Success == false {
+		err = errors.New(resp.Msg)
+		return
+	}
+	return resp.Data.Map(), nil
 }
 
 // ImportTrades importing trades
@@ -181,6 +175,13 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
+	if resp.Success == false {
+		log.Printf("resp error: %+v\n", resp)
+		if resp.Code == "UNAUTH" {
+			err = errors.New(resp.Msg)
+			return
+		}
+	}
 	return resp.Map(), schemas.Paging{
 		Count:   resp.Data.Total,
 		Pages:   resp.Data.PageNos,
@@ -191,48 +192,57 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 
 // Create - creating order
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
-	// 	var b []byte
+	var b []byte
+	params := httpclient.Params()
 
-	// 	payload := httpclient.Params()
-	// 	payload.Set("method", "Trade")
-	// 	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
+	payload := httpclient.Params()
+	payload.Set("symbol", order.Symbol)
+	payload.Set("type", order.Type)
+	payload.Set("price", fmt.Sprintf("%.10f", order.Price))
+	payload.Set("amount", fmt.Sprintf("%.10f", order.Amount))
 
-	// 	pair := symbolToPair(order.Symbol)
-	// 	payload.Set("pair", pair)
-	// 	payload.Set("type", strings.ToLower(order.Type))
-	// 	payload.Set("rate", fmt.Sprintf("%f", order.Price))
-	// 	payload.Set("amount", fmt.Sprintf("%f", order.Amount))
-
-	// 	b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// 	var resp OrdersCreateResponse
-	// 	if err = json.Unmarshal(b, &resp); err != nil {
-	// 		return
-	// 	}
-	// 	order.ID = fmt.Sprintf("%d", resp.Return.OrderID)
-	// 	order.CreatedAt = time.Now().UTC().UnixNano() / 1000000
-	// 	return order, nil
+	b, err = trading.httpClient.Post(apiCreateOrder, params, payload, true)
+	if err != nil {
+		return
+	}
+	var resp OrderCreateResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if resp.Success == false {
+		err = errors.New(resp.Msg)
+		return
+	}
+	order.ID = resp.Data.OrderOid
+	order.CreatedAt = resp.Timestamp
+	result = order
 	return
 }
 
 // Cancel - cancelling order
 func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
-	// 	var b []byte
+	var b []byte
 
-	// 	payload := httpclient.Params()
-	// 	payload.Set("method", "CancelOrder")
-	// 	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
+	params := httpclient.Params()
+	params.Set("symbol", order.Symbol)
 
-	// 	payload.Set("order_id", order.ID)
+	payload := httpclient.Params()
+	payload.Set("symbol", order.Symbol)
+	payload.Set("orderOid", order.ID)
+	payload.Set("type", order.Type)
 
-	// 	b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// 	var resp OrdersCreateResponse
-	// 	err = json.Unmarshal(b, &resp)
+	b, err = trading.httpClient.Post(apiCancelOrder, params, payload, true)
+	if err != nil {
+		return
+	}
+	var resp OrderCancelResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
+		log.Println("err: ", err)
+		return
+	}
+	if resp.Success == false {
+		return errors.New(resp.Msg)
+	}
 	return
 }
 

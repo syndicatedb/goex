@@ -63,6 +63,8 @@ func (q Quote) Map(name string) schemas.Quote {
 		High:       q.High,
 		Low:        q.Low,
 		Price:      q.Last,
+		Sell:       q.Sell,
+		Buy:        q.Buy,
 		VolumeBase: q.VolCur,
 		Volume:     q.Vol,
 	}

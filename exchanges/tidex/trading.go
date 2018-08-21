@@ -164,8 +164,8 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	pair := symbolToPair(order.Symbol)
 	payload.Set("pair", pair)
 	payload.Set("type", strings.ToLower(order.Type))
-	payload.Set("rate", fmt.Sprintf("%f", order.Price))
-	payload.Set("amount", fmt.Sprintf("%f", order.Amount))
+	payload.Set("rate", fmt.Sprintf("%.10f", order.Price))
+	payload.Set("amount", fmt.Sprintf("%.10f", order.Amount))
 
 	b, err = trading.httpClient.Post(apiUserInfo, httpclient.Params(), payload, true)
 	if err != nil {
