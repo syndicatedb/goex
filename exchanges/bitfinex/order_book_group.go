@@ -247,11 +247,10 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 	orderBook := schemas.OrderBook{
 		Symbol: smb,
 	}
-	var price, amount float64
 	for i := range raw {
 		if o, ok := raw[i].([]interface{}); ok {
-			price = o[0].(float64)
-			amount = o[2].(float64)
+			price := o[0].(float64)
+			amount := o[2].(float64)
 			if price < 0 {
 				price *= -1
 			}
