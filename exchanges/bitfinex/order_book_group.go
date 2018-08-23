@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"sync"
 	"unicode"
@@ -251,9 +252,9 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 		if o, ok := raw[i].([]interface{}); ok {
 			ordr := schemas.Order{
 				Symbol: smb,
-				Price:  o[0].(float64),
+				Price:  math.Abs(o[0].(float64)),
 				Count:  int(o[1].(float64)),
-				Amount: o[2].(float64),
+				Amount: math.Abs(o[2].(float64)),
 			}
 
 			if ordr.Count == 0 {
