@@ -46,8 +46,8 @@ func (q *TradesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) 
 			}
 		} else {
 			for _, b := range trades {
-				// Cleaning up snapshot map every 60 iterations
-				if i > 60 {
+				// Cleaning up snapshot map every 300 iterations
+				if i > 300 {
 					tradesMap = make(map[string]schemas.Trade)
 					i = 0
 				}
@@ -75,7 +75,7 @@ func (q *TradesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) 
 					}
 					// Sending to listener
 					if len(t) > 0 {
-						log.Println("Trades updates trades / input / processed: ", len(tradesMap), "/", len(b), "/", len(t))
+						log.Println("Tidex: Trades updates trades / input / processed: ", len(tradesMap), "/", len(b), "/", len(t))
 						ch <- schemas.ResultChannel{
 							DataType: dataType,
 							Data:     b,
