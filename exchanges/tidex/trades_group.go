@@ -72,9 +72,9 @@ func (q *TradesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) 
 							tradesMap[trade.ID] = trade
 						}
 					}
-					log.Println("Trades updates: ", len(b), " > ", len(t))
 					// Sending to listener
 					if len(t) > 0 {
+						log.Println("Trades updates: ", len(b), " > ", len(t))
 						ch <- schemas.ResultChannel{
 							DataType: dataType,
 							Data:     b,
