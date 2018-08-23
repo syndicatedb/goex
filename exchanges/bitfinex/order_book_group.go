@@ -252,9 +252,15 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 		if o, ok := raw[i].([]interface{}); ok {
 			if o[0].(float64) < 0 {
 				price = -o[0].(float64)
+			} else {
+				price = o[0].(float64)
+
 			}
 			if o[2].(float64) < 0 {
 				amount = -o[2].(float64)
+			} else {
+				amount = o[2].(float64)
+
 			}
 			ordr := schemas.Order{
 				Symbol: smb,
