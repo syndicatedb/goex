@@ -61,7 +61,7 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	if interval == 0 {
 		interval = SubscriptionInterval
 	}
-	// lastTradeID := "1"
+	lastTradeID := "1"
 	go func() {
 		for {
 			ui, err := trading.Info()
@@ -74,13 +74,14 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 				Data:  o,
 				Error: err,
 			}
-			// t, _, err := trading.Trades(schemas.FilterOptions{
-			// 	FromID: lastTradeID,
-			// })
-			// utc <- schemas.UserTradesChannel{
-			// 	Data:  t,
-			// 	Error: err,
-			// }
+			t, _, err := trading.Trades(schemas.FilterOptions{
+				FromID: lastTradeID,
+				Limit:  200,
+			})
+			utc <- schemas.UserTradesChannel{
+				Data:  t,
+				Error: err,
+			}
 			time.Sleep(interval)
 		}
 	}()
