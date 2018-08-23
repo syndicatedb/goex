@@ -54,9 +54,9 @@ Subscribe - subscribing to user info
 - trades
 */
 func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.UserInfoChannel, chan schemas.UserOrdersChannel, chan schemas.UserTradesChannel) {
-	uic := make(chan schemas.UserInfoChannel)
-	uoc := make(chan schemas.UserOrdersChannel)
-	utc := make(chan schemas.UserTradesChannel)
+	uic := make(chan schemas.UserInfoChannel, 300)
+	uoc := make(chan schemas.UserOrdersChannel, 300)
+	utc := make(chan schemas.UserTradesChannel, 300)
 
 	if interval == 0 {
 		interval = SubscriptionInterval
@@ -76,6 +76,7 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 			}
 			t, _, err := trading.Trades(schemas.FilterOptions{
 				FromID: lastTradeID,
+				Limit:  200,
 			})
 			utc <- schemas.UserTradesChannel{
 				Data:  t,
