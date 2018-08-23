@@ -4,6 +4,12 @@ import (
 	"github.com/syndicatedb/goproxy/proxy"
 )
 
+// DataTypes - when sending data: update or snapshot
+const (
+	DataTypeSnapshot = "s"
+	DataTypeUpdate   = "u"
+)
+
 // Credentials - struct to store credentials for private requests
 type Credentials struct {
 	APIKey    string
