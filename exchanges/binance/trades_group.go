@@ -107,6 +107,11 @@ func (tg *TradesGroup) Get(symbol string) (trades []schemas.Trade, err error) {
 	}
 
 	trades, err = tg.mapSnapshot(resp, symbol)
+	if err != nil {
+		log.Println("Error mapping trades snapshot", err)
+	}
+	log.Println("Snapshot trades", symbol)
+	log.Println("Len:", len(trades))
 	tg.resultCh <- schemas.ResultChannel{
 		DataType: "s",
 		Data:     trades,

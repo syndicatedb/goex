@@ -78,7 +78,11 @@ func (ob *OrderBookGroup) Get(symbol string) (book schemas.OrderBook, err error)
 	}
 
 	result := ob.mapSnapshot(resp, symbol)
-
+	if err != nil {
+		log.Println("Error mapping orderbook snapshot", err)
+	}
+	log.Println("Snapshot orderbook", symbol)
+	log.Println("Buy:", len(result.Buy), "Sell:", len(result.Sell))
 	ob.resultCh <- schemas.ResultChannel{
 		DataType: "s",
 		Data:     result,
