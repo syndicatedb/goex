@@ -141,7 +141,7 @@ func (tg *TradesGroup) mapSnapshot(data []recentTrade, symbol string) (trades []
 		}
 		symb, _, _ := parseSymbol(symbol)
 		trades = append(trades, schemas.Trade{
-			OrderID:   strconv.Itoa(t.ID),
+			ID:        strconv.Itoa(t.ID),
 			Symbol:    symb,
 			Price:     price,
 			Amount:    qty,
@@ -227,7 +227,7 @@ func (tg *TradesGroup) mapUpdates(data recentTradesChannelMessage) (trades []sch
 	}
 	symb, _, _ := parseSymbol(data.Symbol)
 	trades = append(trades, schemas.Trade{
-		OrderID:   strconv.Itoa(data.TradeID),
+		ID:        strconv.Itoa(data.TradeID),
 		Symbol:    symb,
 		Price:     price,
 		Amount:    qty,

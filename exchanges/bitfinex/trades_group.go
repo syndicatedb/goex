@@ -248,7 +248,7 @@ func (tg *TradesGroup) mapTrade(symbol string, d []interface{}) schemas.Trade {
 	smb, _, _ := parseSymbol(symbol)
 	amount := d[2].(float64)
 	trade := schemas.Trade{
-		OrderID:   strconv.FormatFloat(d[0].(float64), 'f', 8, 64),
+		ID:        strconv.FormatFloat(d[0].(float64), 'f', 8, 64),
 		Symbol:    smb,
 		Price:     d[3].(float64),
 		Amount:    math.Abs(amount),

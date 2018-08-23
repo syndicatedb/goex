@@ -241,7 +241,7 @@ func (tg *TradesGroup) mapUpdate(pairID int64, data []interface{}) schemas.Trade
 
 	trade := schemas.Trade{
 		Symbol:    smb,
-		OrderID:   data[1].(string),
+		ID:        data[1].(string),
 		Price:     price,
 		Amount:    size,
 		Timestamp: int64(data[5].(float64)),
