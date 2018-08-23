@@ -30,6 +30,13 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 
 // SubscribeAll - getting all symbols from Exchange
 func (q *TradesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) {
+	// Local map to store incremental snapshot for some amount of time
+	// Tidex doesn't have updates, only snapshots
+
+	tradesMap := make(map[string]schemas.Trade)
+
+	// Iterator to clean up map from time to time
+	i := 0
 	for {
 		trades, err := q.Get()
 		if err != nil {
@@ -37,16 +44,48 @@ func (q *TradesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) 
 				Data:  trades,
 				Error: err,
 			}
-		}
-		for _, b := range trades {
-			if len(b) > 0 {
-				ch <- schemas.ResultChannel{
-					DataType: "s",
-					Data:     b,
-					Error:    err,
+		} else {
+			for _, b := range trades {
+				// Cleaning up snapshot map every 300 iterations
+				if i > 300 {
+					tradesMap = make(map[string]schemas.Trade)
+					i = 0
+				}
+				// If there is trades
+				if len(b) > 0 {
+
+					// By default dataType is (s)napshot
+					dataType := "s"
+
+					// if trades map is not empty, then we have history
+					if len(tradesMap) > 0 {
+						dataType = "u" // dataType is (u)pdate
+					}
+
+					// For updates or snapshot
+					var t []schemas.Trade
+
+					for _, trade := range b {
+						if _, ok := tradesMap[trade.ID]; ok == false {
+							// Appending to update
+							t = append(t, trade)
+							// Filling snapshot map
+							tradesMap[trade.ID] = trade
+						}
+					}
+					// Sending to listener
+					if len(t) > 0 {
+						log.Println("Tidex: Trades updates trades / input / processed: ", len(tradesMap), "/", len(b), "/", len(t))
+						ch <- schemas.ResultChannel{
+							DataType: dataType,
+							Data:     b,
+							Error:    err,
+						}
+					}
 				}
 			}
 		}
+		i++
 		time.Sleep(d)
 	}
 }
