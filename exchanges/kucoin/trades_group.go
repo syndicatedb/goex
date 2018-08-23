@@ -126,6 +126,7 @@ func (tg *TradesGroup) mapSnapshot(symbol string, data []interface{}) (trades []
 	for _, el := range data {
 		if tr, ok := el.([]interface{}); ok {
 			trades = append(trades, schemas.Trade{
+				ID:        tr[5].(string),
 				Symbol:    symbol,
 				Type:      strings.ToLower(tr[1].(string)),
 				Price:     tr[2].(float64),
