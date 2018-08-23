@@ -49,6 +49,7 @@ func (q *TradesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) 
 				// Cleaning up snapshot map every 60 iterations
 				if i > 60 {
 					tradesMap = make(map[string]schemas.Trade)
+					i = 0
 				}
 				// If there is trades
 				if len(b) > 0 {
