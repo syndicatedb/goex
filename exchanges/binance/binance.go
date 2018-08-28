@@ -11,6 +11,7 @@ import (
 const (
 	exchangeName = "binance"
 	apiSymbols   = "https://api.binance.com/api/v1/exchangeInfo"
+	apiKlines    = "https://api.binance.com/api/v1/klines"
 	apiOrderBook = "https://api.binance.com/api/v1/depth"
 	apiTrades    = "https://api.binance.com/api/v1/trades"
 	apiQuotes    = "https://api.binance.com/api/v1/ticker/24hr"

@@ -96,10 +96,16 @@ func (ob *OrderBookGroup) Get(symbol string) (book schemas.OrderBook, err error)
 func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	log.Println("Orderbook starting")
 	ob.resultCh = ch
-	for _, s := range ob.symbols {
-		ob.Get(s.OriginalName)
-		time.Sleep(100 * time.Millisecond)
-	}
+
+	go func() {
+		for {
+			for _, s := range ob.symbols {
+				ob.Get(s.OriginalName)
+				time.Sleep(100 * time.Millisecond)
+			}
+			time.Sleep(5 * time.Minute)
+		}
+	}()
 	ob.listen()
 	ob.connect()
 }
