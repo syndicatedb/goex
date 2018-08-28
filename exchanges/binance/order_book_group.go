@@ -71,10 +71,13 @@ func (ob *OrderBookGroup) Get(symbol string) (book schemas.OrderBook, err error)
 	url := apiOrderBook + "?" + "symbol=" + strings.ToUpper(symbol) + "&limit=100"
 
 	if b, err = ob.httpClient.Get(url, httpclient.Params(), false); err != nil {
+		log.Println("Error getting orderbook snapshot", symbol, err)
+		ob.Get(symbol)
+		time.Sleep(5 * time.Second)
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
-		return
+		log.Println("Error unmarshaling orderbook snapshot", err)
 	}
 
 	result := ob.mapSnapshot(resp, symbol)

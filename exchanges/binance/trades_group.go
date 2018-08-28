@@ -103,6 +103,8 @@ func (tg *TradesGroup) Get(symbol string) (trades []schemas.Trade, err error) {
 
 	if b, err = tg.httpClient.Get(url, httpclient.Params(), false); err != nil {
 		log.Println("Error", err)
+		time.Sleep(5 * time.Second)
+		tg.Get(symbol)
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
