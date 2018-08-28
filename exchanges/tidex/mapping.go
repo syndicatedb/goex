@@ -175,7 +175,7 @@ func (uo *UserOrdersResponse) Map() (orders []schemas.Order) {
 				Price:        o.Rate,
 				Amount:       o.StartAmount,
 				AmountFilled: o.Amount,
-				CreatedAt:    o.TimestampCreated,
+				CreatedAt:    o.TimestampCreated * 1000,
 			},
 		)
 	}
@@ -210,7 +210,7 @@ func (ut *UserTradesResponse) Map() (trades []schemas.Trade) {
 				Symbol:    symbol,
 				Price:     t.Rate,
 				Amount:    t.Amount,
-				Timestamp: t.Timestamp,
+				Timestamp: t.Timestamp * 1000,
 			},
 		)
 	}
