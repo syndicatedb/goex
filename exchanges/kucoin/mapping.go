@@ -45,6 +45,21 @@ func (s *symbol) Map() schemas.Symbol {
 	}
 }
 
+type coin struct {
+	WithdrawMinFee    float64 `json:"withdrawMinFee"`
+	CoinType          string  `json:"coinType"`
+	WithdrawMinAmount float64 `json:"withdrawMinAmount"`
+	WithdrawRemark    string  `json:"withdrawRemark"`
+	WithdrawFeeRate   float64 `json:"withdrawFeeRate"`
+	ConfirmationCount int64   `json:"confirmationCount"`
+	Enable            bool    `json:"enable"`
+	Name              string  `json:"name"`
+	TradePrecision    int64   `json:"tradePrecision"`
+	EnableWithdraw    bool    `json:"enableWithdraw"`
+	EnableDeposit     bool    `json:"enableDeposit"`
+	Coin              string  `json:"coin"`
+}
+
 type quote struct {
 	CoinType      string  `json:"coinType"`
 	Trading       bool    `json:"trading"`

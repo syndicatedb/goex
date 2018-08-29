@@ -21,6 +21,7 @@ const (
 	orderBookSymbolsLimit = 300
 	tradesSymbolsLimit    = 10
 	quotesSymbolsLimit    = 10
+	defaultPrecision      = 8
 
 	commandSubscribe        = "subscribe"
 	commandCompleteBalances = "returnCompleteBalances"

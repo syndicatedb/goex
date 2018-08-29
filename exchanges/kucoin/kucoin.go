@@ -20,6 +20,7 @@ const (
 
 	apiHost      = "https://api.kucoin.com"
 	apiSymbols   = "https://api.kucoin.com/v1/market/open/symbols"
+	apiCoins     = "https://api.kucoin.com/v1/market/open/coins"
 	apiOrderBook = "https://api.kucoin.com/v1/open/orders"
 	apiTrades    = "https://api.kucoin.com/v1/open/deal-orders"
 	apiTicker    = "https://api.kucoin.com/v1/open/tick"
@@ -39,6 +40,7 @@ const (
 	orderBookSymbolsLimit = 10
 	tradesSymbolsLimit    = 10
 	quotesSymbolsLimit    = 10
+	defaultPrecision      = 4
 )
 
 // Kucoin - kucoin exchange structure

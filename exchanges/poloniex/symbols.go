@@ -47,10 +47,11 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 func (sp *SymbolsProvider) mapSymbol(symbol string, data map[string]interface{}) schemas.Symbol {
 	name, baseCoin, quoteCoin := parseSymbol(symbol)
 	smb := schemas.Symbol{
-		Name:         name,
-		OriginalName: symbol,
-		BaseCoin:     baseCoin,
-		Coin:         quoteCoin,
+		Name:           name,
+		OriginalName:   symbol,
+		BaseCoin:       baseCoin,
+		Coin:           quoteCoin,
+		PricePrecision: defaultPrecision,
 	}
 
 	return smb

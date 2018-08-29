@@ -54,13 +54,14 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 		minAmount, _ := strconv.ParseFloat(smb.MinMargin, 64)
 
 		symbols = append(symbols, schemas.Symbol{
-			Name:         name,
-			OriginalName: smb.Pair,
-			Coin:         quoteCoin,
-			BaseCoin:     baseCoin,
-			MinPrice:     minPrice,
-			MaxPrice:     maxPrice,
-			MinAmount:    minAmount,
+			Name:           name,
+			OriginalName:   smb.Pair,
+			Coin:           quoteCoin,
+			BaseCoin:       baseCoin,
+			MinPrice:       minPrice,
+			MaxPrice:       maxPrice,
+			MinAmount:      minAmount,
+			PricePrecision: int(smb.PricePrecision),
 		})
 	}
 
