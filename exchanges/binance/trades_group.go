@@ -76,9 +76,12 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	tg.resultCh = ch
 	tg.listen()
 	go func() {
-		for _, s := range tg.symbols {
-			tg.Get(s.OriginalName)
-			time.Sleep(100 * time.Millisecond)
+		for {
+			for _, s := range tg.symbols {
+				tg.Get(s.OriginalName)
+				time.Sleep(100 * time.Millisecond)
+			}
+			time.Sleep(5 * time.Minute)
 		}
 	}()
 	tg.connect()
@@ -96,10 +99,12 @@ func (tg *TradesGroup) Get(symbol string) (trades []schemas.Trade, err error) {
 	var b []byte
 	var resp []recentTrade
 
-	url := apiTrades + "?" + "symbol=" + strings.ToUpper(symbol)
+	url := apiTrades + "?" + "symbol=" + strings.ToUpper(symbol) + "&limit=200"
 
 	if b, err = tg.httpClient.Get(url, httpclient.Params(), false); err != nil {
 		log.Println("Error", err)
+		time.Sleep(5 * time.Second)
+		tg.Get(symbol)
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {

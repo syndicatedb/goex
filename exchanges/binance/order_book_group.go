@@ -71,10 +71,13 @@ func (ob *OrderBookGroup) Get(symbol string) (book schemas.OrderBook, err error)
 	url := apiOrderBook + "?" + "symbol=" + strings.ToUpper(symbol) + "&limit=100"
 
 	if b, err = ob.httpClient.Get(url, httpclient.Params(), false); err != nil {
+		log.Println("Error getting orderbook snapshot", symbol, err)
+		ob.Get(symbol)
+		time.Sleep(5 * time.Second)
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
-		return
+		log.Println("Error unmarshaling orderbook snapshot", err)
 	}
 
 	result := ob.mapSnapshot(resp, symbol)
@@ -96,10 +99,16 @@ func (ob *OrderBookGroup) Get(symbol string) (book schemas.OrderBook, err error)
 func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	log.Println("Orderbook starting")
 	ob.resultCh = ch
-	for _, s := range ob.symbols {
-		ob.Get(s.OriginalName)
-		time.Sleep(100 * time.Millisecond)
-	}
+
+	go func() {
+		for {
+			for _, s := range ob.symbols {
+				ob.Get(s.OriginalName)
+				time.Sleep(100 * time.Millisecond)
+			}
+			time.Sleep(5 * time.Minute)
+		}
+	}()
 	ob.listen()
 	ob.connect()
 }

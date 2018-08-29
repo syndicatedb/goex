@@ -12,4 +12,7 @@ type Symbol struct {
 	MinAmount      float64 `json:"minAmount"`
 	MaxAmount      float64 `json:"maxAmount"`
 	PricePrecision int     `json:"pricePrecision"`
+	BasePrecision  int     `json:"basePrecision"`
+	QuotePrecision int     `json:"quotePrecision"`
+	Volume         float64 `json:"volume"`
 }
