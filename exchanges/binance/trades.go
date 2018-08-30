@@ -1,6 +1,7 @@
 package binance
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -51,7 +52,15 @@ func (tp *TradesProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradesPro
 // Get - getting trades snapshot by symbol
 func (tp *TradesProvider) Get(symbol schemas.Symbol) (q []schemas.Trade, err error) {
 	group := NewTradesGroup([]schemas.Symbol{symbol}, tp.httpProxy)
-	return group.Get(symbol.OriginalName)
+	trades, err := group.Get()
+	if err != nil {
+		return nil, err
+	}
+	if len(trades) > 0 {
+		return trades[0], nil
+	}
+
+	return nil, errors.New("Empty trades for " + symbol.Name)
 }
 
 // Subscribe - subscribing to trades by one symbol
