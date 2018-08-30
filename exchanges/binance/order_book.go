@@ -1,6 +1,7 @@
 package binance
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -70,5 +71,14 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 // Get - getting orderbook snapshot by symbol
 func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
 	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
-	return group.Get(symbol.OriginalName)
+	result, err := group.Get()
+	if err != nil {
+		return schemas.OrderBook{}, err
+	}
+
+	if len(result) > 0 {
+		return result[0], nil
+	}
+
+	return schemas.OrderBook{}, errors.New("Empty orderbook for symbol " + symbol.Name)
 }

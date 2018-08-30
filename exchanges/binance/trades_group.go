@@ -77,9 +77,11 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	tg.listen()
 	go func() {
 		for {
-			for _, s := range tg.symbols {
-				tg.Get(s.OriginalName)
-				time.Sleep(100 * time.Millisecond)
+			result, err := tg.Get()
+			tg.resultCh <- schemas.ResultChannel{
+				DataType: "s",
+				Data:     result,
+				Error:    err,
 			}
 			time.Sleep(5 * time.Minute)
 		}
@@ -95,32 +97,28 @@ func (tg *TradesGroup) restart() {
 }
 
 // Get - getting trades snapshot by symbol
-func (tg *TradesGroup) Get(symbol string) (trades []schemas.Trade, err error) {
+func (tg *TradesGroup) Get() (result [][]schemas.Trade, err error) {
 	var b []byte
-	var resp []recentTrade
+	var trades []schemas.Trade
+	for _, symbol := range tg.symbols {
+		var resp []recentTrade
 
-	url := apiTrades + "?" + "symbol=" + strings.ToUpper(symbol) + "&limit=200"
+		url := apiTrades + "?" + "symbol=" + strings.ToUpper(symbol.OriginalName) + "&limit=200"
 
-	if b, err = tg.httpClient.Get(url, httpclient.Params(), false); err != nil {
-		log.Println("Error", err)
-		time.Sleep(5 * time.Second)
-		tg.Get(symbol)
-		return
-	}
-	if err = json.Unmarshal(b, &resp); err != nil {
-		return
-	}
+		if b, err = tg.httpClient.Get(url, httpclient.Params(), false); err != nil {
+			log.Println("Error", err)
+			return
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
+			return
+		}
 
-	trades, err = tg.mapSnapshot(resp, symbol)
-	if err != nil {
-		log.Println("Error mapping trades snapshot", err)
-	}
-	log.Println("Snapshot trades", symbol)
-	log.Println("Len:", len(trades))
-	tg.resultCh <- schemas.ResultChannel{
-		DataType: "s",
-		Data:     trades,
-		Error:    err,
+		trades, err = tg.mapSnapshot(resp, symbol.OriginalName)
+		if err != nil {
+			log.Println("Error mapping trades snapshot", err)
+		}
+
+		result = append(result, trades)
 	}
 
 	return

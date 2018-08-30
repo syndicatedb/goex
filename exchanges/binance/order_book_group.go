@@ -64,35 +64,32 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 }
 
 // Get - loading order books snapshot by one symbol
-func (ob *OrderBookGroup) Get(symbol string) (book schemas.OrderBook, err error) {
+func (ob *OrderBookGroup) Get() (book []schemas.OrderBook, err error) {
 	var b []byte
 	var resp orderBookSnapshot
+	for _, symbol := range ob.symbols {
+		query := httpclient.Params()
+		query.Set("symbol", strings.ToUpper(symbol.OriginalName))
+		query.Set("limit", "100")
 
-	url := apiOrderBook + "?" + "symbol=" + strings.ToUpper(symbol) + "&limit=100"
+		if b, err = ob.httpClient.Get(apiOrderBook, query, false); err != nil {
+			log.Println("Error getting orderbook snapshot", symbol, err)
+			time.Sleep(5 * time.Second)
+			return
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
+			log.Println("Error unmarshaling orderbook snapshot", err)
+		}
 
-	if b, err = ob.httpClient.Get(url, httpclient.Params(), false); err != nil {
-		log.Println("Error getting orderbook snapshot", symbol, err)
-		ob.Get(symbol)
-		time.Sleep(5 * time.Second)
-		return
-	}
-	if err = json.Unmarshal(b, &resp); err != nil {
-		log.Println("Error unmarshaling orderbook snapshot", err)
-	}
+		result := ob.mapSnapshot(resp, symbol.OriginalName)
+		if err != nil {
+			log.Println("Error mapping orderbook snapshot", err)
+		}
 
-	result := ob.mapSnapshot(resp, symbol)
-	if err != nil {
-		log.Println("Error mapping orderbook snapshot", err)
-	}
-	log.Println("Snapshot orderbook", symbol)
-	log.Println("Buy:", len(result.Buy), "Sell:", len(result.Sell))
-	ob.resultCh <- schemas.ResultChannel{
-		DataType: "s",
-		Data:     result,
-		Error:    err,
+		book = append(book, result)
 	}
 
-	return result, nil
+	return
 }
 
 // Start - starting updates
@@ -102,9 +99,13 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 
 	go func() {
 		for {
-			for _, s := range ob.symbols {
-				ob.Get(s.OriginalName)
-				time.Sleep(100 * time.Millisecond)
+			result, err := ob.Get()
+			for _, book := range result {
+				ob.resultCh <- schemas.ResultChannel{
+					DataType: "s",
+					Data:     book,
+					Error:    err,
+				}
 			}
 			time.Sleep(5 * time.Minute)
 		}
