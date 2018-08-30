@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/internal/websocket"
@@ -83,6 +84,7 @@ func (ob *OrderBookGroup) Get() (books []schemas.OrderBook, err error) {
 			return
 		}
 		books = append(books, ob.mapHTTPSnapshot(symb.Name, resp))
+		time.Sleep(1 * time.Second)
 	}
 
 	return
@@ -90,12 +92,12 @@ func (ob *OrderBookGroup) Get() (books []schemas.OrderBook, err error) {
 
 // Start - starting updates
 func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
-	log.Println("STARTING POLONIEX ORDERBOOK UPDATES")
 	ob.outChannel = ch
 
 	ob.listen()
 	ob.connect()
 	ob.subscribe()
+	ob.collectSnapshots()
 }
 
 func (ob *OrderBookGroup) restart() {
@@ -122,7 +124,6 @@ func (ob *OrderBookGroup) subscribe() {
 			Command: commandSubscribe,
 			Channel: symb.OriginalName,
 		}
-		log.Println("MSG", msg)
 		if err := ob.wsClient.Write(msg); err != nil {
 			log.Printf("Error subsciring to %v order books", symb.Name)
 			ob.restart()
@@ -130,6 +131,25 @@ func (ob *OrderBookGroup) subscribe() {
 		}
 	}
 	log.Println("Subscription ok")
+}
+
+// collectSnapshots getting snapshots and publishing them to outChannel
+func (ob *OrderBookGroup) collectSnapshots() {
+	go func() {
+		for {
+			time.Sleep(snapshotInterval)
+
+			data, err := ob.Get()
+			if err != nil {
+				log.Println("Error loading orderbook snapshot: ", err)
+			}
+			for _, book := range data {
+				if len(book.Buy) > 0 || len(book.Sell) > 0 {
+					ob.publish(book, "s", nil)
+				}
+			}
+		}
+	}()
 }
 
 func (ob *OrderBookGroup) listen() {
