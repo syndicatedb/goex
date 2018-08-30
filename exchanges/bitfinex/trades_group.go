@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -75,6 +76,8 @@ func (tg *TradesGroup) Get() (trades []schemas.Trade, err error) {
 				}
 			}
 		}
+
+		time.Sleep(2 * time.Second)
 	}
 
 	return
@@ -87,6 +90,7 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	tg.listen()
 	tg.connect()
 	tg.subscribe()
+	tg.collectSnapshots()
 }
 
 // restart - calling start with outChannel.
@@ -123,6 +127,33 @@ func (tg *TradesGroup) subscribe() {
 		}
 	}
 	log.Println("Subscription ok")
+}
+
+// collectSnapshots getting snapshots by TradesGroup symbols and publishing thme to outChannel
+func (tg *TradesGroup) collectSnapshots() {
+	go func() {
+		for {
+			time.Sleep(snapshotInterval)
+
+			data, err := tg.Get()
+			if err != nil {
+				tg.publish(nil, "s", err)
+			}
+
+			for _, smb := range tg.symbols {
+				var symbolTrades []schemas.Trade
+				for _, trd := range data {
+					if trd.Symbol == smb.Name {
+						symbolTrades = append(symbolTrades, trd)
+					}
+				}
+				if len(symbolTrades) > 0 {
+					tg.publish(symbolTrades, "s", nil)
+				}
+			}
+
+		}
+	}()
 }
 
 // listen - listening to updates from WS

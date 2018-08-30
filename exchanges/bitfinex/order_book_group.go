@@ -8,6 +8,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -46,29 +47,31 @@ func NewOrderBookGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Orde
 }
 
 // Get - loading order books snapshot by one symbol
-func (ob *OrderBookGroup) Get() (book schemas.OrderBook, err error) {
+func (ob *OrderBookGroup) Get() (books []schemas.OrderBook, err error) {
 	var b []byte
 	var resp interface{}
-	var symbol string
 
 	if len(ob.symbols) == 0 {
 		err = errors.New("Symbol is empty")
 		return
 	}
-	symbol = ob.symbols[0].OriginalName
-	url := apiOrderBook + "/" + "t" + strings.ToUpper(symbol) + "/P0"
 
-	if b, err = ob.httpClient.Get(url, httpclient.Params(), false); err != nil {
-		return
-	}
-	if err = json.Unmarshal(b, &resp); err != nil {
-		return
-	}
-	if books, ok := resp.([]interface{}); ok {
-		return ob.mapOrderBook(symbol, books), nil
+	for _, smb := range ob.symbols {
+		url := apiOrderBook + "/" + "t" + strings.ToUpper(smb.OriginalName) + "/P0"
+
+		if b, err = ob.httpClient.Get(url, httpclient.Params(), false); err != nil {
+			return
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
+			return
+		}
+		if bks, ok := resp.([]interface{}); ok {
+			books = append(books, ob.mapOrderBook(smb.OriginalName, bks))
+		}
+
+		time.Sleep(2 * time.Second)
 	}
 
-	err = errors.New("Exchange order books data invalid")
 	return
 }
 
@@ -79,6 +82,7 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	ob.listen()
 	ob.connect()
 	ob.subscribe()
+	ob.collectSnapshots()
 }
 
 // restart - calling start with outChannel.
@@ -120,6 +124,25 @@ func (ob *OrderBookGroup) subscribe() {
 		}
 	}
 	log.Println("Subscription ok")
+}
+
+// collectSnapshots getting snapshots by OrderBookGroup symbols and publishing them
+func (ob *OrderBookGroup) collectSnapshots() {
+	go func() {
+		for {
+			time.Sleep(snapshotInterval)
+
+			data, err := ob.Get()
+			if err != nil {
+				ob.publish(nil, "s", err)
+			}
+			for _, book := range data {
+				if len(book.Buy) > 0 || len(book.Sell) > 0 {
+					ob.publish(book, "s", nil)
+				}
+			}
+		}
+	}()
 }
 
 // listen - listening to updates from WS
