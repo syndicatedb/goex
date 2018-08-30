@@ -101,7 +101,7 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 			}
 		}
 
-		symbols = append(symbols, schemas.Symbol{
+		s := schemas.Symbol{
 			Name:         name,
 			OriginalName: smb.Symbol,
 			Coin:         quoteCoin,
@@ -110,7 +110,16 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 			MaxPrice:     maxPrice,
 			MinAmount:    minAmount,
 			MaxAmount:    maxAmount,
-		})
+		}
+		if smb.QuotePrecision > smb.BaseAssetPrecision {
+			s.PricePrecision = smb.BaseAssetPrecision
+		} else if smb.QuotePrecision < smb.BaseAssetPrecision {
+			s.PricePrecision = smb.QuotePrecision
+		} else {
+			s.PricePrecision = smb.BaseAssetPrecision
+		}
+
+		symbols = append(symbols, s)
 	}
 
 	return

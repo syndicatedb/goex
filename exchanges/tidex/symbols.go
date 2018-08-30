@@ -36,15 +36,16 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 		if d.Hidden == 0 {
 			name, coin, baseCoin := parseSymbol(sname)
 			symbols = append(symbols, schemas.Symbol{
-				Name:         name,
-				OriginalName: sname,
-				Coin:         coin,
-				BaseCoin:     baseCoin,
-				Fee:          d.Fee,
-				MinPrice:     d.MinPrice,
-				MaxPrice:     d.MaxPrice,
-				MinAmount:    d.MinAmount,
-				MaxAmount:    d.MaxAmount,
+				Name:           name,
+				OriginalName:   sname,
+				Coin:           coin,
+				BaseCoin:       baseCoin,
+				Fee:            d.Fee,
+				MinPrice:       d.MinPrice,
+				MaxPrice:       d.MaxPrice,
+				MinAmount:      d.MinAmount,
+				MaxAmount:      d.MaxAmount,
+				PricePrecision: d.DecimalPlaces,
 			})
 		}
 	}

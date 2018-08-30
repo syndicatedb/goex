@@ -21,7 +21,7 @@ type SymbolResponse struct {
 
 // Symbol - tidex symbol model
 type Symbol struct {
-	DecimalPlaces float64 `json:"decimal_places"` //  8,
+	DecimalPlaces int     `json:"decimal_places"` //  8,
 	MinPrice      float64 `json:"min_price"`      //  0.0001,
 	MaxPrice      float64 `json:"max_price"`      //  3000,
 	MinAmount     float64 `json:"min_amount"`     //  0.001,

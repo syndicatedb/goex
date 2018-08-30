@@ -1,6 +1,7 @@
 package bitfinex
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -69,5 +70,14 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 // Get - getting orderbook snapshot by symbol
 func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
 	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
-	return group.Get()
+	d, err := group.Get()
+	if err != nil {
+		return
+	}
+	if len(d) == 0 {
+		err = fmt.Errorf("No orderbook found for %v", symbol)
+		return
+	}
+
+	return d[0], err
 }
