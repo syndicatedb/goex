@@ -236,7 +236,7 @@ func (tg *TradesGroup) mapSnapshot(symbol string, data []trade) (trades []schema
 			Type:      tr.Type,
 			Price:     price,
 			Amount:    size,
-			Timestamp: tms.Unix(),
+			Timestamp: tms.UnixNano(),
 		})
 	}
 
