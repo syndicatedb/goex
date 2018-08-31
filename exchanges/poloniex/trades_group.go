@@ -230,6 +230,7 @@ func (tg *TradesGroup) mapSnapshot(symbol string, data []trade) (trades []schema
 		}
 		smb, _, _ := parseSymbol(symbol)
 
+		log.Println("TIMESTAMP", tms.Unix()*1000)
 		trades = append(trades, schemas.Trade{
 			ID:        strconv.FormatInt(tr.ID, 10),
 			Symbol:    smb,
