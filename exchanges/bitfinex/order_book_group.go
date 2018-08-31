@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -279,14 +280,14 @@ func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas
 				Symbol: smb,
 				Price:  price,
 				Count:  int(o[1].(float64)),
-				Amount: amount,
+				Amount: math.Abs(amount),
 			}
 
 			if ordr.Count == 0 {
 				ordr.Remove = 1
 			}
 
-			if ordr.Amount > 0 {
+			if amount > 0 {
 				orderBook.Buy = append(orderBook.Buy, ordr)
 			} else {
 				orderBook.Sell = append(orderBook.Sell, ordr)
