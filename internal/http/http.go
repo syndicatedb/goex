@@ -138,6 +138,7 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 			req.Header.Add(key, v)
 		}
 	}
+	// log.Printf("req: %+v\n", req)
 	resp, err := client.proxy.Do(req)
 	if err != nil {
 		fmt.Println("Error: ", err)
