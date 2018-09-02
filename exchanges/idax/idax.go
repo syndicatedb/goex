@@ -126,3 +126,10 @@ func getOrderSideByType(t string) string {
 	}
 	return "2"
 }
+
+func getOrderTypeBySide(side int) string {
+	if side == 1 {
+		return "BUY"
+	}
+	return "SELL"
+}

@@ -112,14 +112,12 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
 	var b []byte
 	params := httpclient.Params()
-
 	params.Set("top", "100")
 
 	b, err = trading.httpClient.Get(apiUserOrders, params, true)
 	if err != nil {
 		return
 	}
-	log.Println("string(b): ", string(b))
 	var resp Response
 	if err = json.Unmarshal(b, &resp); err != nil {
 		log.Println("Error getting user orders: ", err)

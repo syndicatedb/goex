@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/syndicatedb/goex/schemas"
 )
@@ -95,14 +96,31 @@ func (b *Balance) Map() schemas.Balance {
 
 // UserOrder - IDAX Userorders
 type UserOrder struct {
-	OrderSide float64 `json:"orderSide"` //  1,
-	Price     float64 `json:"price"`     //  0.0000018,
-	Qty       float64 `json:"qty"`       //  1600
+	OrderID   string  `json:"orderId"`   //  "2000000000031954030",
+	OrderSide int     `json:"orderSide"` //  1,
+	PairName  string  `json:"pairName"`  //  "CAPP_USDT",
+	Price     float64 `json:"price"`     //  0.006,
+	Total     float64 `json:"total"`     //  9000,
+	FilledQty float64 `json:"filledQty"` //  0,
+	Amount    float64 `json:"amount"`    //  54.00000001,
+	Time      string  `json:"time"`      //  "2018-09-02 11:55:38"
 }
 
 // Map mapping IDAX order to common
 func (uo *UserOrder) Map() schemas.Order {
-	return schemas.Order{}
+	symbol, _, _ := parseSymbol(uo.PairName)
+	t := time.Now()
+	t, _ = time.Parse("2006-01-02 15:04:05", uo.Time)
+	createdAt := t.Unix()
+	return schemas.Order{
+		ID:           uo.OrderID,
+		Symbol:       symbol,
+		Type:         getOrderTypeBySide(uo.OrderSide),
+		Price:        uo.Price,
+		Amount:       uo.Amount,
+		AmountFilled: uo.FilledQty,
+		CreatedAt:    createdAt,
+	}
 }
 
 // ************************ Below ********************
