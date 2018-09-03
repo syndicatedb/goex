@@ -15,7 +15,7 @@ func NewNoProxy() proxy.Provider {
 	return NoProxyProvider{}
 }
 
-var timeout = time.Duration(15 * time.Second)
+var timeout = time.Duration(30 * time.Second)
 
 func dialTimeout(network, addr string) (net.Conn, error) {
 	return net.DialTimeout(network, addr, timeout)
@@ -28,7 +28,7 @@ func (p NoProxyProvider) NewClient(key string) proxy.Client {
 	}
 	return &http.Client{
 		Transport: tr,
-		Timeout:   time.Duration(5 * time.Second),
+		Timeout:   time.Duration(30 * time.Second),
 	}
 }
 
