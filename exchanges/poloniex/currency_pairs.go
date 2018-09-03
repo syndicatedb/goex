@@ -104,4 +104,9 @@ var currencPairs = map[int]string{
 	213: "BTC_LOOM",
 	214: "ETH_LOOM",
 	215: "USDT_LOOM",
+	216: "USDT_DOGE",
+	217: "USDT_GNT",
+	218: "USDT_LSK",
+	219: "USDT_SC",
+	220: "USDT_ZRX",
 }
