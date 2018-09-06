@@ -80,6 +80,7 @@ func (tg *TradesGroup) Get() (trades [][]schemas.Trade, err error) {
 			return
 		}
 		trades = append(trades, tg.mapSnapshot(symbol, resp))
+		time.Sleep(1 * time.Second)
 	}
 
 	return
@@ -93,6 +94,7 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	tg.connect()
 	tg.sendSnapshot()
 	tg.subscribe()
+	tg.collectSnapshots()
 }
 
 func (tg *TradesGroup) restart() {
@@ -125,6 +127,25 @@ func (tg *TradesGroup) subscribe() {
 			return
 		}
 	}
+}
+
+// collectSnapshots getting snapshots and publishing them to outChannel
+func (tg *TradesGroup) collectSnapshots() {
+	go func() {
+		for {
+			time.Sleep(snapshotInterval)
+
+			data, err := tg.Get()
+			if err != nil {
+				log.Println("Error loading trades snapshot: ", err)
+			}
+			for _, tr := range data {
+				if len(tr) > 0 {
+					tg.publish(tr, "s", nil)
+				}
+			}
+		}
+	}()
 }
 
 // listen - listening to WS channels and handle incoming messages
@@ -215,7 +236,7 @@ func (tg *TradesGroup) mapSnapshot(symbol string, data []trade) (trades []schema
 			Type:      tr.Type,
 			Price:     price,
 			Amount:    size,
-			Timestamp: tms.Unix(),
+			Timestamp: tms.Unix() * 1000,
 		})
 	}
 

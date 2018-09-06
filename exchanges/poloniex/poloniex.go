@@ -18,6 +18,7 @@ const (
 
 const (
 	subscriptionInterval  = 1 * time.Second
+	snapshotInterval      = 5 * time.Minute
 	orderBookSymbolsLimit = 300
 	tradesSymbolsLimit    = 10
 	quotesSymbolsLimit    = 10
