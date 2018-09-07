@@ -128,7 +128,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 		return
 	}
 	var userOrders []UserOrder
-	if b, err = json.Marshal(&resp.Data); err != nil {
+	if err = json.Unmarshal(resp.Data, &userOrders); err != nil {
 		return
 	}
 	for _, o := range userOrders {
@@ -203,10 +203,11 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	}
 	var resp Response
 	if err = json.Unmarshal(b, &resp); err != nil {
-		log.Println("Error create order: ", err)
+		log.Println("[IDAX] Error create order: ", err)
 		return
 	}
 	if resp.Success != true {
+		log.Println("[IDAX] Create resp.Message: ", resp.Message)
 		err = errors.New(resp.Message)
 		return
 	}
