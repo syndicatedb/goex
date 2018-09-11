@@ -59,7 +59,7 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 			time.Sleep(30 * time.Minute)
 		}
 	}()
-	trading.wsClient = websocket.NewClient(wsURL+trading.listenKey, httpProxy)
+	trading.wsClient = websocket.NewClient(userDataStreamURL+trading.listenKey, httpProxy)
 
 	return &trading
 }
