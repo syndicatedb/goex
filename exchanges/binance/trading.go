@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	httpURL = "https://api.binance.com/api/v1/userDataStream"
+	httpURL           = "https://api.binance.com/api/v1/userDataStream"
+	userDataStreamURL = "wss://stream.binance.com:9443/ws/"
 
 	balanceType   = "outboundAccountInfo"
 	executionType = "executionReport"
@@ -38,11 +39,25 @@ type TradingProvider struct {
 // NewTradingProvider - TradingProvider constructor
 func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provider, symbols []schemas.Symbol) *TradingProvider {
 	proxyClient := httpProxy.NewClient(exchangeName)
+	trading := TradingProvider{}
+	lk, err := trading.CreateListenkey(credentials.APIKey)
+	if err != nil {
+		log.Println("Error creating key", err)
+	}
+	trading.listenKey = lk
+
+	go func() {
+		for {
+			trading.Ping()
+			time.Sleep(30 * time.Minute)
+		}
+	}()
+
 	return &TradingProvider{
 		credentials: credentials,
 		httpProxy:   httpProxy,
 		httpClient:  httpclient.NewSigned(credentials, proxyClient),
-		wsClient:    websocket.NewClient(wsURL, httpProxy),
+		wsClient:    websocket.NewClient(wsURL+trading.listenKey, httpProxy),
 		uic:         make(chan schemas.UserInfoChannel),
 		uoc:         make(chan schemas.UserOrdersChannel),
 		utc:         make(chan schemas.UserTradesChannel),
@@ -101,18 +116,6 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	// ws updates of trading data
 	ch := make(chan []byte, 100)
 	ech := make(chan error, 100)
-	lk, err := trading.CreateListenkey(trading.credentials.APIKey)
-	if err != nil {
-		log.Println("Error creating key", err)
-	}
-	trading.listenKey = lk
-
-	go func() {
-		for {
-			trading.Ping()
-			time.Sleep(30 * time.Minute)
-		}
-	}()
 
 	trading.wsClient.Connect()
 	trading.wsClient.ChangeKeepAlive(false)
