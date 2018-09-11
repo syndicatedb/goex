@@ -32,3 +32,79 @@ func (ub *UserBalance) Map(coin string) schemas.Balance {
 		Total:     available + onOrders,
 	}
 }
+
+// UserOrder represents poloniex API user order response model
+type UserOrder struct {
+	OrderNumber string `json:"orderNumber"`
+	Type        string `json:"type"`
+	Rate        string `json:"rate"`
+	Amount      string `json:"amount"`
+	Total       string `json:"total"`
+}
+
+// Map mapping incoming order data into commom order model
+func (uo *UserOrder) Map(symbol string) schemas.Order {
+	var orderType string
+	var price, amount float64
+
+	price, _ = strconv.ParseFloat(uo.Rate, 64)
+	amount, _ = strconv.ParseFloat(uo.Amount, 64)
+
+	if uo.Type == "sell" {
+		orderType = typeSell
+	}
+	if uo.Type == "buy" {
+		orderType = typeBuy
+	}
+
+	return schemas.Order{
+		ID:     uo.OrderNumber,
+		Symbol: symbol,
+		Type:   orderType,
+		Price:  price,
+		Amount: amount,
+	}
+}
+
+// UserTrade represents poloniex API user trade response
+type UserTrade struct {
+	GlobalTradeID int64  `json:"globalTradeID"`
+	TradeID       int64  `json:"tradeID"`
+	Date          string `json:"date"`
+	Rate          string `json:"rate"`
+	Amount        string `json:"amount"`
+	Total         string `json:"total"`
+	Fee           string `json:"fee"`
+	OrderNumber   string `json:"orderNumber"`
+	Type          string `json:"type"`
+	Category      string `json:"category"`
+}
+
+// Map mapping incoming trades data into common trade model
+func (ut *UserTrade) Map(symbol string) schemas.Trade {
+	var price, amount, fee float64
+	var tms int64
+	var tradeType string
+
+	price, _ = strconv.ParseFloat(ut.Rate, 64)
+	amount, _ = strconv.ParseFloat(ut.Amount, 64)
+	fee, _ = strconv.ParseFloat(ut.Fee, 64)
+
+	if ut.Type == "sell" {
+		tradeType = typeSell
+	}
+	if ut.Type == "buy" {
+		tradeType = typeBuy
+	}
+
+	return schemas.Trade{
+		ID:        strconv.FormatInt(ut.GlobalTradeID, 10),
+		OrderID:   ut.OrderNumber,
+		Symbol:    symbol,
+		Type:      tradeType,
+		Price:     price,
+		Amount:    amount,
+		Fee:       fee,
+		Timestamp: tms,
+	}
+}

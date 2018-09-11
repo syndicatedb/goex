@@ -3,7 +3,6 @@ package poloniex
 import (
 	"crypto/hmac"
 	"crypto/sha512"
-	"encoding/base64"
 	"encoding/hex"
 	"io/ioutil"
 	"log"
@@ -40,7 +39,13 @@ const (
 	commandOpenOrders       = "returnOpenOrders"
 	commandTrades           = "returnTradeHistory"
 
-	commandBalance = "returnCompleteBalances"
+	commandBalance       = "returnCompleteBalances"
+	commandPrivateOrders = "returnOpenOrders"
+)
+
+const (
+	typeSell = "SELL"
+	typeBuy  = "BUY"
 )
 
 // Poloniex - poloniex exchange structure
@@ -82,28 +87,28 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 func sign(key, secret string, req *http.Request) *http.Request {
 	var signed string
 
+	log.Println("KEY", key)
+	log.Println("SECRET", secret)
+
 	b, _ := req.GetBody()
 	body, err := ioutil.ReadAll(b)
 	if err != nil {
 		return req
 	}
+
 	log.Printf("BODY %+v", string(body))
 
 	// nonce := fmt.Sprintf("%v", time.Now().UnixNano()/int64(time.Millisecond))
 	signed = signRequest(string(body), secret)
+	log.Printf("SIGN %+v", signed)
 	req.Header.Set("Key", key)
 	req.Header.Set("Sign", signed)
 	return req
 }
 
 func signRequest(str, secret string) string {
-	signatureStr := base64.StdEncoding.EncodeToString([]byte(str))
-	return computeHmac512(signatureStr, secret)
-}
-
-func computeHmac512(message string, secret string) string {
 	key := []byte(secret)
 	h := hmac.New(sha512.New, key)
-	h.Write([]byte(message))
+	h.Write([]byte(str))
 	return hex.EncodeToString(h.Sum(nil))
 }

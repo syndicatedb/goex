@@ -2,8 +2,7 @@ package poloniex
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
+	"strconv"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -41,6 +40,18 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 				Data:  ui,
 				Error: err,
 			}
+			time.Sleep(interval)
+		}
+	}()
+
+	go func() {
+		for {
+			uo, err := trading.Orders([]schemas.Symbol{})
+			uoc <- schemas.UserOrdersChannel{
+				Data:  uo,
+				Error: err,
+			}
+			time.Sleep(interval)
 		}
 	}()
 
@@ -55,16 +66,14 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	userBalance := make(map[string]schemas.Balance)
 
 	payload := httpclient.Params()
-	nonce := fmt.Sprintf("%v", time.Now().Unix())
-	payload.Set("nonce", nonce)
+	nonce := time.Now().UnixNano()
+	payload.Set("nonce", strconv.FormatInt(nonce, 10))
 	payload.Set("command", commandBalance)
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}
-	log.Printf("RESPONSE %+v", string(b))
-
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
@@ -76,17 +85,29 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	return
 }
 
+// Orders provides user orders data
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
+	if len(symbols) > 0 {
+		for _, symb := range symbols {
+			ordrs, err := trading.ordersBySymbol(symb.OriginalName)
+			if err != nil {
+				return nil, err
+			}
+			orders = append(orders, ordrs...)
+		}
+		return
+	}
+
+	return trading.ordersBySymbol("all")
+}
+
+func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
 	return
 }
 
 func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan schemas.UserTradesChannel {
 	ch := make(chan schemas.UserTradesChannel)
 	return ch
-}
-
-func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
-	return
 }
 
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
@@ -98,5 +119,31 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 }
 
 func (trading *TradingProvider) CancelAll() (err error) {
+	return
+}
+
+func (trading *TradingProvider) ordersBySymbol(symbol string) (orders []schemas.Order, err error) {
+	var resp map[string][]UserOrder
+	var b []byte
+
+	payload := httpclient.Params()
+	nonce := time.Now().UnixNano()
+	payload.Set("nonce", strconv.FormatInt(nonce, 10))
+	payload.Set("command", commandPrivateOrders)
+	payload.Set("currencyPair", "all")
+
+	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	for symbol, ords := range resp {
+		for _, ord := range ords {
+			orders = append(orders, ord.Map(symbol))
+		}
+	}
+
 	return
 }
