@@ -62,8 +62,8 @@ func (q Quote) Map() schemas.Quote {
 		Low:         q.Low,
 		ChangeValue: q.Change,
 		ChangeRate:  q.Change,
-		VolumeBase:  q.Total,
-		Volume:      q.Volume,
+		VolumeBase:  q.Volume,
+		Volume:      q.Total,
 	}
 }
 
