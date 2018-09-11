@@ -40,7 +40,12 @@ type TradingProvider struct {
 func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provider, symbols []schemas.Symbol) *TradingProvider {
 	proxyClient := httpProxy.NewClient(exchangeName)
 	trading := TradingProvider{
-		httpClient: httpclient.NewSigned(credentials, proxyClient),
+		credentials: credentials,
+		httpProxy:   httpProxy,
+		httpClient:  httpclient.NewSigned(credentials, proxyClient),
+		uic:         make(chan schemas.UserInfoChannel),
+		uoc:         make(chan schemas.UserOrdersChannel),
+		utc:         make(chan schemas.UserTradesChannel),
 	}
 	lk, err := trading.CreateListenkey(credentials.APIKey)
 	if err != nil {
@@ -54,15 +59,9 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 			time.Sleep(30 * time.Minute)
 		}
 	}()
+	trading.wsClient = websocket.NewClient(wsURL+trading.listenKey, httpProxy)
 
-	return &TradingProvider{
-		credentials: credentials,
-		httpProxy:   httpProxy,
-		wsClient:    websocket.NewClient(wsURL+trading.listenKey, httpProxy),
-		uic:         make(chan schemas.UserInfoChannel),
-		uoc:         make(chan schemas.UserOrdersChannel),
-		utc:         make(chan schemas.UserTradesChannel),
-	}
+	return &trading
 }
 
 // Info - provides user info: Keys access, balances
