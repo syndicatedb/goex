@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -85,10 +84,7 @@ func sign(key, secret string, req *http.Request) *http.Request {
 	sign := createSignature256(req.URL.RawQuery, secret)
 	req.URL.Query().Set("signature", sign)
 
-	req.Header.Add("X-MBX-APIKEY", key)
-
-	log.Printf("QUERY %+v", req.URL.Query())
-	log.Printf("Headers %+v", req.Header)
+	req.Header.Set("X-MBX-APIKEY", key)
 
 	return req
 }
