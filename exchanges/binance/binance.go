@@ -16,6 +16,13 @@ const (
 	apiTrades    = "https://api.binance.com/api/v1/trades"
 	apiQuotes    = "https://api.binance.com/api/v1/ticker/24hr"
 
+	apiUserBalance  = "https://api.binance.com/api/v3/account"
+	apiActiveOrders = "https://api.binance.com/api/v3/openOrders"
+	apiUserTrades   = "https://api.binance.com/api/v3/myTrades"
+
+	apiCreateOrder = "https://api.binance.com/api/v3/order"
+	apiCancelOrder = "https://api.binance.com/api/v3/order"
+
 	wsURL = "wss://stream.binance.com:9443/stream?streams="
 )
 
@@ -47,7 +54,7 @@ func New(opts schemas.Options) *Binance {
 			Trades:        NewTradesProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
 			Candles:       NewCandlesProvider(proxyProvider),
-			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
+			Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
 }
