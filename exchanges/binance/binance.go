@@ -1,6 +1,10 @@
 package binance
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"net/http"
 	"strings"
 	"time"
 
@@ -44,6 +48,7 @@ func New(opts schemas.Options) *Binance {
 	if proxyProvider == nil {
 		proxyProvider = proxy.NewNoProxy()
 	}
+	opts.Credentials.Sign = sign
 
 	return &Binance{
 		Exchange: schemas.Exchange{
@@ -71,5 +76,22 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 		}
 	}
 	name = basecoin + "-" + quoteCoin
+	return
+}
+
+// sign - signing request
+func sign(key, secret string, req *http.Request) *http.Request {
+	sign := createSignature256(req.URL.RawQuery, secret)
+	req.URL.Query().Set("signature", sign)
+
+	req.Header.Add("X-MBX-APIKEY", key)
+
+	return req
+}
+
+func createSignature256(query, secretKey string) (signature string) {
+	hash := hmac.New(sha256.New, []byte(secretKey))
+	hash.Write([]byte(query))
+	signature = hex.EncodeToString(hash.Sum(nil))
 	return
 }

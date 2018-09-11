@@ -1,9 +1,6 @@
 package binance
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,14 +34,10 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 // Info - provides user info: Keys access, balances
 func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	var b []byte
-	// params := httpclient.Params()
+	params := httpclient.Params()
+	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 
-	query := "timestamp=" + strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13]
-	signature := createSignature256(query, trading.credentials.APISecret)
-
-	url := apiUserBalance + "?" + query + "&" + signature
-
-	b, err = trading.httpClient.Get(url, httpclient.Params(), false)
+	b, err = trading.httpClient.Get(apiUserBalance, params, true)
 	if err != nil {
 		return
 	}
@@ -53,13 +46,6 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 		return
 	}
 	return resp.Map(), nil
-}
-
-func createSignature256(query, secretKey string) (signature string) {
-	hash := hmac.New(sha256.New, []byte(secretKey))
-	hash.Write([]byte(query))
-	signature = hex.EncodeToString(hash.Sum(nil))
-	return
 }
 
 /*
@@ -111,7 +97,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 
 	url := apiActiveOrders + "?" + query + "&" + signature
 
-	b, err = trading.httpClient.Get(url, httpclient.Params(), false)
+	b, err = trading.httpClient.Get(url, httpclient.Params(), true)
 	if err != nil {
 		return
 	}
@@ -168,7 +154,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 
 	url := apiUserTrades + "?" + query + "&" + signature
 
-	b, err = trading.httpClient.Get(url, params, false)
+	b, err = trading.httpClient.Get(url, params, true)
 	if err != nil {
 		return
 	}
