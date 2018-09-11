@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -49,8 +50,7 @@ func New(opts schemas.Options) *Binance {
 		proxyProvider = proxy.NewNoProxy()
 	}
 	opts.Credentials.Sign = sign
-
-	return &Binance{
+	binance := &Binance{
 		Exchange: schemas.Exchange{
 			Credentials:   opts.Credentials,
 			ProxyProvider: proxyProvider,
@@ -59,9 +59,14 @@ func New(opts schemas.Options) *Binance {
 			Trades:        NewTradesProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
 			Candles:       NewCandlesProvider(proxyProvider),
-			Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
+	symbols, err := binance.SymbolProvider().Get()
+	if err != nil {
+		log.Println("Error getting symbols", err)
+	}
+	binance.Trading = NewTradingProvider(opts.Credentials, proxyProvider, symbols)
+	return binance
 }
 
 func parseSymbol(s string) (name, basecoin, quoteCoin string) {

@@ -10,24 +10,42 @@ import (
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
+	"github.com/syndicatedb/goex/internal/websocket"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
+)
+
+const (
+	httpURL = "https://api.binance.com/api/v1/userDataStream"
+
+	balanceType   = "outboundAccountInfo"
+	executionType = "executionReport"
 )
 
 // TradingProvider - provides quotes/ticker
 type TradingProvider struct {
 	credentials schemas.Credentials
+	symbols     []schemas.Symbol
+	listenKey   string
 	httpProxy   proxy.Provider
 	httpClient  *httpclient.Client
+	wsClient    *websocket.Client
+	uic         chan schemas.UserInfoChannel
+	uoc         chan schemas.UserOrdersChannel
+	utc         chan schemas.UserTradesChannel
 }
 
 // NewTradingProvider - TradingProvider constructor
-func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provider) *TradingProvider {
+func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provider, symbols []schemas.Symbol) *TradingProvider {
 	proxyClient := httpProxy.NewClient(exchangeName)
 	return &TradingProvider{
 		credentials: credentials,
 		httpProxy:   httpProxy,
 		httpClient:  httpclient.NewSigned(credentials, proxyClient),
+		wsClient:    websocket.NewClient(wsURL, httpProxy),
+		uic:         make(chan schemas.UserInfoChannel),
+		uoc:         make(chan schemas.UserOrdersChannel),
+		utc:         make(chan schemas.UserTradesChannel),
 	}
 }
 
@@ -55,58 +73,134 @@ Subscribe - subscribing to user info
 - trades
 */
 func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.UserInfoChannel, chan schemas.UserOrdersChannel, chan schemas.UserTradesChannel) {
-	uic := make(chan schemas.UserInfoChannel)
-	uoc := make(chan schemas.UserOrdersChannel)
-	utc := make(chan schemas.UserTradesChannel)
-
-	if interval == 0 {
-		interval = time.Second
-	}
-	lastTradeID := "1"
+	// http snapshots of trading data
 	go func() {
-		for {
-			ui, err := trading.Info()
-			uic <- schemas.UserInfoChannel{
-				Data:  ui,
-				Error: err,
-			}
-			o, err := trading.Orders([]schemas.Symbol{})
-			uoc <- schemas.UserOrdersChannel{
-				Data:  o,
-				Error: err,
-			}
-			t, _, err := trading.Trades(schemas.FilterOptions{
-				FromID: lastTradeID,
-			})
-			utc <- schemas.UserTradesChannel{
-				Data:  t,
-				Error: err,
-			}
-			time.Sleep(interval)
+		ui, err := trading.Info()
+		trading.uic <- schemas.UserInfoChannel{
+			Data:  ui,
+			Error: err,
 		}
 	}()
-	return uic, uoc, utc
+
+	go func() {
+		o, err := trading.Orders(trading.symbols)
+		trading.uoc <- schemas.UserOrdersChannel{
+			Data:  o,
+			Error: err,
+		}
+	}()
+
+	go func() {
+		t, _, err := trading.Trades(schemas.FilterOptions{Symbols: trading.symbols})
+		trading.utc <- schemas.UserTradesChannel{
+			Data:  t,
+			Error: err,
+		}
+	}()
+
+	// ws updates of trading data
+	ch := make(chan []byte, 100)
+	ech := make(chan error, 100)
+	lk, err := trading.CreateListenkey(trading.credentials.APIKey)
+	if err != nil {
+		log.Println("Error creating key", err)
+	}
+	trading.listenKey = lk
+
+	go func() {
+		for {
+			trading.Ping()
+			time.Sleep(30 * time.Minute)
+		}
+	}()
+
+	trading.wsClient.Connect()
+	trading.wsClient.ChangeKeepAlive(false)
+	trading.wsClient.Listen(ch, ech)
+	// handling ws input data
+	go func() {
+		select {
+		case data := <-ch:
+			trading.handleUpdates(data)
+		case err := <-ech:
+			log.Println("Error handling", err)
+			trading.uic <- schemas.UserInfoChannel{
+				Data:  schemas.UserInfo{},
+				Error: err,
+			}
+		}
+	}()
+
+	return trading.uic, trading.uoc, trading.utc
 }
 
 // Orders - getting user active orders
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
 	var b []byte
-
-	query := "symbol=" + "&timestamp=" + strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13]
-	signature := createSignature256(query, trading.credentials.APISecret)
-
-	url := apiActiveOrders + "?" + query + "&" + signature
-
-	b, err = trading.httpClient.Get(url, httpclient.Params(), true)
-	if err != nil {
-		return
-	}
 	var resp UserOrdersResponse
-	if err = json.Unmarshal(b, &resp); err != nil {
-		return
+	var result []schemas.Order
+	params := httpclient.Params()
+	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
+	for _, s := range symbols {
+		params.Set("symbol", s.OriginalName)
+
+		b, err = trading.httpClient.Get(apiActiveOrders, params, true)
+		if err != nil {
+			return
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
+			return
+		}
+		respSymb := resp.Map()
+		result = append(result, respSymb...)
 	}
 
-	return resp.Map(), nil
+	return result, nil
+}
+
+// handleUpdates - handling incoming updates data
+func (trading *TradingProvider) handleUpdates(data []byte) {
+	var msg generalMessage
+	err := json.Unmarshal(data, &msg)
+	if err != nil {
+		log.Println("Unmarshalling error:", err)
+	}
+
+	if msg.EventType == balanceType {
+		var balanceMsg balanceMessage
+		err = json.Unmarshal(data, &balanceMsg)
+		if err != nil {
+			log.Println("Balance unmarshalling error:", err)
+		}
+		ui := balanceMsg.Map()
+		trading.uic <- schemas.UserInfoChannel{
+			Data:  ui,
+			Error: err,
+		}
+	}
+
+	if msg.EventType == executionType {
+		var tradesMsg tradesMessage
+		err = json.Unmarshal(data, &tradesMsg)
+		if err != nil {
+			log.Println("Trades unmarshalling error:", err)
+		}
+
+		if tradesMsg.CurrentExecutionType == "TRADE" {
+			if tradesMsg.CurrentOrderStatus == "FILLED" {
+				o := tradesMsg.MapOrder()
+				trading.uoc <- schemas.UserOrdersChannel{
+					Data:  o,
+					Error: err,
+				}
+			}
+		}
+		t := tradesMsg.Map()
+		trading.utc <- schemas.UserTradesChannel{
+			Data:  t,
+			Error: err,
+		}
+	}
 }
 
 // ImportTrades importing trades
@@ -146,24 +240,26 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 
 // Trades - getting user trades
 func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
-	var b []byte
-	params := httpclient.Params()
-
-	query := "symbol=" + "&timestamp=" + strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13]
-	signature := createSignature256(query, trading.credentials.APISecret)
-
-	url := apiUserTrades + "?" + query + "&" + signature
-
-	b, err = trading.httpClient.Get(url, params, true)
-	if err != nil {
-		return
-	}
 	var resp UserTradesResponse
-	if err = json.Unmarshal(b, &resp); err != nil {
-		return
-	}
+	var b []byte
+	var result []schemas.Trade
 
-	return resp.Map(), schemas.Paging{}, nil
+	params := httpclient.Params()
+	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
+	for _, s := range opts.Symbols {
+		params.Set("symbol", s.OriginalName)
+
+		b, err = trading.httpClient.Get(apiUserTrades, params, true)
+		if err != nil {
+			return
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
+			return
+		}
+		respSymb := resp.Map()
+		result = append(result, respSymb...)
+	}
+	return result, schemas.Paging{}, nil
 }
 
 // Create - creating order

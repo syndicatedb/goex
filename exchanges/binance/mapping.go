@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/syndicatedb/goex/schemas"
 )
@@ -171,4 +172,109 @@ type OrderCancelResponse struct {
 	Data      struct {
 		OrderOid string `json:"orderOid"`
 	} `json:"data"`
+}
+
+type generalMessage struct {
+	EventType string `json:"e"`
+	EventTime int64  `json:"E"`
+}
+
+type balanceMessage struct {
+	generalMessage
+	BuyerCommission int       `json:"b"`
+	Balances        []balance `json:"B"`
+}
+
+// balance - struct for getting balances of user
+type balance struct {
+	Asset  string `json:"a"`
+	Free   string `json:"f"`
+	Locked string `json:"l"`
+}
+
+func (bm *balanceMessage) Map() schemas.UserInfo {
+	balances := make(map[string]schemas.Balance)
+	for _, b := range bm.Balances {
+		free, err := strconv.ParseFloat(b.Free, 64)
+		if err != nil {
+			log.Println("Error parsing free", err)
+		}
+		locked, err := strconv.ParseFloat(b.Locked, 64)
+		if err != nil {
+			log.Println("Error parsing locked", err)
+		}
+		balances[b.Asset] = schemas.Balance{
+			Coin:      b.Asset,
+			Available: free,
+			InOrders:  locked,
+			Total:     free + locked,
+		}
+	}
+	return schemas.UserInfo{
+		Balances: balances,
+	}
+}
+
+type tradesMessage struct {
+	generalMessage
+	Symbol               string `json:"s"`
+	Side                 string `json:"S"`
+	OrderType            string `json:"o"`
+	TimeInForce          string `json:"f"`
+	Quantity             string `json:"q"`
+	OrderPrice           string `json:"p"`
+	StopPrice            string `json:"P"`
+	CurrentExecutionType string `json:"x"`
+	CurrentOrderStatus   string `json:"X"`
+	OrderID              int64  `json:"i"`
+	TransactionTime      int64  `json:"T"`
+	Ignore               int    `json:"O"` // ignore this
+	TradeID              int64  `json:"t"`
+}
+
+func (tm *tradesMessage) Map() (trades []schemas.Trade) {
+	symbol, _, _ := parseSymbol(tm.Symbol)
+
+	price, err := strconv.ParseFloat(tm.OrderPrice, 64)
+	if err != nil {
+		log.Println("Error mapping price in private trades. Binance:", err)
+	}
+	amount, err := strconv.ParseFloat(tm.Quantity, 64)
+	if err != nil {
+		log.Println("Error mapping qty in private trades. Binance:", err)
+	}
+	trades = append(trades, schemas.Trade{
+		ID:        fmt.Sprintf("%d", tm.TradeID),
+		OrderID:   strconv.FormatInt(tm.OrderID, 10),
+		Symbol:    symbol,
+		Type:      strings.ToUpper(tm.Side),
+		Price:     price,
+		Amount:    amount,
+		Timestamp: tm.TransactionTime,
+	})
+	return trades
+}
+
+func (tm *tradesMessage) MapOrder() (orders []schemas.Order) {
+	symbol, _, _ := parseSymbol(tm.Symbol)
+
+	price, err := strconv.ParseFloat(tm.OrderPrice, 64)
+	if err != nil {
+		log.Println("Error mapping price in private trades. Binance:", err)
+	}
+	amount, err := strconv.ParseFloat(tm.Quantity, 64)
+	if err != nil {
+		log.Println("Error mapping qty in private trades. Binance:", err)
+	}
+	orders = append(orders, schemas.Order{
+		ID:        strconv.FormatInt(tm.OrderID, 10),
+		Symbol:    symbol,
+		Type:      strings.ToUpper(tm.Side),
+		Price:     price,
+		Amount:    amount,
+		Count:     1,
+		Remove:    0,
+		CreatedAt: tm.TransactionTime,
+	})
+	return orders
 }
