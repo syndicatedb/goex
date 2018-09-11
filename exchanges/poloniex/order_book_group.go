@@ -189,6 +189,7 @@ func (ob *OrderBookGroup) listen() {
 								if len(mappedBook.Buy) > 0 || len(mappedBook.Sell) > 0 {
 									go ob.publish(mappedBook, "u", nil)
 								}
+								continue
 							}
 						}
 					}

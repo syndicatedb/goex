@@ -173,6 +173,7 @@ func (tg *TradesGroup) listen() {
 								if len(mappedTrade.Symbol) > 0 {
 									go tg.publish([]schemas.Trade{mappedTrade}, "u", nil)
 								}
+								continue
 							}
 						}
 					}
