@@ -39,7 +39,9 @@ type TradingProvider struct {
 // NewTradingProvider - TradingProvider constructor
 func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provider, symbols []schemas.Symbol) *TradingProvider {
 	proxyClient := httpProxy.NewClient(exchangeName)
-	trading := TradingProvider{}
+	trading := TradingProvider{
+		httpClient: httpclient.NewSigned(credentials, proxyClient),
+	}
 	lk, err := trading.CreateListenkey(credentials.APIKey)
 	if err != nil {
 		log.Println("Error creating key", err)
@@ -56,7 +58,6 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	return &TradingProvider{
 		credentials: credentials,
 		httpProxy:   httpProxy,
-		httpClient:  httpclient.NewSigned(credentials, proxyClient),
 		wsClient:    websocket.NewClient(wsURL+trading.listenKey, httpProxy),
 		uic:         make(chan schemas.UserInfoChannel),
 		uoc:         make(chan schemas.UserOrdersChannel),
