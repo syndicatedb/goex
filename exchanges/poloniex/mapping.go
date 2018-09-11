@@ -69,7 +69,7 @@ func (uo *UserOrder) Map(symbol string) schemas.Order {
 // UserTrade represents poloniex API user trade response
 type UserTrade struct {
 	GlobalTradeID int64  `json:"globalTradeID"`
-	TradeID       int64  `json:"tradeID"`
+	TradeID       string `json:"tradeID"`
 	Date          string `json:"date"`
 	Rate          string `json:"rate"`
 	Amount        string `json:"amount"`

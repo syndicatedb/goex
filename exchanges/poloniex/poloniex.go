@@ -41,6 +41,7 @@ const (
 
 	commandBalance       = "returnCompleteBalances"
 	commandPrivateOrders = "returnOpenOrders"
+	commandPrivateTrades = "returnTradeHistory"
 )
 
 const (

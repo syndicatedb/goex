@@ -2,6 +2,7 @@ package poloniex
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -55,6 +56,17 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 		}
 	}()
 
+	go func() {
+		for {
+			ut, _, err := trading.Trades(schemas.FilterOptions{})
+			utc <- schemas.UserTradesChannel{
+				Data:  ut,
+				Error: err,
+			}
+			time.Sleep(interval)
+		}
+	}()
+
 	return uic, uoc, utc
 }
 
@@ -98,11 +110,24 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 		return
 	}
 
-	return trading.ordersBySymbol("all")
+	return trading.allOrders()
 }
 
+// Trades provides user trades data
 func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
-	return
+	if len(opts.Symbols) > 0 {
+		for _, symb := range opts.Symbols {
+			res, err := trading.tradesBySymbol(symb.OriginalName, opts)
+			if err != nil {
+				return nil, schemas.Paging{}, err
+			}
+			trades = append(trades, res...)
+		}
+
+		return
+	}
+
+	return trading.allTrades(opts)
 }
 
 func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan schemas.UserTradesChannel {
@@ -122,7 +147,7 @@ func (trading *TradingProvider) CancelAll() (err error) {
 	return
 }
 
-func (trading *TradingProvider) ordersBySymbol(symbol string) (orders []schemas.Order, err error) {
+func (trading *TradingProvider) allOrders() (orders []schemas.Order, err error) {
 	var resp map[string][]UserOrder
 	var b []byte
 
@@ -139,9 +164,103 @@ func (trading *TradingProvider) ordersBySymbol(symbol string) (orders []schemas.
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-	for symbol, ords := range resp {
+	for symb, ords := range resp {
 		for _, ord := range ords {
-			orders = append(orders, ord.Map(symbol))
+			orders = append(orders, ord.Map(symb))
+		}
+	}
+
+	return
+}
+
+func (trading *TradingProvider) ordersBySymbol(symbol string) (orders []schemas.Order, err error) {
+	var resp []UserOrder
+	var b []byte
+
+	payload := httpclient.Params()
+	nonce := time.Now().UnixNano()
+	payload.Set("nonce", strconv.FormatInt(nonce, 10))
+	payload.Set("command", commandPrivateOrders)
+	payload.Set("currencyPair", symbol)
+
+	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	for _, ord := range resp {
+		orders = append(orders, ord.Map(symbol))
+	}
+
+	return
+}
+
+func (trading *TradingProvider) tradesBySymbol(symbol string, opts schemas.FilterOptions) (trades []schemas.Trade, err error) {
+	var resp []UserTrade
+	var b []byte
+
+	payload := httpclient.Params()
+	nonce := time.Now().UnixNano()
+	payload.Set("nonce", strconv.FormatInt(nonce, 10))
+	payload.Set("command", commandPrivateTrades)
+	payload.Set("currencyPair", symbol)
+
+	if opts.Limit > 0 {
+		payload.Set("limit", fmt.Sprintf("%d", opts.Limit))
+	}
+	if opts.Since != 0 {
+		payload.Set("start", fmt.Sprintf("%d", opts.Since))
+	}
+	if opts.Before != 0 {
+		payload.Set("end", fmt.Sprintf("%d", opts.Before))
+	}
+
+	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	for _, trd := range resp {
+		trades = append(trades, trd.Map(symbol))
+	}
+
+	return
+}
+
+func (trading *TradingProvider) allTrades(opts schemas.FilterOptions) (trades []schemas.Trade, paging schemas.Paging, err error) {
+	var resp map[string][]UserTrade
+	var b []byte
+
+	payload := httpclient.Params()
+	nonce := time.Now().UnixNano()
+	payload.Set("nonce", strconv.FormatInt(nonce, 10))
+	payload.Set("command", commandPrivateTrades)
+	payload.Set("currencyPair", "all")
+
+	if opts.Limit > 0 {
+		payload.Set("limit", fmt.Sprintf("%d", opts.Limit))
+	}
+	if opts.Since != 0 {
+		payload.Set("start", fmt.Sprintf("%d", opts.Since))
+	}
+	if opts.Before != 0 {
+		payload.Set("end", fmt.Sprintf("%d", opts.Before))
+	}
+
+	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	for symb, trds := range resp {
+		for _, trd := range trds {
+			trades = append(trades, trd.Map(symb))
 		}
 	}
 
