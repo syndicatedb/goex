@@ -75,6 +75,9 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	// http snapshots of trading data
 	go func() {
 		ui, err := trading.Info()
+		if err != nil {
+			log.Println("Balances snapshot error:", err)
+		}
 		trading.uic <- schemas.UserInfoChannel{
 			Data:  ui,
 			Error: err,
@@ -83,6 +86,9 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 
 	go func() {
 		o, err := trading.Orders(trading.symbols)
+		if err != nil {
+			log.Println("Orders snapshot error:", err)
+		}
 		trading.uoc <- schemas.UserOrdersChannel{
 			Data:  o,
 			Error: err,
@@ -91,6 +97,9 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 
 	go func() {
 		t, _, err := trading.Trades(schemas.FilterOptions{Symbols: trading.symbols})
+		if err != nil {
+			log.Println("Trades snapshot error:", err)
+		}
 		trading.utc <- schemas.UserTradesChannel{
 			Data:  t,
 			Error: err,
