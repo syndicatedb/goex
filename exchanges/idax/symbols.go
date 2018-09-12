@@ -54,7 +54,7 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 			MinAmount:      d.MinAmount,
 			MaxAmount:      d.MaxAmount,
 			PricePrecision: d.PriceDecimalPlace,
-			QuotePrecision: d.QtyDecimalPlace,
+			// QuotePrecision: d.QtyDecimalPlace,
 		})
 	}
 	return

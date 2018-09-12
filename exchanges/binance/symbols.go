@@ -118,6 +118,7 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 		} else {
 			s.PricePrecision = smb.BaseAssetPrecision
 		}
+		s.AmountPrecision = s.PricePrecision
 
 		symbols = append(symbols, s)
 	}
