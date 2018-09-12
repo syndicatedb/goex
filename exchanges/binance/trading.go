@@ -328,9 +328,10 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	query := httpclient.Params()
 	query.Set("symbol", unparseSymbol(order.Symbol))
 	query.Set("orderId", order.ID)
+	query.Set("side", order.Type)
 	query.Set("timestamp", strconv.FormatInt(time.Now().UnixNano(), 10)[:13])
 
-	b, err = trading.httpClient.Post(apiCancelOrder, query, httpclient.KeyValue{}, true)
+	b, err = trading.httpClient.Request("DELETE", apiCancelOrder, query, httpclient.KeyValue{}, true)
 	if err != nil {
 		return
 	}
