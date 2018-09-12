@@ -239,6 +239,9 @@ func (trading *TradingProvider) allOrders() (orders []schemas.Order, err error) 
 	if err != nil {
 		return
 	}
+	if len(b) == 0 {
+		return
+	}
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
@@ -264,6 +267,9 @@ func (trading *TradingProvider) ordersBySymbol(symbol string) (orders []schemas.
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
+		return
+	}
+	if len(b) == 0 {
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
@@ -301,6 +307,9 @@ func (trading *TradingProvider) tradesBySymbol(symbol string, opts schemas.Filte
 	if err != nil {
 		return
 	}
+	if len(b) == 0 {
+		return
+	}
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
@@ -336,7 +345,10 @@ func (trading *TradingProvider) allTrades(opts schemas.FilterOptions) (trades []
 	if err != nil {
 		return
 	}
-	log.Printf("RESPONSE %+v", string(b))
+	log.Println("LEN RESP", len(b))
+	if len(b) == 0 {
+		return
+	}
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
