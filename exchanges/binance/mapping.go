@@ -155,23 +155,24 @@ func (utr *UserTradesResponse) Map() (trades []schemas.Trade) {
 }
 
 type OrderCreateResponse struct {
-	Success   bool   `json:"success"`   // : true,
-	Code      string `json:"code"`      // : "OK",
-	Msg       string `json:"msg"`       // : "Operation succeeded.",
-	Timestamp int64  `json:"timestamp"` // : 1534014768145,
-	Data      struct {
-		OrderOid string `json:"orderOid"`
-	} `json:"data"`
+	OrderID          int64  `json:"orderId"`
+	Symbol           string `json:"symbol"`
+	Price            string `json:"price"`
+	OriginalQuantity string `json:"origQty"`
+	ExecQuantity     string `json:"executedQty"`
+	Status           string `json:"status"`
+	TimeInForce      string `json:"timeInForce"`
+	OrderType        string `json:"type"`
+	Side             string `json:"side"`
+	ClientOrderID    string `json:"clientOrderId"`
+	Time             int64  `json:"transactTime"`
 }
 
 type OrderCancelResponse struct {
-	Success   bool   `json:"success"`   // : true,
-	Code      string `json:"code"`      // : "OK",
-	Msg       string `json:"msg"`       // : "Operation succeeded.",
-	Timestamp int64  `json:"timestamp"` // : 1534014768145,
-	Data      struct {
-		OrderOid string `json:"orderOid"`
-	} `json:"data"`
+	OrderID           int64  `json:"orderId"`
+	Symbol            string `json:"symbol"`
+	OrigClientOrderID string `json:"origClientOrderId"`
+	ClientOrderID     string `json:"clientOrderId"`
 }
 
 type generalMessage struct {

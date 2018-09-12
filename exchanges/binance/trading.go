@@ -2,7 +2,6 @@ package binance
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -151,13 +150,38 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
 	var b []byte
 	var resp UserOrdersResponse
-	var result []schemas.Order
-	for _, s := range symbols {
+	// var result []schemas.Order
+	// for _, s := range symbols {
+	params := httpclient.Params()
+	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
+	// params.Set("symbol", s.OriginalName)
+
+	b, err = trading.httpClient.Get(apiActiveOrders, params, true)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	// respSymb := resp.Map()
+	// result = append(result, respSymb...)
+	// }
+
+	return resp.Map(), nil
+}
+
+// Trades - getting user trades
+func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
+	var resp UserTradesResponse
+	var b []byte
+	var result []schemas.Trade
+
+	for _, s := range opts.Symbols {
 		params := httpclient.Params()
 		params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 		params.Set("symbol", s.OriginalName)
 
-		b, err = trading.httpClient.Get(apiActiveOrders, params, true)
+		b, err = trading.httpClient.Get(apiUserTrades, params, true)
 		if err != nil {
 			return
 		}
@@ -167,8 +191,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 		respSymb := resp.Map()
 		result = append(result, respSymb...)
 	}
-
-	return result, nil
+	return result, schemas.Paging{}, nil
 }
 
 // handleUpdates - handling incoming updates data
@@ -251,42 +274,20 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 	return ch
 }
 
-// Trades - getting user trades
-func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
-	var resp UserTradesResponse
-	var b []byte
-	var result []schemas.Trade
-
-	for _, s := range opts.Symbols {
-		params := httpclient.Params()
-		params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
-		params.Set("symbol", s.OriginalName)
-
-		b, err = trading.httpClient.Get(apiUserTrades, params, true)
-		if err != nil {
-			return
-		}
-		if err = json.Unmarshal(b, &resp); err != nil {
-			return
-		}
-		respSymb := resp.Map()
-		result = append(result, respSymb...)
-	}
-	return result, schemas.Paging{}, nil
-}
-
 // Create - creating order
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
 	var b []byte
-	params := httpclient.Params()
+	query := httpclient.Params()
 
-	payload := httpclient.Params()
-	payload.Set("symbol", order.Symbol)
-	payload.Set("type", strings.ToUpper(order.Type))
-	payload.Set("price", fmt.Sprintf("%.10f", order.Price))
-	payload.Set("amount", fmt.Sprintf("%.10f", order.Amount))
+	query.Set("symbol", unparseSymbol(order.Symbol))
+	query.Set("type", "LIMIT")
+	query.Set("timeInForce", "GTC")
+	query.Set("side", strings.ToUpper(order.Type))
+	query.Set("price", strconv.FormatFloat(order.Price, 'f', -1, 64))
+	query.Set("quantity", strconv.FormatFloat(order.Amount, 'f', -1, 64))
+	query.Set("timestamp", strconv.FormatInt(time.Now().UnixNano(), 10)[:13])
 
-	b, err = trading.httpClient.Post(apiCreateOrder, params, payload, true)
+	b, err = trading.httpClient.Post(apiCreateOrder, query, httpclient.KeyValue{}, true)
 	if err != nil {
 		return
 	}
@@ -294,13 +295,29 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-	if resp.Success == false {
-		err = errors.New(resp.Msg)
-		return
+	price, err := strconv.ParseFloat(resp.Price, 64)
+	if err != nil {
+		log.Println("Error mapping price in private trades. Binance:", err)
 	}
-	order.ID = resp.Data.OrderOid
-	order.CreatedAt = resp.Timestamp
-	result = order
+	amount, err := strconv.ParseFloat(resp.OriginalQuantity, 64)
+	if err != nil {
+		log.Println("Error mapping qty in private trades. Binance:", err)
+	}
+	amountFilled, err := strconv.ParseFloat(resp.ExecQuantity, 64)
+	if err != nil {
+		log.Println("Error mapping filled qty in private trades. Binance:", err)
+	}
+	result = schemas.Order{
+		ID:           strconv.FormatInt(resp.OrderID, 10),
+		Symbol:       resp.Symbol,
+		Type:         resp.Side,
+		Price:        price,
+		Amount:       amount,
+		AmountFilled: amountFilled,
+		Count:        1,
+		CreatedAt:    resp.Time,
+		Remove:       0,
+	}
 	return
 }
 
@@ -308,15 +325,12 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	var b []byte
 
-	params := httpclient.Params()
-	params.Set("symbol", order.Symbol)
+	query := httpclient.Params()
+	query.Set("symbol", unparseSymbol(order.Symbol))
+	query.Set("orderId", order.ID)
+	query.Set("timestamp", strconv.FormatInt(time.Now().UnixNano(), 10)[:13])
 
-	payload := httpclient.Params()
-	payload.Set("symbol", order.Symbol)
-	payload.Set("orderOid", order.ID)
-	payload.Set("type", order.Type)
-
-	b, err = trading.httpClient.Post(apiCancelOrder, params, payload, true)
+	b, err = trading.httpClient.Post(apiCancelOrder, query, httpclient.KeyValue{}, true)
 	if err != nil {
 		return
 	}
@@ -325,9 +339,7 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 		log.Println("err: ", err)
 		return
 	}
-	if resp.Success == false {
-		return errors.New(resp.Msg)
-	}
+
 	return
 }
 

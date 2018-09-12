@@ -84,6 +84,10 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 	return
 }
 
+func unparseSymbol(s string) (symbol string) {
+	return strings.Replace(s, "-", "", 1)
+}
+
 // sign - signing request
 func sign(key, secret string, req *http.Request) *http.Request {
 	req.Header.Set("X-MBX-APIKEY", key)

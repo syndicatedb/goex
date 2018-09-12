@@ -102,7 +102,6 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		}
 		formData = formValues.Encode()
 	}
-	log.Println("URL:", rawurl, formData)
 	req, err := http.NewRequest(method, rawurl, strings.NewReader(formData))
 	if err != nil {
 		return
