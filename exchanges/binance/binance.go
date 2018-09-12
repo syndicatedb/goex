@@ -92,11 +92,11 @@ func unparseSymbol(s string) (symbol string) {
 func sign(key, secret string, req *http.Request) *http.Request {
 	req.Header.Set("X-MBX-APIKEY", key)
 
-	if req.URL.String() != httpURL {
+	if !strings.Contains(req.URL.String(), httpURL) {
 		sign := createSignature256(req.URL.RawQuery, secret)
-		q := req.URL.Query()
-		q.Add("signature", sign)
-		req.URL.RawQuery = q.Encode()
+		// q := req.URL.Query()
+		// q.Add("signature", sign)
+		req.URL.RawQuery += "&signature=" + sign
 	}
 	return req
 }
