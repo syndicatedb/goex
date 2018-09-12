@@ -148,7 +148,7 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	var resp UserBalanceResponse
 	var eMsg errorMsg
 	if err = json.Unmarshal(b, &resp); err != nil {
-		if err = json.Unmarshal(b, &eMsg); err != nil {
+		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
@@ -173,7 +173,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	}
 	var eMsg errorMsg
 	if err = json.Unmarshal(b, &resp); err != nil {
-		if err = json.Unmarshal(b, &eMsg); err != nil {
+		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
@@ -203,7 +203,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 		}
 		var eMsg errorMsg
 		if err = json.Unmarshal(b, &resp); err != nil {
-			if err = json.Unmarshal(b, &eMsg); err != nil {
+			if e := json.Unmarshal(b, &eMsg); e != nil {
 				return
 			}
 			err = errors.New(eMsg.Message)
@@ -315,7 +315,7 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	var resp OrderCreateResponse
 	var eMsg errorMsg
 	if err = json.Unmarshal(b, &resp); err != nil {
-		if err = json.Unmarshal(b, &eMsg); err != nil {
+		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
@@ -354,7 +354,7 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	query := httpclient.Params()
 	query.Set("symbol", unparseSymbol(order.Symbol))
 	query.Set("orderId", order.ID)
-	query.Set("side", order.Type)
+	// query.Set("side", order.Type)
 	query.Set("timestamp", strconv.FormatInt(time.Now().UnixNano(), 10)[:13])
 
 	b, err = trading.httpClient.Request("DELETE", apiCancelOrder, query, httpclient.Params(), true)
@@ -364,7 +364,7 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	var resp OrderCancelResponse
 	var eMsg errorMsg
 	if err = json.Unmarshal(b, &resp); err != nil {
-		if err = json.Unmarshal(b, &eMsg); err != nil {
+		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
