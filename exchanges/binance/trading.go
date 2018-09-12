@@ -209,6 +209,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 
 // handleUpdates - handling incoming updates data
 func (trading *TradingProvider) handleUpdates(data []byte) {
+	log.Println(string(data))
 	var msg generalMessage
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
