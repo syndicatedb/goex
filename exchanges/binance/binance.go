@@ -1,6 +1,11 @@
 package binance
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -15,6 +20,13 @@ const (
 	apiOrderBook = "https://api.binance.com/api/v1/depth"
 	apiTrades    = "https://api.binance.com/api/v1/trades"
 	apiQuotes    = "https://api.binance.com/api/v1/ticker/24hr"
+
+	apiUserBalance  = "https://api.binance.com/api/v3/account"
+	apiActiveOrders = "https://api.binance.com/api/v3/openOrders"
+	apiUserTrades   = "https://api.binance.com/api/v3/myTrades"
+
+	apiCreateOrder = "https://api.binance.com/api/v3/order"
+	apiCancelOrder = "https://api.binance.com/api/v3/order"
 
 	wsURL = "wss://stream.binance.com:9443/stream?streams="
 )
@@ -37,8 +49,8 @@ func New(opts schemas.Options) *Binance {
 	if proxyProvider == nil {
 		proxyProvider = proxy.NewNoProxy()
 	}
-
-	return &Binance{
+	opts.Credentials.Sign = sign
+	binance := &Binance{
 		Exchange: schemas.Exchange{
 			Credentials:   opts.Credentials,
 			ProxyProvider: proxyProvider,
@@ -47,9 +59,14 @@ func New(opts schemas.Options) *Binance {
 			Trades:        NewTradesProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
 			Candles:       NewCandlesProvider(proxyProvider),
-			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
+	symbols, err := binance.SymbolProvider().Get()
+	if err != nil {
+		log.Println("Error getting symbols", err)
+	}
+	binance.Trading = NewTradingProvider(opts.Credentials, proxyProvider, symbols)
+	return binance
 }
 
 func parseSymbol(s string) (name, basecoin, quoteCoin string) {
@@ -64,5 +81,22 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 		}
 	}
 	name = basecoin + "-" + quoteCoin
+	return
+}
+
+// sign - signing request
+func sign(key, secret string, req *http.Request) *http.Request {
+	sign := createSignature256(req.URL.RawQuery, secret)
+	req.URL.Query().Set("signature", sign)
+
+	req.Header.Set("X-MBX-APIKEY", key)
+
+	return req
+}
+
+func createSignature256(query, secretKey string) (signature string) {
+	hash := hmac.New(sha256.New, []byte(secretKey))
+	hash.Write([]byte(query))
+	signature = hex.EncodeToString(hash.Sum(nil))
 	return
 }

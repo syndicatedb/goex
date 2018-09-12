@@ -102,6 +102,7 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		}
 		formData = formValues.Encode()
 	}
+	log.Println("URL:", rawurl, formData)
 	req, err := http.NewRequest(method, rawurl, strings.NewReader(formData))
 	if err != nil {
 		return
@@ -136,6 +137,7 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		log.Println("Data:", string(body), "Error:", err)
+		log.Printf("%+v", req)
 		// log.Println("Resp status is:", resp.Status)
 		err = fmt.Errorf("Status code is: %v", resp.StatusCode)
 		return
