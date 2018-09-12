@@ -138,20 +138,20 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 // Info - provides user info: Keys access, balances
 func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	var b []byte
+	var eMsg errorMsg
 	params := httpclient.Params()
 	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 
 	b, err = trading.httpClient.Get(apiUserBalance, params, true)
 	if err != nil {
-		return
-	}
-	var resp UserBalanceResponse
-	var eMsg errorMsg
-	if err = json.Unmarshal(b, &resp); err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
+		return
+	}
+	var resp UserBalanceResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 	return resp.Map(), nil
@@ -161,27 +161,20 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
 	var b []byte
 	var resp UserOrdersResponse
-	// var result []schemas.Order
-	// for _, s := range symbols {
+	var eMsg errorMsg
 	params := httpclient.Params()
 	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
-	// params.Set("symbol", s.OriginalName)
 
 	b, err = trading.httpClient.Get(apiActiveOrders, params, true)
 	if err != nil {
-		return
-	}
-	var eMsg errorMsg
-	if err = json.Unmarshal(b, &resp); err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-	// respSymb := resp.Map()
-	// result = append(result, respSymb...)
-	// }
 
 	return resp.Map(), nil
 }
@@ -191,6 +184,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 	var resp UserTradesResponse
 	var b []byte
 	var result []schemas.Trade
+	var eMsg errorMsg
 
 	for _, s := range opts.Symbols {
 		params := httpclient.Params()
@@ -199,14 +193,12 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 
 		b, err = trading.httpClient.Get(apiUserTrades, params, true)
 		if err != nil {
-			return
-		}
-		var eMsg errorMsg
-		if err = json.Unmarshal(b, &resp); err != nil {
 			if e := json.Unmarshal(b, &eMsg); e != nil {
 				return
 			}
 			err = errors.New(eMsg.Message)
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
 			return
 		}
 		respSymb := resp.Map()
@@ -298,6 +290,7 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 // Create - creating order
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
 	var b []byte
+	var eMsg errorMsg
 	query := httpclient.Params()
 
 	query.Set("symbol", unparseSymbol(order.Symbol))
@@ -310,15 +303,14 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 
 	b, err = trading.httpClient.Post(apiCreateOrder, query, httpclient.KeyValue{}, true)
 	if err != nil {
-		return
-	}
-	var resp OrderCreateResponse
-	var eMsg errorMsg
-	if err = json.Unmarshal(b, &resp); err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
+		return
+	}
+	var resp OrderCreateResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 	price, err := strconv.ParseFloat(resp.Price, 64)
@@ -350,24 +342,23 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 // Cancel - cancelling order
 func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	var b []byte
+	var eMsg errorMsg
 
 	query := httpclient.Params()
 	query.Set("symbol", unparseSymbol(order.Symbol))
 	query.Set("orderId", order.ID)
-	// query.Set("side", order.Type)
 	query.Set("timestamp", strconv.FormatInt(time.Now().UnixNano(), 10)[:13])
 
 	b, err = trading.httpClient.Request("DELETE", apiCancelOrder, query, httpclient.Params(), true)
 	if err != nil {
-		return
-	}
-	var resp OrderCancelResponse
-	var eMsg errorMsg
-	if err = json.Unmarshal(b, &resp); err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
+		return
+	}
+	var resp OrderCancelResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 
