@@ -272,9 +272,6 @@ func (trading *TradingProvider) ordersBySymbol(symbol string) (orders []schemas.
 	if len(b) == 0 {
 		return
 	}
-	if len(b) == 0 {
-		return
-	}
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
@@ -348,6 +345,7 @@ func (trading *TradingProvider) allTrades(opts schemas.FilterOptions) (trades []
 	if err != nil {
 		return
 	}
+	log.Println("LEN RESP", len(b))
 	if len(b) == 0 {
 		return
 	}
