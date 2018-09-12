@@ -137,9 +137,11 @@ func (ut *UserTrade) Map(symbol string) schemas.Trade {
 type OrderCreate struct {
 	OrderNumber     string      `json:"orderNumber"`
 	ResultingTrades []UserTrade `json:"resultingTrades"`
+	Error           string      `json:"error"`
 }
 
 // OrderCancel represents response on successfully cancelled order
 type OrderCancel struct {
-	Success int `json:"success"`
+	Success int    `json:"success"`
+	Error   string `json:"error"`
 }

@@ -168,8 +168,11 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	if err != nil {
 		return
 	}
-	log.Printf("DATA %+v", string(b))
 	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if len(resp.Error) > 0 {
+		err = fmt.Errorf("Error creating order: %v", resp.Error)
 		return
 	}
 
@@ -194,6 +197,10 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if len(resp.Error) > 0 {
+		err = fmt.Errorf("Error creating order: %v", resp.Error)
 		return
 	}
 
