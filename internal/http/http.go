@@ -91,16 +91,25 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		for key, value := range params.data {
 			q.Set(key, value)
 		}
-		formData = q.Encode()
-		URL.RawQuery = formData
+		URL.RawQuery = q.Encode()
 		rawurl = URL.String()
 	}
+
 	if method == methodPOST {
-		formValues := url.Values{}
-		for key, value := range payload.data {
-			formValues.Set(key, value)
+		if len(payload.data) > 0 {
+			var URL *url.URL
+			URL, err = url.Parse(rawurl)
+			if err != nil {
+				return
+			}
+			q := URL.Query()
+			for key, value := range payload.data {
+				q.Set(key, value)
+			}
+			formData = q.Encode()
+			URL.RawQuery = formData
+			rawurl = URL.String()
 		}
-		formData = formValues.Encode()
 	}
 	req, err := http.NewRequest(method, rawurl, strings.NewReader(formData))
 	if err != nil {
@@ -139,7 +148,7 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		log.Println("Data:", string(body), "Error:", err)
 		// log.Println("Resp status is:", resp.Status)
 		err = fmt.Errorf("Status code is: %v", resp.StatusCode)
-		return
+		return body, err
 	}
 	return body, nil
 }
