@@ -3,6 +3,7 @@ package poloniex
 import (
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/syndicatedb/goex/schemas"
 )
@@ -58,11 +59,12 @@ func (uo *UserOrder) Map(symbol string) schemas.Order {
 	}
 
 	return schemas.Order{
-		ID:     uo.OrderNumber,
-		Symbol: symbol,
-		Type:   orderType,
-		Price:  price,
-		Amount: amount,
+		ID:        uo.OrderNumber,
+		Symbol:    symbol,
+		Type:      orderType,
+		Price:     price,
+		Amount:    amount,
+		CreatedAt: 0,
 	}
 }
 
@@ -83,8 +85,13 @@ type UserTrade struct {
 // Map mapping incoming trades data into common trade model
 func (ut *UserTrade) Map(symbol string) schemas.Trade {
 	var price, amount, fee float64
-	var tms int64
 	var tradeType string
+
+	layout := "2006-01-02 15:04:05"
+	tms, err := time.Parse(layout, ut.Date)
+	if err != nil {
+		log.Println("Error parsing time: ", err)
+	}
 
 	price, _ = strconv.ParseFloat(ut.Rate, 64)
 	amount, _ = strconv.ParseFloat(ut.Amount, 64)
@@ -105,7 +112,7 @@ func (ut *UserTrade) Map(symbol string) schemas.Trade {
 		Price:     price,
 		Amount:    amount,
 		Fee:       fee,
-		Timestamp: tms,
+		Timestamp: tms.Unix() * 1000,
 	}
 }
 
