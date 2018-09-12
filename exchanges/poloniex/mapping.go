@@ -47,9 +47,16 @@ type UserOrder struct {
 func (uo *UserOrder) Map(symbol string) schemas.Order {
 	var orderType string
 	var price, amount float64
+	var err error
 
-	price, _ = strconv.ParseFloat(uo.Rate, 64)
-	amount, _ = strconv.ParseFloat(uo.Amount, 64)
+	price, err = strconv.ParseFloat(uo.Rate, 64)
+	if err != nil {
+		log.Println("Error mapping order: ", err)
+	}
+	amount, err = strconv.ParseFloat(uo.Amount, 64)
+	if err != nil {
+		log.Println("Error mapping order: ", err)
+	}
 
 	if uo.Type == "sell" {
 		orderType = typeSell
@@ -86,6 +93,7 @@ type UserTrade struct {
 func (ut *UserTrade) Map(symbol string) schemas.Trade {
 	var price, amount, fee float64
 	var tradeType string
+	var err error
 
 	layout := "2006-01-02 15:04:05"
 	tms, err := time.Parse(layout, ut.Date)
@@ -93,9 +101,18 @@ func (ut *UserTrade) Map(symbol string) schemas.Trade {
 		log.Println("Error parsing time: ", err)
 	}
 
-	price, _ = strconv.ParseFloat(ut.Rate, 64)
-	amount, _ = strconv.ParseFloat(ut.Amount, 64)
-	fee, _ = strconv.ParseFloat(ut.Fee, 64)
+	price, err = strconv.ParseFloat(ut.Rate, 64)
+	if err != nil {
+		log.Println("Error mapping trade: ", err)
+	}
+	amount, err = strconv.ParseFloat(ut.Amount, 64)
+	if err != nil {
+		log.Println("Error mapping trade: ", err)
+	}
+	fee, err = strconv.ParseFloat(ut.Fee, 64)
+	if err != nil {
+		log.Println("Error mapping trade: ", err)
+	}
 
 	if ut.Type == "sell" {
 		tradeType = typeSell
