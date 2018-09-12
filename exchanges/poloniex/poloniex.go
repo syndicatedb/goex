@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -42,6 +41,9 @@ const (
 	commandBalance       = "returnCompleteBalances"
 	commandPrivateOrders = "returnOpenOrders"
 	commandPrivateTrades = "returnTradeHistory"
+	commandBuy           = "buy"
+	commandSell          = "sell"
+	commandCancel        = "cancelOrder"
 )
 
 const (
@@ -85,11 +87,13 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 	return
 }
 
+func unparseSymbol(s string) string {
+	sa := strings.Split(s, "-")
+	return sa[1] + "_" + sa[0]
+}
+
 func sign(key, secret string, req *http.Request) *http.Request {
 	var signed string
-
-	log.Println("KEY", key)
-	log.Println("SECRET", secret)
 
 	b, _ := req.GetBody()
 	body, err := ioutil.ReadAll(b)
@@ -97,11 +101,7 @@ func sign(key, secret string, req *http.Request) *http.Request {
 		return req
 	}
 
-	log.Printf("BODY %+v", string(body))
-
-	// nonce := fmt.Sprintf("%v", time.Now().UnixNano()/int64(time.Millisecond))
 	signed = signRequest(string(body), secret)
-	log.Printf("SIGN %+v", signed)
 	req.Header.Set("Key", key)
 	req.Header.Set("Sign", signed)
 	return req

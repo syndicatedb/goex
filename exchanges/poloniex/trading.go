@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -130,20 +131,84 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 	return trading.allTrades(opts)
 }
 
+// ImportTrades importing trades by params
 func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan schemas.UserTradesChannel {
 	ch := make(chan schemas.UserTradesChannel)
 	return ch
 }
 
+// Create creating new limit order
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
+	var b []byte
+	var command string
+	var resp OrderCreate
+
+	if strings.ToUpper(order.Type) == typeBuy {
+		command = commandBuy
+	}
+	if strings.ToUpper(order.Type) == typeSell {
+		command = commandSell
+	}
+
+	symbol := unparseSymbol(order.Symbol)
+	nonce := time.Now().UnixNano()
+
+	payload := httpclient.Params()
+	payload.Set("currencyPair", symbol)
+	payload.Set("rate", strconv.FormatFloat(order.Price, 'f', -1, 64))
+	payload.Set("amount", strconv.FormatFloat(order.Amount, 'f', -1, 64))
+	payload.Set("command", command)
+	payload.Set("nonce", strconv.FormatInt(nonce, 10))
+
+	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+
+	result = order
+	result.ID = resp.OrderNumber
 	return
 }
 
+// Cancel cancelling open order
 func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
-	return
+	var b []byte
+	var resp OrderCancel
+
+	payload := httpclient.Params()
+	nonce := time.Now().UnixNano()
+	payload.Set("orderNumber", order.ID)
+	payload.Set("command", commandCancel)
+	payload.Set("nonce", strconv.FormatInt(nonce, 10))
+
+	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+
+	return nil
 }
 
+// CancelAll cancelling all open orders
 func (trading *TradingProvider) CancelAll() (err error) {
+	var orders []schemas.Order
+
+	if orders, err = trading.allOrders(); err != nil {
+		return
+	}
+	for _, ord := range orders {
+		err = trading.Cancel(ord)
+		if err != nil {
+			return err
+		}
+	}
+
 	return
 }
 
