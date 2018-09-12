@@ -200,7 +200,7 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 		return
 	}
 	if len(resp.Error) > 0 {
-		err = fmt.Errorf("Error creating order: %v", resp.Error)
+		err = fmt.Errorf("Error cancelling order: %v", resp.Error)
 		return
 	}
 
