@@ -34,6 +34,8 @@ type TradingProvider struct {
 	uic         chan schemas.UserInfoChannel
 	uoc         chan schemas.UserOrdersChannel
 	utc         chan schemas.UserTradesChannel
+	ch          chan []byte
+	ech         chan error
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -47,6 +49,8 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		uoc:         make(chan schemas.UserOrdersChannel),
 		utc:         make(chan schemas.UserTradesChannel),
 		symbols:     symbols,
+		ch:          make(chan []byte, 400),
+		ech:         make(chan error, 400),
 	}
 	lk, err := trading.CreateListenkey(credentials.APIKey)
 	if err != nil {
@@ -61,6 +65,7 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		}
 	}()
 	trading.wsClient = websocket.NewClient(userDataStreamURL+trading.listenKey, httpProxy)
+	// ws updates of trading data
 
 	return &trading
 }
@@ -111,23 +116,22 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 		}
 	}()
 
-	// ws updates of trading data
-	ch := make(chan []byte, 100)
-	ech := make(chan error, 100)
-
 	trading.wsClient.Connect()
 	trading.wsClient.ChangeKeepAlive(false)
-	trading.wsClient.Listen(ch, ech)
+	trading.wsClient.Listen(trading.ch, trading.ech)
+
 	// handling ws input data
 	go func() {
-		select {
-		case data := <-ch:
-			trading.handleUpdates(data)
-		case err := <-ech:
-			log.Println("Error handling", err)
-			trading.uic <- schemas.UserInfoChannel{
-				Data:  schemas.UserInfo{},
-				Error: err,
+		for {
+			select {
+			case data := <-trading.ch:
+				trading.handleUpdates(data)
+			case err := <-trading.ech:
+				log.Println("Error handling", err)
+				trading.uic <- schemas.UserInfoChannel{
+					Data:  schemas.UserInfo{},
+					Error: err,
+				}
 			}
 		}
 	}()
@@ -209,7 +213,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 
 // handleUpdates - handling incoming updates data
 func (trading *TradingProvider) handleUpdates(data []byte) {
-	log.Println(string(data))
+	log.Println("[BINANCE] INCOMING WS DATA:", string(data))
 	var msg generalMessage
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
@@ -236,15 +240,17 @@ func (trading *TradingProvider) handleUpdates(data []byte) {
 			log.Println("Trades unmarshalling error:", err)
 		}
 
-		if tradesMsg.CurrentExecutionType == "TRADE" {
-			if tradesMsg.CurrentOrderStatus == "FILLED" {
+		if tradesMsg.CurrentExecutionType == "NEW" {
+			if tradesMsg.CurrentOrderStatus == "NEW" {
 				o := tradesMsg.MapOrder()
 				trading.uoc <- schemas.UserOrdersChannel{
 					Data:  o,
 					Error: err,
 				}
 			}
+			return
 		}
+
 		t := tradesMsg.Map()
 		trading.utc <- schemas.UserTradesChannel{
 			Data:  t,
