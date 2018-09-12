@@ -231,7 +231,8 @@ func (trading *TradingProvider) allOrders() (orders []schemas.Order, err error) 
 	}
 	for symb, ords := range resp {
 		for _, ord := range ords {
-			orders = append(orders, ord.Map(symb))
+			s, _, _ := parseSymbol(symb)
+			orders = append(orders, ord.Map(s))
 		}
 	}
 
@@ -256,7 +257,8 @@ func (trading *TradingProvider) ordersBySymbol(symbol string) (orders []schemas.
 		return
 	}
 	for _, ord := range resp {
-		orders = append(orders, ord.Map(symbol))
+		s, _, _ := parseSymbol(symbol)
+		orders = append(orders, ord.Map(s))
 	}
 
 	return
@@ -290,7 +292,8 @@ func (trading *TradingProvider) tradesBySymbol(symbol string, opts schemas.Filte
 		return
 	}
 	for _, trd := range resp {
-		trades = append(trades, trd.Map(symbol))
+		s, _, _ := parseSymbol(symbol)
+		trades = append(trades, trd.Map(s))
 	}
 
 	return
@@ -325,7 +328,8 @@ func (trading *TradingProvider) allTrades(opts schemas.FilterOptions) (trades []
 	}
 	for symb, trds := range resp {
 		for _, trd := range trds {
-			trades = append(trades, trd.Map(symb))
+			s, _, _ := parseSymbol(symb)
+			trades = append(trades, trd.Map(s))
 		}
 	}
 
