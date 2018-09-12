@@ -170,6 +170,30 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	return resp.Map(), nil
 }
 
+// Trades - getting user trades
+func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
+	var resp UserTradesResponse
+	var b []byte
+	var result []schemas.Trade
+
+	for _, s := range opts.Symbols {
+		params := httpclient.Params()
+		params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
+		params.Set("symbol", s.OriginalName)
+
+		b, err = trading.httpClient.Get(apiUserTrades, params, true)
+		if err != nil {
+			return
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
+			return
+		}
+		respSymb := resp.Map()
+		result = append(result, respSymb...)
+	}
+	return result, schemas.Paging{}, nil
+}
+
 // handleUpdates - handling incoming updates data
 func (trading *TradingProvider) handleUpdates(data []byte) {
 	var msg generalMessage
@@ -250,30 +274,6 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 	return ch
 }
 
-// Trades - getting user trades
-func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
-	var resp UserTradesResponse
-	var b []byte
-	var result []schemas.Trade
-
-	for _, s := range opts.Symbols {
-		params := httpclient.Params()
-		params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
-		params.Set("symbol", s.OriginalName)
-
-		b, err = trading.httpClient.Get(apiUserTrades, params, true)
-		if err != nil {
-			return
-		}
-		if err = json.Unmarshal(b, &resp); err != nil {
-			return
-		}
-		respSymb := resp.Map()
-		result = append(result, respSymb...)
-	}
-	return result, schemas.Paging{}, nil
-}
-
 // Create - creating order
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
 	var b []byte
@@ -283,8 +283,8 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	query.Set("type", "LIMIT")
 	query.Set("timeInForce", "GTC")
 	query.Set("side", strings.ToUpper(order.Type))
-	query.Set("price", fmt.Sprintf("%.10f", order.Price))
-	query.Set("quantity", fmt.Sprintf("%.10f", order.Amount))
+	query.Set("price", strconv.FormatFloat(order.Price, 'f', -1, 64))
+	query.Set("quantity", strconv.FormatFloat(order.Amount, 'f', -1, 64))
 	query.Set("timestamp", strconv.FormatInt(time.Now().UnixNano(), 10)[:13])
 
 	b, err = trading.httpClient.Post(apiCreateOrder, query, httpclient.KeyValue{}, true)
