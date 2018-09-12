@@ -242,6 +242,7 @@ func (trading *TradingProvider) allOrders() (orders []schemas.Order, err error) 
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
+	log.Printf("RESPONSE FROM ORDERS %+v", string(b))
 	for symb, ords := range resp {
 		for _, ord := range ords {
 			s, _, _ := parseSymbol(symb)
@@ -249,6 +250,7 @@ func (trading *TradingProvider) allOrders() (orders []schemas.Order, err error) 
 		}
 	}
 
+	log.Println("ORDERS AFTER MAPPING", orders)
 	return
 }
 
