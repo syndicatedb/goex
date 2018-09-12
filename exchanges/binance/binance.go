@@ -87,6 +87,8 @@ func parseSymbol(s string) (name, basecoin, quoteCoin string) {
 // sign - signing request
 func sign(key, secret string, req *http.Request) *http.Request {
 	sign := createSignature256(req.URL.RawQuery, secret)
+	log.Printf("SIGNER %+v", req)
+	log.Println("SIGN", sign)
 	req.URL.Query().Set("signature", sign)
 
 	req.Header.Set("X-MBX-APIKEY", key)
