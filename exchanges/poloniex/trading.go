@@ -166,6 +166,7 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
+		err = fmt.Errorf("Error creating order: %v. Exchange response: %v", err, string(b))
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
@@ -194,13 +195,13 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
-		return
+		err = fmt.Errorf("Error creating order: %v. Exchange response: %v", err, string(b))
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 	if len(resp.Error) > 0 {
-		err = fmt.Errorf("Error creating order: %v", resp.Error)
+		err = fmt.Errorf("Error cancelling order: %v", resp.Error)
 		return
 	}
 
