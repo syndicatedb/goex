@@ -3,6 +3,7 @@ package poloniex
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -153,17 +154,21 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	symbol := unparseSymbol(order.Symbol)
 	nonce := time.Now().UnixNano()
 
+	log.Println("SYMBOL", symbol)
+	log.Println("COMMAND", command)
+
 	payload := httpclient.Params()
+	payload.Set("command", command)
+	payload.Set("nonce", strconv.FormatInt(nonce, 10))
 	payload.Set("currencyPair", symbol)
 	payload.Set("rate", strconv.FormatFloat(order.Price, 'f', -1, 64))
 	payload.Set("amount", strconv.FormatFloat(order.Amount, 'f', -1, 64))
-	payload.Set("command", command)
-	payload.Set("nonce", strconv.FormatInt(nonce, 10))
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}
+	log.Printf("DATA %+v", string(b))
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
@@ -231,7 +236,8 @@ func (trading *TradingProvider) allOrders() (orders []schemas.Order, err error) 
 	}
 	for symb, ords := range resp {
 		for _, ord := range ords {
-			orders = append(orders, ord.Map(symb))
+			s, _, _ := parseSymbol(symb)
+			orders = append(orders, ord.Map(s))
 		}
 	}
 
@@ -256,7 +262,8 @@ func (trading *TradingProvider) ordersBySymbol(symbol string) (orders []schemas.
 		return
 	}
 	for _, ord := range resp {
-		orders = append(orders, ord.Map(symbol))
+		s, _, _ := parseSymbol(symbol)
+		orders = append(orders, ord.Map(s))
 	}
 
 	return
@@ -290,7 +297,8 @@ func (trading *TradingProvider) tradesBySymbol(symbol string, opts schemas.Filte
 		return
 	}
 	for _, trd := range resp {
-		trades = append(trades, trd.Map(symbol))
+		s, _, _ := parseSymbol(symbol)
+		trades = append(trades, trd.Map(s))
 	}
 
 	return
@@ -325,7 +333,8 @@ func (trading *TradingProvider) allTrades(opts schemas.FilterOptions) (trades []
 	}
 	for symb, trds := range resp {
 		for _, trd := range trds {
-			trades = append(trades, trd.Map(symb))
+			s, _, _ := parseSymbol(symb)
+			trades = append(trades, trd.Map(s))
 		}
 	}
 
