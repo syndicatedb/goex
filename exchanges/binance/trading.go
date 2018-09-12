@@ -46,6 +46,7 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		uic:         make(chan schemas.UserInfoChannel),
 		uoc:         make(chan schemas.UserOrdersChannel),
 		utc:         make(chan schemas.UserTradesChannel),
+		symbols:     symbols,
 	}
 	lk, err := trading.CreateListenkey(credentials.APIKey)
 	if err != nil {
@@ -62,23 +63,6 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	trading.wsClient = websocket.NewClient(userDataStreamURL+trading.listenKey, httpProxy)
 
 	return &trading
-}
-
-// Info - provides user info: Keys access, balances
-func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
-	var b []byte
-	params := httpclient.Params()
-	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
-
-	b, err = trading.httpClient.Get(apiUserBalance, params, true)
-	if err != nil {
-		return
-	}
-	var resp UserBalanceResponse
-	if err = json.Unmarshal(b, &resp); err != nil {
-		return
-	}
-	return resp.Map(), nil
 }
 
 /*
@@ -135,6 +119,23 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	}()
 
 	return trading.uic, trading.uoc, trading.utc
+}
+
+// Info - provides user info: Keys access, balances
+func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
+	var b []byte
+	params := httpclient.Params()
+	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
+
+	b, err = trading.httpClient.Get(apiUserBalance, params, true)
+	if err != nil {
+		return
+	}
+	var resp UserBalanceResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	return resp.Map(), nil
 }
 
 // Orders - getting user active orders
