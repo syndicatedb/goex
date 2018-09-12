@@ -2,6 +2,7 @@ package binance
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -62,6 +63,11 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	trading.wsClient = websocket.NewClient(userDataStreamURL+trading.listenKey, httpProxy)
 
 	return &trading
+}
+
+type errorMsg struct {
+	Code    int    `json:"code"`
+	Message string `json:"msg"`
 }
 
 /*
@@ -140,7 +146,12 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 		return
 	}
 	var resp UserBalanceResponse
+	var eMsg errorMsg
 	if err = json.Unmarshal(b, &resp); err != nil {
+		if err = json.Unmarshal(b, &eMsg); err != nil {
+			return
+		}
+		err = errors.New(eMsg.Message)
 		return
 	}
 	return resp.Map(), nil
@@ -160,7 +171,12 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	if err != nil {
 		return
 	}
+	var eMsg errorMsg
 	if err = json.Unmarshal(b, &resp); err != nil {
+		if err = json.Unmarshal(b, &eMsg); err != nil {
+			return
+		}
+		err = errors.New(eMsg.Message)
 		return
 	}
 	// respSymb := resp.Map()
@@ -185,7 +201,12 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 		if err != nil {
 			return
 		}
+		var eMsg errorMsg
 		if err = json.Unmarshal(b, &resp); err != nil {
+			if err = json.Unmarshal(b, &eMsg); err != nil {
+				return
+			}
+			err = errors.New(eMsg.Message)
 			return
 		}
 		respSymb := resp.Map()
@@ -292,7 +313,12 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 		return
 	}
 	var resp OrderCreateResponse
+	var eMsg errorMsg
 	if err = json.Unmarshal(b, &resp); err != nil {
+		if err = json.Unmarshal(b, &eMsg); err != nil {
+			return
+		}
+		err = errors.New(eMsg.Message)
 		return
 	}
 	price, err := strconv.ParseFloat(resp.Price, 64)
@@ -336,8 +362,12 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 		return
 	}
 	var resp OrderCancelResponse
+	var eMsg errorMsg
 	if err = json.Unmarshal(b, &resp); err != nil {
-		log.Println("err: ", err)
+		if err = json.Unmarshal(b, &eMsg); err != nil {
+			return
+		}
+		err = errors.New(eMsg.Message)
 		return
 	}
 
