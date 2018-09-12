@@ -3,6 +3,7 @@ package poloniex
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -153,12 +154,15 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	symbol := unparseSymbol(order.Symbol)
 	nonce := time.Now().UnixNano()
 
+	log.Println("SYMBOL", symbol)
+	log.Println("COMMAND", command)
+
 	payload := httpclient.Params()
+	payload.Set("command", command)
+	payload.Set("nonce", strconv.FormatInt(nonce, 10))
 	payload.Set("currencyPair", symbol)
 	payload.Set("rate", strconv.FormatFloat(order.Price, 'f', -1, 64))
 	payload.Set("amount", strconv.FormatFloat(order.Amount, 'f', -1, 64))
-	payload.Set("command", command)
-	payload.Set("nonce", strconv.FormatInt(nonce, 10))
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
