@@ -142,9 +142,9 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	var b []byte
 	var resp UserOrdersResponse
 	var result []schemas.Order
-	params := httpclient.Params()
-	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 	for _, s := range symbols {
+		params := httpclient.Params()
+		params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 		params.Set("symbol", s.OriginalName)
 
 		b, err = trading.httpClient.Get(apiActiveOrders, params, true)
@@ -247,9 +247,9 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 	var b []byte
 	var result []schemas.Trade
 
-	params := httpclient.Params()
-	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 	for _, s := range opts.Symbols {
+		params := httpclient.Params()
+		params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 		params.Set("symbol", s.OriginalName)
 
 		b, err = trading.httpClient.Get(apiUserTrades, params, true)
