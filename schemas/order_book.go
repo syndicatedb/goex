@@ -1,5 +1,19 @@
 package schemas
 
+// Order statuses
+const (
+	StatusNew       = "NEW"
+	StatusTrade     = "TRADE"
+	StatusCancelled = "CANCELLED"
+	StatusRejected  = "REJECTED"
+)
+
+// Order sides
+const (
+	TypeSell = "SELL"
+	TypeBuy  = "BUY"
+)
+
 // OrderBook - common order book model
 type OrderBook struct {
 	Symbol string  `json:"symbol"`

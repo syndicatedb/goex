@@ -74,6 +74,31 @@ type bus struct {
 	outChannel chan schemas.ResultChannel
 }
 
+// authMsg represents trading data auth message model
+type authMsg struct {
+	Event       string `json:"event"`
+	APIKey      string `json:"apiKey"`
+	AuthSig     string `json:"authSig"`
+	AuthPayload string `json:"authPayload"`
+	AuthNonce   string `json:"authNonce"`
+}
+
+// accessResponse represents user account access info response
+type accessResponse struct {
+	Account   accessFlags `json:"account"`
+	History   accessFlags `json:"history"`
+	Orders    accessFlags `json:"orders"`
+	Positions accessFlags `json:"positions"`
+	Funding   accessFlags `json:"funding"`
+	Wallets   accessFlags `json:"wallets"`
+	Withdraw  accessFlags `json:"withdraw"`
+}
+
+type accessFlags struct {
+	Read  bool `json:"read"`
+	Write bool `json:"write"`
+}
+
 func int64Value(v interface{}) int64 {
 	if f, ok := v.(float64); ok {
 		return int64(f)

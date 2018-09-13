@@ -1,6 +1,9 @@
 package bitfinex
 
 import (
+	"crypto/hmac"
+	"crypto/sha512"
+	"encoding/hex"
 	"strings"
 	"time"
 
@@ -15,6 +18,7 @@ const (
 	apiTrades    = "https://api.bitfinex.com/v2/trades"
 	apiQuotes    = "https://api.bitfinex.com/v2/ticker"
 	apiCandles   = "https://api.bitfinex.com/v2/candles"
+	apiAccess    = "https://api.bitfinex.com/v1/key_info"
 
 	wsURL = "wss://api.bitfinex.com/ws/2"
 )
@@ -48,7 +52,7 @@ func New(opts schemas.Options) *Bitfinex {
 			Trades:        NewTradesProvider(proxyProvider),
 			Quotes:        NewQuotesProvider(proxyProvider),
 			Candles:       NewCandlesProvider(proxyProvider),
-			// Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
+			Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
 }
@@ -71,4 +75,10 @@ func parseSymbol(smb string) (name, basecoin, quoteCoin string) {
 	}
 	name = basecoin + "-" + quoteCoin
 	return
+}
+
+func createSignature384(msg, secret string) string {
+	hash := hmac.New(sha512.New384, []byte(secret))
+	hash.Write([]byte(msg))
+	return hex.EncodeToString(hash.Sum(nil))
 }
