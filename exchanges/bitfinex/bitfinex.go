@@ -3,7 +3,11 @@ package bitfinex
 import (
 	"crypto/hmac"
 	"crypto/sha512"
+	"encoding/base64"
 	"encoding/hex"
+	"io/ioutil"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +47,7 @@ func New(opts schemas.Options) *Bitfinex {
 		proxyProvider = proxy.NewNoProxy()
 	}
 
+	opts.Credentials.Sign = sign
 	return &Bitfinex{
 		Exchange: schemas.Exchange{
 			Credentials:   opts.Credentials,
@@ -75,6 +80,31 @@ func parseSymbol(smb string) (name, basecoin, quoteCoin string) {
 	}
 	name = basecoin + "-" + quoteCoin
 	return
+}
+
+func sign(key, secret string, req *http.Request) *http.Request {
+	var signed string
+
+	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+	path := req.URL.Path
+	b, _ := req.GetBody()
+	body, err := ioutil.ReadAll(b)
+	if err != nil {
+		return req
+	}
+
+	sig := "/api/" + path + nonce + string(body)
+	signed = signRequest(sig, secret)
+	req.Header.Add("bfx-nonce", nonce)
+	req.Header.Add("bfx-apikey", key)
+	req.Header.Add("bfx-signature", signed)
+
+	return req
+}
+
+func signRequest(msg, secret string) string {
+	signatureStr := base64.StdEncoding.EncodeToString([]byte(msg))
+	return createSignature384(signatureStr, secret)
 }
 
 func createSignature384(msg, secret string) string {

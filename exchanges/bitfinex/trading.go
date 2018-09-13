@@ -1,10 +1,13 @@
 package bitfinex
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -25,6 +28,7 @@ type TradingProvider struct {
 	credentials schemas.Credentials
 	wsClient    *websocket.Client
 	httpClient  *httpclient.Client
+	proxyClient proxy.Client
 
 	bus tradingBus
 }
@@ -37,7 +41,6 @@ type tradingBus struct {
 
 // NewTradingProvider constructing bitfinex trading provider
 func NewTradingProvider(creds schemas.Credentials, proxy proxy.Provider) *TradingProvider {
-	log.Println("CREDS", creds)
 	proxyClient := proxy.NewClient(exchangeName)
 	wsClient := websocket.NewClient(wsURL, proxy)
 
@@ -45,6 +48,7 @@ func NewTradingProvider(creds schemas.Credentials, proxy proxy.Provider) *Tradin
 		credentials: creds,
 		wsClient:    wsClient,
 		httpClient:  httpclient.NewSigned(creds, proxyClient),
+		proxyClient: proxyClient,
 		bus: tradingBus{
 			uic: make(chan schemas.UserInfoChannel),
 			uoc: make(chan schemas.UserOrdersChannel),
@@ -65,21 +69,25 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	trading.wsClient.ChangeKeepAlive(false)
 	trading.wsClient.Listen(dch, ech)
 
+	go func() {
+		for {
+			select {
+			case msg := <-dch:
+				log.Println("Incoming message: ", string(msg))
+				trading.handleMessages(msg)
+			case err := <-ech:
+				log.Printf(errOnWs, err)
+				err = fmt.Errorf(errOnWs, err)
+				trading.publishErr(err)
+			}
+		}
+	}()
+
 	if err := trading.auth(); err != nil {
 		log.Printf(errAuth, err)
 		err = fmt.Errorf(errAuth, err)
 		trading.publishErr(err)
 	}
-
-	go func() {
-		select {
-		case msg := <-dch:
-			trading.handleMessages(msg)
-		case err := <-ech:
-			err = fmt.Errorf(errOnWs, err)
-			trading.publishErr(err)
-		}
-	}()
 
 	return trading.bus.uic, trading.bus.uoc, trading.bus.utc
 }
@@ -121,8 +129,8 @@ func (trading *TradingProvider) CancelAll() (err error) {
 }
 
 func (trading *TradingProvider) auth() error {
-	log.Println("AUTH")
-	nonce := fmt.Sprintf("%v", time.Now().Unix()*10000)
+	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+
 	payload := "AUTH" + nonce
 	signature := createSignature384(payload, trading.credentials.APISecret)
 
@@ -134,18 +142,16 @@ func (trading *TradingProvider) auth() error {
 		AuthNonce:   nonce,
 	}
 
-	log.Println("JUST BEFORE WRITING", msg)
 	return trading.wsClient.Write(msg)
 }
 
 func (trading *TradingProvider) handleMessages(data []byte) {
 	var msg interface{}
-	log.Println(string(data))
 
-	log.Printf("RAW MESSAGE %+v", string(data))
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
 		log.Println("Error unmarshalling message: ", err)
+		return
 	}
 
 	if eventMsg, ok := msg.(map[string]interface{}); ok {
@@ -160,6 +166,7 @@ func (trading *TradingProvider) handleMessages(data []byte) {
 				err := trading.handleEvents(eventMsg)
 				if err != nil {
 					trading.publishErr(err)
+					return
 				}
 			}
 		}
@@ -175,15 +182,16 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 
 	if updType == "ws" {
 		b := trading.mapBalance(msg[2].([]interface{}))
-		// access, err := trading.getAccessInfo()
-		// if err != nil {
-		// 	trading.publishErr(err)
-		// 	return
-		// }
+		access, err := trading.getAccessInfo()
+		if err != nil {
+			trading.publishErr(err)
+			return
+		}
 
+		log.Println("Access data", access)
 		trading.bus.uic <- schemas.UserInfoChannel{
 			Data: schemas.UserInfo{
-				// Access:   access,
+				Access:   access,
 				Balances: b,
 			},
 		}
@@ -191,15 +199,16 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 	if updType == "wu" {
 		wslice := []interface{}{msg[2]}
 		b := trading.mapBalance(wslice)
-		// access, err := trading.getAccessInfo()
-		// if err != nil {
-		// 	trading.publishErr(err)
-		// 	return
-		// }
+		access, err := trading.getAccessInfo()
+		if err != nil {
+			trading.publishErr(err)
+			return
+		}
+		log.Println("Access data", access)
 
 		trading.bus.uic <- schemas.UserInfoChannel{
 			Data: schemas.UserInfo{
-				// Access:   access,
+				Access:   access,
 				Balances: b,
 			},
 		}
@@ -241,14 +250,40 @@ func (trading *TradingProvider) checkAuthMessage(msg map[string]interface{}) err
 }
 
 func (trading *TradingProvider) getAccessInfo() (access schemas.Access, err error) {
-	var b []byte
+	log.Println("Getting access data")
 	var resp accessResponse
 
-	b, err = trading.httpClient.Post(apiAccess, httpclient.Params(), httpclient.Params(), true)
+	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+	req, err := http.NewRequest("POST", apiAccess, nil)
 	if err != nil {
 		return
 	}
-	if err = json.Unmarshal(b, &resp); err != nil {
+	payload := map[string]interface{}{
+		"request": "/v1/key_info",
+		"nonce":   nonce,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	payloadEnc := base64.StdEncoding.EncodeToString(payloadBytes)
+	sig := createSignature384(payloadEnc, trading.credentials.APISecret)
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("X-BFX-APIKEY", trading.credentials.APIKey)
+	req.Header.Add("X-BFX-PAYLOAD", payloadEnc)
+	req.Header.Add("X-BFX-SIGNATURE", sig)
+
+	r, err := trading.proxyClient.Do(req)
+	if err != nil {
+		return
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(body, &resp); err != nil {
 		return
 	}
 
