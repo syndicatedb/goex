@@ -202,9 +202,6 @@ func (ob *OrderBookGroup) mapSnapshot(data orderBookSnapshot, symbol string) sch
 			Price:  price,
 			Amount: amount,
 		}
-		if amount == 0 {
-			buy.Remove = 1
-		}
 		orderBook.Buy = append(orderBook.Buy, buy)
 	}
 
@@ -222,9 +219,6 @@ func (ob *OrderBookGroup) mapSnapshot(data orderBookSnapshot, symbol string) sch
 			Type:   schemas.Sell,
 			Price:  price,
 			Amount: amount,
-		}
-		if amount == 0 {
-			sell.Remove = 1
 		}
 		orderBook.Sell = append(orderBook.Sell, sell)
 	}
