@@ -34,6 +34,8 @@ type TradingProvider struct {
 	uic         chan schemas.UserInfoChannel
 	uoc         chan schemas.UserOrdersChannel
 	utc         chan schemas.UserTradesChannel
+	ch          chan []byte
+	ech         chan error
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -47,6 +49,8 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		uoc:         make(chan schemas.UserOrdersChannel),
 		utc:         make(chan schemas.UserTradesChannel),
 		symbols:     symbols,
+		ch:          make(chan []byte, 400),
+		ech:         make(chan error, 400),
 	}
 	lk, err := trading.CreateListenkey(credentials.APIKey)
 	if err != nil {
@@ -61,6 +65,7 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		}
 	}()
 	trading.wsClient = websocket.NewClient(userDataStreamURL+trading.listenKey, httpProxy)
+	// ws updates of trading data
 
 	return &trading
 }
@@ -111,23 +116,22 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 		}
 	}()
 
-	// ws updates of trading data
-	ch := make(chan []byte, 100)
-	ech := make(chan error, 100)
-
 	trading.wsClient.Connect()
 	trading.wsClient.ChangeKeepAlive(false)
-	trading.wsClient.Listen(ch, ech)
+	trading.wsClient.Listen(trading.ch, trading.ech)
+
 	// handling ws input data
 	go func() {
-		select {
-		case data := <-ch:
-			trading.handleUpdates(data)
-		case err := <-ech:
-			log.Println("Error handling", err)
-			trading.uic <- schemas.UserInfoChannel{
-				Data:  schemas.UserInfo{},
-				Error: err,
+		for {
+			select {
+			case data := <-trading.ch:
+				trading.handleUpdates(data)
+			case err := <-trading.ech:
+				log.Println("Error handling", err)
+				trading.uic <- schemas.UserInfoChannel{
+					Data:  schemas.UserInfo{},
+					Error: err,
+				}
 			}
 		}
 	}()
@@ -138,20 +142,20 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 // Info - provides user info: Keys access, balances
 func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	var b []byte
+	var eMsg errorMsg
 	params := httpclient.Params()
 	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 
 	b, err = trading.httpClient.Get(apiUserBalance, params, true)
 	if err != nil {
-		return
-	}
-	var resp UserBalanceResponse
-	var eMsg errorMsg
-	if err = json.Unmarshal(b, &resp); err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
+		return
+	}
+	var resp UserBalanceResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 	return resp.Map(), nil
@@ -161,27 +165,20 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
 	var b []byte
 	var resp UserOrdersResponse
-	// var result []schemas.Order
-	// for _, s := range symbols {
+	var eMsg errorMsg
 	params := httpclient.Params()
 	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
-	// params.Set("symbol", s.OriginalName)
 
 	b, err = trading.httpClient.Get(apiActiveOrders, params, true)
 	if err != nil {
-		return
-	}
-	var eMsg errorMsg
-	if err = json.Unmarshal(b, &resp); err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-	// respSymb := resp.Map()
-	// result = append(result, respSymb...)
-	// }
 
 	return resp.Map(), nil
 }
@@ -191,6 +188,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 	var resp UserTradesResponse
 	var b []byte
 	var result []schemas.Trade
+	var eMsg errorMsg
 
 	for _, s := range opts.Symbols {
 		params := httpclient.Params()
@@ -199,14 +197,12 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 
 		b, err = trading.httpClient.Get(apiUserTrades, params, true)
 		if err != nil {
-			return
-		}
-		var eMsg errorMsg
-		if err = json.Unmarshal(b, &resp); err != nil {
 			if e := json.Unmarshal(b, &eMsg); e != nil {
 				return
 			}
 			err = errors.New(eMsg.Message)
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
 			return
 		}
 		respSymb := resp.Map()
@@ -217,6 +213,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 
 // handleUpdates - handling incoming updates data
 func (trading *TradingProvider) handleUpdates(data []byte) {
+	log.Println("[BINANCE] INCOMING WS DATA:", string(data))
 	var msg generalMessage
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
@@ -244,17 +241,16 @@ func (trading *TradingProvider) handleUpdates(data []byte) {
 		}
 
 		if tradesMsg.CurrentExecutionType == "TRADE" {
-			if tradesMsg.CurrentOrderStatus == "FILLED" {
-				o := tradesMsg.MapOrder()
-				trading.uoc <- schemas.UserOrdersChannel{
-					Data:  o,
-					Error: err,
-				}
+			t := tradesMsg.Map()
+			trading.utc <- schemas.UserTradesChannel{
+				Data:  t,
+				Error: err,
 			}
 		}
-		t := tradesMsg.Map()
-		trading.utc <- schemas.UserTradesChannel{
-			Data:  t,
+
+		o := tradesMsg.MapOrder()
+		trading.uoc <- schemas.UserOrdersChannel{
+			Data:  o,
 			Error: err,
 		}
 	}
@@ -298,6 +294,7 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 // Create - creating order
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
 	var b []byte
+	var eMsg errorMsg
 	query := httpclient.Params()
 
 	query.Set("symbol", unparseSymbol(order.Symbol))
@@ -310,15 +307,14 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 
 	b, err = trading.httpClient.Post(apiCreateOrder, query, httpclient.KeyValue{}, true)
 	if err != nil {
-		return
-	}
-	var resp OrderCreateResponse
-	var eMsg errorMsg
-	if err = json.Unmarshal(b, &resp); err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
+		return
+	}
+	var resp OrderCreateResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 	price, err := strconv.ParseFloat(resp.Price, 64)
@@ -350,24 +346,23 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 // Cancel - cancelling order
 func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	var b []byte
+	var eMsg errorMsg
 
 	query := httpclient.Params()
 	query.Set("symbol", unparseSymbol(order.Symbol))
 	query.Set("orderId", order.ID)
-	// query.Set("side", order.Type)
 	query.Set("timestamp", strconv.FormatInt(time.Now().UnixNano(), 10)[:13])
 
 	b, err = trading.httpClient.Request("DELETE", apiCancelOrder, query, httpclient.Params(), true)
 	if err != nil {
-		return
-	}
-	var resp OrderCancelResponse
-	var eMsg errorMsg
-	if err = json.Unmarshal(b, &resp); err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
 		}
 		err = errors.New(eMsg.Message)
+		return
+	}
+	var resp OrderCancelResponse
+	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 

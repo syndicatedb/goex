@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -93,17 +92,8 @@ func unparseSymbol(s string) (symbol string) {
 func sign(key, secret string, req *http.Request) *http.Request {
 	req.Header.Set("X-MBX-APIKEY", key)
 
-	body, _ := req.GetBody()
-	b, _ := ioutil.ReadAll(body)
-	q := req.URL.RawQuery
-
-	log.Printf("BODY %+v", string(b))
-	log.Printf("QUERY %+v", q)
-
 	if !strings.Contains(req.URL.String(), httpURL) {
 		sign := createSignature256(req.URL.RawQuery, secret)
-		// q := req.URL.Query()
-		// q.Add("signature", sign)
 		req.URL.RawQuery += "&signature=" + sign
 	}
 	return req

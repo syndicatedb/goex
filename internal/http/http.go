@@ -95,21 +95,19 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		rawurl = URL.String()
 	}
 
-	if method == methodPOST {
-		if len(payload.data) > 0 {
-			var URL *url.URL
-			URL, err = url.Parse(rawurl)
-			if err != nil {
-				return
-			}
-			q := URL.Query()
-			for key, value := range payload.data {
-				q.Set(key, value)
-			}
-			formData = q.Encode()
-			URL.RawQuery = formData
-			rawurl = URL.String()
+	if len(payload.data) > 0 {
+		var URL *url.URL
+		URL, err = url.Parse(rawurl)
+		if err != nil {
+			return
 		}
+		q := URL.Query()
+		for key, value := range payload.data {
+			q.Set(key, value)
+		}
+		formData = q.Encode()
+		URL.RawQuery = formData
+		rawurl = URL.String()
 	}
 	req, err := http.NewRequest(method, rawurl, strings.NewReader(formData))
 	if err != nil {
@@ -120,6 +118,7 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
 	}
 	req.Header.Add("Accept", "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Add("User-Agent", "Xenon bot")
 
 	if isSigned {
 		req = client.sign(req)
