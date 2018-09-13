@@ -241,20 +241,24 @@ func (trading *TradingProvider) handleUpdates(data []byte) {
 		}
 
 		if tradesMsg.CurrentExecutionType == "NEW" {
-			if tradesMsg.CurrentOrderStatus == "NEW" {
-				o := tradesMsg.MapOrder()
-				trading.uoc <- schemas.UserOrdersChannel{
-					Data:  o,
+			o := tradesMsg.MapOrder()
+			trading.uoc <- schemas.UserOrdersChannel{
+				Data:  o,
+				Error: err,
+			}
+		} else {
+			o := tradesMsg.MapOrder()
+			trading.uoc <- schemas.UserOrdersChannel{
+				Data:  o,
+				Error: err,
+			}
+			if tradesMsg.CurrentExecutionType == "TRADE" {
+				t := tradesMsg.Map()
+				trading.utc <- schemas.UserTradesChannel{
+					Data:  t,
 					Error: err,
 				}
 			}
-			return
-		}
-
-		t := tradesMsg.Map()
-		trading.utc <- schemas.UserTradesChannel{
-			Data:  t,
-			Error: err,
 		}
 	}
 }

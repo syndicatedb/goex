@@ -18,4 +18,5 @@ type Order struct {
 	Count        int     `json:"c"`
 	CreatedAt    int64   `json:"c_at"`
 	Remove       int     `json:"r"`
+	Status       string  `json:"st"`
 }

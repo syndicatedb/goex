@@ -95,6 +95,7 @@ func (uor *UserOrdersResponse) Map() (orders []schemas.Order) {
 			Count:        1,
 			Remove:       0,
 			CreatedAt:    o.Time,
+			Status:       o.Status,
 		})
 	}
 	return
@@ -276,6 +277,7 @@ func (tm *tradesMessage) MapOrder() (orders []schemas.Order) {
 		Count:     1,
 		Remove:    0,
 		CreatedAt: tm.TransactionTime,
+		Status:    tm.CurrentExecutionType,
 	})
 	return orders
 }
