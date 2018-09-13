@@ -101,11 +101,36 @@ type accessFlags struct {
 
 // newOrderMsg represents creating order payload
 type newOrderMsg struct {
-	CID    int64   `json:"cid"`
-	Type   string  `json:"type"`
-	Symbol string  `json:"symbol"`
-	Amount float64 `json:"amount, string"`
-	Price  float64 `json:"price, string"`
+	Type            string  `json:"type"`
+	Symbol          string  `json:"symbol"`
+	Amount          float64 `json:"amount"`
+	Price           float64 `json:"price"`
+	IsHidden        bool    `json:"is_hidden"`
+	IsPostOnly      bool    `json:"is_postonly"`
+	UseAllAvailable int32   `json:"use_all_available"`
+	OcoOrder        bool    `json:"ocoorder"`
+	BuyPriceOco     float64 `json:"buy_price_oco"`
+	SellPriceOco    float64 `json:"sell_price_oco"`
+}
+
+// newOrderResponse represtns newly created order response
+type newOrderResponse struct {
+	ID                int64  `json:"id"`
+	OrderID           int64  `json:"order_id"`
+	Symbol            string `json:"symbol"`
+	Exchange          string `json:"exchange"`
+	Price             string `json:"price"`
+	AvgExecutionPrice string `json:"avg_execution_price"`
+	Side              string `json:"side"`
+	Type              string `json:"type"`
+	Timestamp         string `json:"timestamp"`
+	IsLive            bool   `json:"is_live"`
+	IsCancelled       bool   `json:"is_cancelled"`
+	IsHidden          bool   `json:"is_hidden"`
+	WasForced         bool   `json:"was_forced"`
+	OriginalAmount    string `json:"original_amount"`
+	RemainigAmount    string `json:"remaining_amount"`
+	ExecutedAmount    string `json:"executed_amount"`
 }
 
 func int64Value(v interface{}) int64 {

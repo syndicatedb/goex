@@ -16,13 +16,15 @@ import (
 )
 
 const (
-	exchangeName = "bitfinex"
-	apiSymbols   = "https://api.bitfinex.com/v1/symbols_details"
-	apiOrderBook = "https://api.bitfinex.com/v2/book"
-	apiTrades    = "https://api.bitfinex.com/v2/trades"
-	apiQuotes    = "https://api.bitfinex.com/v2/ticker"
-	apiCandles   = "https://api.bitfinex.com/v2/candles"
-	apiAccess    = "https://api.bitfinex.com/v1/key_info"
+	exchangeName   = "bitfinex"
+	apiSymbols     = "https://api.bitfinex.com/v1/symbols_details"
+	apiOrderBook   = "https://api.bitfinex.com/v2/book"
+	apiTrades      = "https://api.bitfinex.com/v2/trades"
+	apiQuotes      = "https://api.bitfinex.com/v2/ticker"
+	apiCandles     = "https://api.bitfinex.com/v2/candles"
+	apiAccess      = "https://api.bitfinex.com/v1/key_info"
+	apiNewOrder    = "https://api.bitfinex.com/v1/order/new"
+	apiCancelOrder = "https://api.bitfinex.com/v1/order/cancel"
 
 	wsURL = "wss://api.bitfinex.com/ws/2"
 )

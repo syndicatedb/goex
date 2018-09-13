@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -112,19 +113,65 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 
 // Create stub method
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
-	symbol := unparseSymbol(order.Symbol)
-	cid := time.Now().Unix()
+	var b []byte
+	var orderType string
+	var resp newOrderResponse
 
-	msg := newOrderMsg{
-		CID:    cid,
-		Symbol: symbol,
-		Type:   order.Type,
-		Amount: order.Amount,
-		Price:  order.Price,
+	symbol := unparseSymbol(order.Symbol)
+	if strings.ToUpper(order.Type) == schemas.TypeBuy {
+		orderType = "buy"
+	}
+	if strings.ToUpper(order.Type) == schemas.TypeSell {
+		orderType = "sell"
 	}
 
-	if err = trading.wsClient.Write(msg); err != nil {
+	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+
+	payload := httpclient.Params()
+	payload.Set("request", "/v1/order/new")
+	payload.Set("nonce", nonce)
+	payload.Set("symbol", symbol)
+	payload.Set("amount", strconv.FormatFloat(order.Amount, 'f', -1, 64))
+	payload.Set("price", strconv.FormatFloat(order.Price, 'f', -1, 64))
+	payload.Set("side", orderType)
+	payload.Set("type", "limit") // TODO: add type to order model, handle it here
+
+	b, err = trading.httpClient.Post(apiNewOrder, httpclient.Params(), payload, true)
+	if err != nil {
 		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+
+	var side string
+	var price, amount float64
+	smb, _, _ := parseSymbol("t" + strings.ToUpper(resp.Symbol))
+
+	if resp.Side == "buy" {
+		side = schemas.TypeBuy
+	}
+	if resp.Side == "sell" {
+		side = schemas.TypeSell
+	}
+
+	status := schemas.StatusNew
+	if resp.IsCancelled {
+		status = schemas.StatusCancelled
+	}
+
+	price, _ = strconv.ParseFloat(resp.Price, 64)
+	amount, _ = strconv.ParseFloat(resp.OriginalAmount, 64)
+	tms, _ := strconv.ParseInt(resp.Timestamp, 10, 64)
+
+	result = schemas.Order{
+		ID:        strconv.FormatInt(resp.ID, 10),
+		Symbol:    smb,
+		Type:      side,
+		Price:     price,
+		Amount:    amount,
+		CreatedAt: tms,
+		Status:    status,
 	}
 
 	return
@@ -132,6 +179,24 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 
 // Cancel stub method
 func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
+	var b []byte
+	var resp newOrderResponse
+
+	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+
+	payload := httpclient.Params()
+	payload.Set("request", "/v1/order/cancel")
+	payload.Set("nonce", nonce)
+	payload.Set("order_id", order.ID)
+
+	b, err = trading.httpClient.Post(apiCancelOrder, httpclient.Params(), payload, true)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+
 	return
 }
 
@@ -322,8 +387,7 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) schemas.UserOrdersC
 
 	for i := range msg {
 		if ord, ok := msg[i].([]interface{}); ok {
-			var side string
-			// var status string
+			var side, status string
 
 			symbol, _, _ := parseSymbol(ord[3].(string))
 
@@ -333,21 +397,21 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) schemas.UserOrdersC
 				side = schemas.TypeSell
 			}
 
-			// if ord[10] == "EXECUTED" {
-			// 	status = schemas.StatusTrade
-			// } else if ord[10] == "ACTIVE" {
-			// 	status = schemas.StatusNew
-			// } else if ord[10] == "CANCELED" {
-			// 	status = schemas.StatusCancelled
-			// } else {
-			// 	status = ord[10].(string)
-			// }
+			if ord[10] == "EXECUTED" {
+				status = schemas.StatusTrade
+			} else if ord[10] == "ACTIVE" {
+				status = schemas.StatusNew
+			} else if ord[10] == "CANCELED" {
+				status = schemas.StatusCancelled
+			} else {
+				status = ord[10].(string)
+			}
 
 			order := schemas.Order{
-				ID:     strconv.FormatFloat(ord[0].(float64), 'f', -1, 64),
-				Symbol: symbol,
-				Type:   side,
-				// Status: status,
+				ID:        strconv.FormatFloat(ord[0].(float64), 'f', -1, 64),
+				Symbol:    symbol,
+				Type:      side,
+				Status:    status,
 				Price:     ord[11].(float64),
 				Amount:    ord[7].(float64),
 				CreatedAt: ord[4].(int64),
