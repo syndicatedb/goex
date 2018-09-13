@@ -240,25 +240,18 @@ func (trading *TradingProvider) handleUpdates(data []byte) {
 			log.Println("Trades unmarshalling error:", err)
 		}
 
-		if tradesMsg.CurrentExecutionType == "NEW" {
-			o := tradesMsg.MapOrder()
-			trading.uoc <- schemas.UserOrdersChannel{
-				Data:  o,
+		if tradesMsg.CurrentExecutionType == "TRADE" {
+			t := tradesMsg.Map()
+			trading.utc <- schemas.UserTradesChannel{
+				Data:  t,
 				Error: err,
 			}
-		} else {
-			o := tradesMsg.MapOrder()
-			trading.uoc <- schemas.UserOrdersChannel{
-				Data:  o,
-				Error: err,
-			}
-			if tradesMsg.CurrentExecutionType == "TRADE" {
-				t := tradesMsg.Map()
-				trading.utc <- schemas.UserTradesChannel{
-					Data:  t,
-					Error: err,
-				}
-			}
+		}
+
+		o := tradesMsg.MapOrder()
+		trading.uoc <- schemas.UserOrdersChannel{
+			Data:  o,
+			Error: err,
 		}
 	}
 }
