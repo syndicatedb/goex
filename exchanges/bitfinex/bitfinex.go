@@ -6,8 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -82,22 +82,25 @@ func parseSymbol(smb string) (name, basecoin, quoteCoin string) {
 	return
 }
 
-func sign(key, secret string, req *http.Request) *http.Request {
-	var signed string
+func unparseSymbol(symbol string) string {
+	sa := strings.Split(symbol, "-")
 
-	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
-	path := req.URL.Path
+	return "t" + sa[0] + sa[1]
+}
+
+func sign(key, secret string, req *http.Request) *http.Request {
 	b, _ := req.GetBody()
 	body, err := ioutil.ReadAll(b)
 	if err != nil {
 		return req
 	}
 
-	sig := "/api/" + path + nonce + string(body)
-	signed = signRequest(sig, secret)
-	req.Header.Add("bfx-nonce", nonce)
-	req.Header.Add("bfx-apikey", key)
-	req.Header.Add("bfx-signature", signed)
+	log.Println("BODY", string(body))
+
+	sig := createSignature384(string(body), secret)
+	req.Header.Add("X-BFX-APIKEY", key)
+	req.Header.Add("X-BFX-PAYLOAD", string(body))
+	req.Header.Add("X-BFX-SIGNATURE", sig)
 
 	return req
 }

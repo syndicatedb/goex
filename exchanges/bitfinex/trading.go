@@ -1,13 +1,10 @@
 package bitfinex
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -115,6 +112,21 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 
 // Create stub method
 func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Order, err error) {
+	symbol := unparseSymbol(order.Symbol)
+	cid := time.Now().Unix()
+
+	msg := newOrderMsg{
+		CID:    cid,
+		Symbol: symbol,
+		Type:   order.Type,
+		Amount: order.Amount,
+		Price:  order.Price,
+	}
+
+	if err = trading.wsClient.Write(msg); err != nil {
+		return
+	}
+
 	return
 }
 
@@ -250,40 +262,22 @@ func (trading *TradingProvider) checkAuthMessage(msg map[string]interface{}) err
 }
 
 func (trading *TradingProvider) getAccessInfo() (access schemas.Access, err error) {
-	log.Println("Getting access data")
+	var b []byte
 	var resp accessResponse
 
 	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
-	req, err := http.NewRequest("POST", apiAccess, nil)
-	if err != nil {
-		return
-	}
-	payload := map[string]interface{}{
-		"request": "/v1/key_info",
-		"nonce":   nonce,
-	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return
-	}
-	payloadEnc := base64.StdEncoding.EncodeToString(payloadBytes)
-	sig := createSignature384(payloadEnc, trading.credentials.APISecret)
 
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-BFX-APIKEY", trading.credentials.APIKey)
-	req.Header.Add("X-BFX-PAYLOAD", payloadEnc)
-	req.Header.Add("X-BFX-SIGNATURE", sig)
+	payload := httpclient.Params()
+	payload.Set("request", "/v1/key_info")
+	payload.Set("nonce", nonce)
 
-	r, err := trading.proxyClient.Do(req)
+	b, err = trading.httpClient.Post(apiAccess, httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return
-	}
-	if err = json.Unmarshal(body, &resp); err != nil {
+	log.Printf("RESP %+v", string(b))
+
+	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 

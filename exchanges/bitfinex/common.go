@@ -99,6 +99,15 @@ type accessFlags struct {
 	Write bool `json:"write"`
 }
 
+// newOrderMsg represents creating order payload
+type newOrderMsg struct {
+	CID    int64   `json:"cid"`
+	Type   string  `json:"type"`
+	Symbol string  `json:"symbol"`
+	Amount float64 `json:"amount, string"`
+	Price  float64 `json:"price, string"`
+}
+
 func int64Value(v interface{}) int64 {
 	if f, ok := v.(float64); ok {
 		return int64(f)
