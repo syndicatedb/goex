@@ -268,7 +268,7 @@ func (tm *tradesMessage) MapOrder() (orders []schemas.Order) {
 	if err != nil {
 		log.Println("Error mapping qty in private trades. Binance:", err)
 	}
-	orders = append(orders, schemas.Order{
+	o := schemas.Order{
 		ID:        strconv.FormatInt(tm.OrderID, 10),
 		Symbol:    symbol,
 		Type:      strings.ToUpper(tm.Side),
@@ -278,6 +278,11 @@ func (tm *tradesMessage) MapOrder() (orders []schemas.Order) {
 		Remove:    0,
 		CreatedAt: tm.TransactionTime,
 		Status:    tm.CurrentExecutionType,
-	})
+	}
+
+	if strings.Contains(strings.ToUpper(o.Status), "CANCEL") {
+		o.Status = "CANCELLED"
+	}
+	orders = append(orders, o)
 	return orders
 }
