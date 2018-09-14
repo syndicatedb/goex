@@ -234,10 +234,11 @@ func (cg *CandlesGroup) handleMessage(msg []byte) {
 
 // mapSnapshot - mapping incoming candles snapshot message into common []Candle model
 func (cg *CandlesGroup) mapSnapshot(symbol string, data []interface{}) (candles []schemas.Candle) {
+	s, _, _ := parseSymbol(symbol)
 	for _, c := range data {
 		if cand, ok := c.([]interface{}); ok {
 			candles = append(candles, schemas.Candle{
-				Symbol:         symbol,
+				Symbol:         s,
 				Open:           cand[1].(float64),
 				Close:          cand[2].(float64),
 				High:           cand[3].(float64),
@@ -254,8 +255,9 @@ func (cg *CandlesGroup) mapSnapshot(symbol string, data []interface{}) (candles 
 
 // mapUpdate - mapping incoming candle update message into common Candle model
 func (cg *CandlesGroup) mapUpdate(symbol string, data []interface{}) schemas.Candle {
+	s, _, _ := parseSymbol(symbol)
 	return schemas.Candle{
-		Symbol:         symbol,
+		Symbol:         s,
 		Open:           data[1].(float64),
 		Close:          data[2].(float64),
 		High:           data[3].(float64),
