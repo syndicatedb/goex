@@ -197,10 +197,10 @@ func (cg *CandlesGroup) handleUpdates(b []byte) (candles []schemas.Candle, dataT
 		log.Println("Parsing volume error", err)
 		return
 	}
-
+	s, _, _ := parseSymbol(msg.Data.Symbol)
 	c := schemas.Candle{
-		Symbol:    msg.Data.Symbol,
 		Timestamp: int64(msg.Data.Kline.OpenTime),
+		Symbol:    s,
 		Open:      o,
 		High:      h,
 		Low:       l,
