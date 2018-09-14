@@ -67,6 +67,8 @@ func NewCandlesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *Candle
 		symbols:    symbols,
 		httpProxy:  httpProxy,
 		httpClient: httpclient.New(proxyClient),
+		dataCh:     make(chan []byte, 2*len(symbols)),
+		errorCh:    make(chan error, 2*len(symbols)),
 	}
 }
 
