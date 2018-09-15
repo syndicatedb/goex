@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -654,7 +655,7 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.O
 				Type:      side,
 				Status:    status,
 				Price:     ord[11].(float64),
-				Amount:    ord[7].(float64),
+				Amount:    math.Abs(ord[7].(float64)),
 				CreatedAt: ord[4].(int64),
 			}
 
