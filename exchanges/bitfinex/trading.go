@@ -291,10 +291,11 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	// nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
 	nonce := fmt.Sprintf("%v", time.Now().UnixNano()/1000)
 
+	orderID, _ := strconv.ParseInt(order.ID, 10, 64)
 	payload := map[string]interface{}{
 		"request":  "/v1/order/cancel",
 		"nonce":    nonce,
-		"order_id": order.ID,
+		"order_id": orderID,
 	}
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
