@@ -241,7 +241,7 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	signedReq := signV1(trading.credentials.APIKey, trading.credentials.APISecret, req)
 	b, err = trading.httpClient.Do(signedReq)
 	if err != nil {
-		err = fmt.Errorf(errCreateOrder, string(b))
+		err = errors.New(string(b))
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
@@ -310,7 +310,7 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 
 	b, err = trading.httpClient.Do(req)
 	if err != nil {
-		err = fmt.Errorf(errCancelOrder, string(b))
+		err = errors.New(string(b))
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
@@ -346,7 +346,7 @@ func (trading *TradingProvider) CancelAll() (err error) {
 	}
 	b, err = trading.httpClient.Do(req)
 	if err != nil {
-		err = fmt.Errorf(errCancelAll, err)
+		err = errors.New(string(b))
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
