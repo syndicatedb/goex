@@ -308,11 +308,6 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	signedReq := signV1(trading.credentials.APIKey, trading.credentials.APISecret, req)
 	b, err = trading.httpClient.Do(signedReq)
 	if err != nil {
-		return
-	}
-
-	b, err = trading.httpClient.Do(req)
-	if err != nil {
 		err = errors.New(string(b))
 		return
 	}
