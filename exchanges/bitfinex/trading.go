@@ -228,11 +228,12 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 		"side":    orderType,
 		"type":    "limit", // TODO: add type to order model, handle it here
 	}
+	log.Println("PAYLOAD", payload)
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		return
 	}
-	req, err := http.NewRequest("POST", apiAccess, bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest("POST", apiNewOrder, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return
 	}
