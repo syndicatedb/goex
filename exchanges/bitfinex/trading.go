@@ -228,7 +228,7 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 		"amount":  strconv.FormatFloat(order.Amount, 'f', -1, 64),
 		"price":   strconv.FormatFloat(order.Price, 'f', -1, 64),
 		"side":    orderType,
-		"type":    "limit", // TODO: add type to order model, handle it here
+		"type":    "exchange limit", // TODO: add type to order model, handle it here
 	}
 
 	log.Println("PAYLOAD", payload)
