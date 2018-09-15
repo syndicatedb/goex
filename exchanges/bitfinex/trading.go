@@ -633,6 +633,7 @@ func (trading *TradingProvider) mapBalance(msg []interface{}) map[string]schemas
 }
 
 func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.Order) {
+	log.Println("RAW MESSAGE", msg)
 	for i := range msg {
 		if ord, ok := msg[i].([]interface{}); ok {
 			var side, status string
@@ -645,14 +646,14 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.O
 				side = schemas.TypeSell
 			}
 
-			if ord[10] == "EXECUTED" {
+			if ord[13] == "EXECUTED" {
 				status = schemas.StatusTrade
-			} else if ord[10] == "ACTIVE" {
+			} else if ord[13] == "ACTIVE" {
 				status = schemas.StatusNew
-			} else if ord[10] == "CANCELED" {
+			} else if ord[13] == "CANCELED" {
 				status = schemas.StatusCancelled
 			} else {
-				if st, ok := ord[10].(string); ok {
+				if st, ok := ord[13].(string); ok {
 					status = st
 				}
 			}
@@ -662,9 +663,9 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.O
 				Symbol:    symbol,
 				Type:      side,
 				Status:    status,
-				Price:     ord[11].(float64),
-				Amount:    math.Abs(ord[7].(float64)),
-				CreatedAt: ord[4].(int64),
+				Price:     ord[16].(float64),
+				Amount:    math.Abs(ord[6].(float64)),
+				CreatedAt: int64(ord[4].(float64)),
 			}
 
 			orders = append(orders, order)
@@ -678,6 +679,7 @@ func (trading *TradingProvider) mapTrades(msg []interface{}) (trades []schemas.T
 	for i := range msg {
 		if trd, ok := msg[i].([]interface{}); ok {
 			var side string
+			var fee float64
 
 			symbol, _, _ := parseSymbol(trd[1].(string))
 
@@ -685,6 +687,10 @@ func (trading *TradingProvider) mapTrades(msg []interface{}) (trades []schemas.T
 				side = schemas.TypeBuy
 			} else {
 				side = schemas.TypeSell
+			}
+
+			if f, ok := trd[9].(float64); ok {
+				fee = f
 			}
 
 			trade := schemas.Trade{
@@ -695,7 +701,7 @@ func (trading *TradingProvider) mapTrades(msg []interface{}) (trades []schemas.T
 				Timestamp: int64(trd[2].(float64)),
 				Amount:    math.Abs(trd[4].(float64)),
 				Price:     trd[5].(float64),
-				Fee:       trd[9].(float64),
+				Fee:       fee,
 			}
 
 			trades = append(trades, trade)
