@@ -685,7 +685,7 @@ func (trading *TradingProvider) mapTrades(msg []interface{}) (trades []schemas.T
 				Symbol:    symbol,
 				Type:      side,
 				Timestamp: int64(trd[2].(float64)),
-				Amount:    trd[4].(float64),
+				Amount:    math.Abs(trd[4].(float64)),
 				Price:     trd[5].(float64),
 				Fee:       trd[9].(float64),
 			}
