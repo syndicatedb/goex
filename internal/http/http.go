@@ -150,7 +150,6 @@ func (client *Client) Do(req *http.Request) (b []byte, err error) {
 		return
 	}
 	defer resp.Body.Close()
-	log.Printf("%+v", req)
 	if resp.StatusCode != 200 {
 		log.Println("Data:", string(body), "Error:", err)
 		// log.Println("Resp status is:", resp.Status)
