@@ -652,7 +652,9 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.O
 			} else if ord[10] == "CANCELED" {
 				status = schemas.StatusCancelled
 			} else {
-				status = ord[10].(string)
+				if st, ok := ord[10].(string); ok {
+					status = st
+				}
 			}
 
 			order := schemas.Order{
