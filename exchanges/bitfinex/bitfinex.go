@@ -91,7 +91,7 @@ func parseSymbol(smb string) (name, basecoin, quoteCoin string) {
 func unparseSymbol(symbol string) string {
 	sa := strings.Split(symbol, "-")
 
-	return "t" + sa[0] + sa[1]
+	return sa[0] + sa[1]
 }
 
 func signV1(key, secret string, req *http.Request) *http.Request {
