@@ -389,6 +389,8 @@ func (trading *TradingProvider) publishErr(err error) {
 func (trading *TradingProvider) mapBalance(msg []interface{}) map[string]schemas.Balance {
 	sb := make(map[string]schemas.Balance)
 
+	log.Println("RAW BALANCE", msg)
+
 	for i := range msg {
 		if wal, ok := msg[i].([]interface{}); ok {
 			b := schemas.Balance{
