@@ -27,6 +27,8 @@ const (
 	errUnmarshal     = "Error unmarshalling message: %v"
 	errExitWsClient  = "Error exiting WS client: %v"
 	errCancelAll     = "Error cancelling all orders: %v"
+	errCreateOrder   = "Error creating order: %v"
+	errCancelOrder   = "Error cancelling order: %v"
 )
 
 const (
@@ -228,7 +230,6 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 		"side":    orderType,
 		"type":    "limit", // TODO: add type to order model, handle it here
 	}
-	log.Println("PAYLOAD", payload)
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		return
@@ -240,9 +241,9 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	signedReq := signV1(trading.credentials.APIKey, trading.credentials.APISecret, req)
 	b, err = trading.httpClient.Do(signedReq)
 	if err != nil {
+		err = fmt.Errorf(errCreateOrder, string(b))
 		return
 	}
-
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
@@ -309,6 +310,7 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 
 	b, err = trading.httpClient.Do(req)
 	if err != nil {
+		err = fmt.Errorf(errCancelOrder, string(b))
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
