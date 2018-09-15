@@ -133,6 +133,11 @@ type newOrderResponse struct {
 	ExecutedAmount    string `json:"executed_amount"`
 }
 
+// cancelAllResponse represents response model on cancelling all orders
+type cancelAllResponse struct {
+	Result string `json:"result"`
+}
+
 func int64Value(v interface{}) int64 {
 	if f, ok := v.(float64); ok {
 		return int64(f)

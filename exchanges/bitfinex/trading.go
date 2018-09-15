@@ -18,9 +18,23 @@ import (
 )
 
 const (
-	errConnecting = "Error connecting to bitfinex WS: %v"
-	errAuth       = "Bitfinex auth error: %v"
-	errOnWs       = "Error from websocket client: %v"
+	errConnecting    = "Error connecting to bitfinex WS: %v"
+	errAuth          = "Bitfinex auth error: %v"
+	errOnWs          = "Error from websocket client: %v"
+	errLoadingTrades = "Error loading trades: %v"
+	errWsNotAuth     = "WS subscription not authorized"
+	errUnmarshal     = "Error unmarshalling message: %v"
+	errExitWsClient  = "Error exiting WS client: %v"
+	errCancelAll     = "Error cancelling all orders: %v"
+)
+
+const (
+	codeRestart   = 20051
+	codeMaintance = 20060
+)
+
+const (
+	cancelAllStatus = "All orders cancelled"
 )
 
 // TradingProvider represents bitfinex trading provider structure
@@ -50,60 +64,134 @@ func NewTradingProvider(creds schemas.Credentials, proxy proxy.Provider) *Tradin
 		httpClient:  httpclient.NewSigned(creds, proxyClient),
 		proxyClient: proxyClient,
 		bus: tradingBus{
-			uic: make(chan schemas.UserInfoChannel),
-			uoc: make(chan schemas.UserOrdersChannel),
-			utc: make(chan schemas.UserTradesChannel),
+			uic: make(chan schemas.UserInfoChannel, 100),
+			uoc: make(chan schemas.UserOrdersChannel, 100),
+			utc: make(chan schemas.UserTradesChannel, 100),
 		},
 	}
 }
 
 // Subscribe subscribing to accounts updates for balances, orders, trades
 func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.UserInfoChannel, chan schemas.UserOrdersChannel, chan schemas.UserTradesChannel) {
-	dch := make(chan []byte, 100)
-	ech := make(chan error, 100)
-
-	if err := trading.wsClient.Connect(); err != nil {
-		err = fmt.Errorf(errConnecting, err)
-		trading.publishErr(err)
-	}
-	trading.wsClient.ChangeKeepAlive(false)
-	trading.wsClient.Listen(dch, ech)
-
-	go func() {
-		for {
-			select {
-			case msg := <-dch:
-				log.Println("Incoming message: ", string(msg))
-				trading.handleMessages(msg)
-			case err := <-ech:
-				log.Printf(errOnWs, err)
-				err = fmt.Errorf(errOnWs, err)
-				trading.publishErr(err)
-			}
-		}
-	}()
-
-	if err := trading.auth(); err != nil {
-		log.Printf(errAuth, err)
-		err = fmt.Errorf(errAuth, err)
-		trading.publishErr(err)
-	}
+	trading.subscribe()
 
 	return trading.bus.uic, trading.bus.uoc, trading.bus.utc
 }
 
 // Info stub method
 func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
+	var b []byte
+	var resp []interface{}
+
+	payload := make(map[string]interface{})
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+
+	path := "/v2/auth/r/wallets"
+	req, err := http.NewRequest("POST", apiURL+path, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return
+	}
+	signedReq := signV2(trading.credentials.APIKey, trading.credentials.APISecret, path, req)
+	b, err = trading.httpClient.Do(signedReq)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	balances := trading.mapBalance(resp)
+
+	access, err := trading.getAccessInfo()
+	if err != nil {
+		return
+	}
+
+	ui = schemas.UserInfo{
+		Access:   access,
+		Balances: balances,
+	}
+
 	return
 }
 
 // Orders stub method
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
+	var b []byte
+	var resp []interface{}
+
+	for _, symb := range symbols {
+		payload := make(map[string]interface{})
+		bodyBytes, err := json.Marshal(payload)
+		if err != nil {
+			return nil, err
+		}
+
+		path := "/v2/auth/r/orders/" + symb.OriginalName
+		req, err := http.NewRequest("POST", apiURL+path, bytes.NewBuffer(bodyBytes))
+		if err != nil {
+			return nil, err
+		}
+		signedReq := signV2(trading.credentials.APIKey, trading.credentials.APISecret, path, req)
+		b, err = trading.httpClient.Do(signedReq)
+		if err != nil {
+			return nil, err
+		}
+		if err = json.Unmarshal(b, &resp); err != nil {
+			return nil, err
+		}
+
+		ordr := trading.mapOrders(resp)
+		if len(ordr) > 0 {
+			orders = append(orders, ordr[0])
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+
 	return
 }
 
 // Trades stub method
 func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
+	var b []byte
+	var resp []interface{}
+
+	payload := make(map[string]interface{})
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+
+	path := "/v2/auth/r/trades/hist"
+	req, err := http.NewRequest("POST", apiURL+path, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return
+	}
+
+	query := req.URL.Query()
+	if opts.Limit > 0 {
+		query.Add("limit", fmt.Sprintf("%d", opts.Limit))
+	}
+	if opts.Since != 0 {
+		query.Add("start", fmt.Sprintf("%d", opts.Since))
+	}
+	if opts.Before != 0 {
+		query.Add("end", fmt.Sprintf("%d", opts.Before))
+	}
+	req.URL.RawQuery = query.Encode()
+
+	signedReq := signV2(trading.credentials.APIKey, trading.credentials.APISecret, path, req)
+	b, err = trading.httpClient.Do(signedReq)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+
+	trades = trading.mapTrades(resp)
 	return
 }
 
@@ -128,7 +216,7 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	}
 
 	// nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
-	nonce := fmt.Sprintf("%v", time.Now().Unix()*10000)
+	nonce := fmt.Sprintf("%v", time.Now().UnixNano()/1000)
 
 	payload := map[string]interface{}{
 		"request": "/v1/order/new",
@@ -137,7 +225,7 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 		"amount":  strconv.FormatFloat(order.Amount, 'f', -1, 64),
 		"price":   strconv.FormatFloat(order.Price, 'f', -1, 64),
 		"side":    orderType,
-		"type":    "limit", // TODO: add type to order model, handle it her
+		"type":    "limit", // TODO: add type to order model, handle it here
 	}
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -147,13 +235,12 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	if err != nil {
 		return
 	}
-	signedReq := sign(trading.credentials.APIKey, trading.credentials.APISecret, req)
+	signedReq := signV1(trading.credentials.APIKey, trading.credentials.APISecret, req)
 	b, err = trading.httpClient.Do(signedReq)
 	if err != nil {
 		return
 	}
 
-	log.Printf("RESP %+v", string(b))
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
@@ -196,14 +283,29 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 	var b []byte
 	var resp newOrderResponse
 
-	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+	// nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+	nonce := fmt.Sprintf("%v", time.Now().UnixNano()/1000)
 
-	payload := httpclient.Params()
-	payload.Set("request", "/v1/order/cancel")
-	payload.Set("nonce", nonce)
-	payload.Set("order_id", order.ID)
+	payload := map[string]interface{}{
+		"request":  "/v1/order/cancel",
+		"nonce":    nonce,
+		"order_id": order.ID,
+	}
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	req, err := http.NewRequest("POST", apiCancelOrder, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return
+	}
+	signedReq := signV1(trading.credentials.APIKey, trading.credentials.APISecret, req)
+	b, err = trading.httpClient.Do(signedReq)
+	if err != nil {
+		return
+	}
 
-	b, err = trading.httpClient.Post(apiCancelOrder, httpclient.Params(), payload, true)
+	b, err = trading.httpClient.Do(req)
 	if err != nil {
 		return
 	}
@@ -216,11 +318,110 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 
 // CancelAll stub method
 func (trading *TradingProvider) CancelAll() (err error) {
+	var b []byte
+	var resp cancelAllResponse
+
+	nonce := fmt.Sprintf("%v", time.Now().UnixNano()/1000)
+
+	payload := map[string]interface{}{
+		"request": "/v1/order/cancel/all",
+		"nonce":   nonce,
+	}
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	req, err := http.NewRequest("POST", apiCancelOrder, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return
+	}
+	signedReq := signV1(trading.credentials.APIKey, trading.credentials.APISecret, req)
+	b, err = trading.httpClient.Do(signedReq)
+	if err != nil {
+		return
+	}
+	b, err = trading.httpClient.Do(req)
+	if err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if resp.Result != cancelAllStatus {
+		err = fmt.Errorf(errCancelAll, resp.Result)
+		return
+	}
+
+	return
+}
+
+func (trading *TradingProvider) subscribe() {
+	dch := make(chan []byte, 100)
+	ech := make(chan error, 100)
+
+	if err := trading.wsClient.Connect(); err != nil {
+		err = fmt.Errorf(errConnecting, err)
+		trading.publishErr(err)
+
+		// resubscribing on connection error
+		trading.resubscribe()
+		return
+	}
+	trading.wsClient.ChangeKeepAlive(false)
+	trading.wsClient.Listen(dch, ech)
+
+	go func() {
+		// bitfinex hasn't got trades snapshot on websockets
+		// so we need to get snapshot by HTTP.
+		// We need sleep so that nonce on HTTP and
+		// ws auth wiil be different
+		time.Sleep(1 * time.Second)
+		trades, _, err := trading.Trades(schemas.FilterOptions{})
+		if err != nil {
+			log.Printf(errLoadingTrades, err)
+			err = fmt.Errorf(errLoadingTrades, err)
+			trading.publishErr(err)
+		}
+		trading.bus.utc <- schemas.UserTradesChannel{
+			Data: trades,
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case msg := <-dch:
+				log.Println("Incoming message: ", string(msg))
+				trading.handleMessages(msg)
+			case err := <-ech:
+				log.Printf(errOnWs, err)
+				err = fmt.Errorf(errOnWs, err)
+				trading.publishErr(err)
+			}
+		}
+	}()
+
+	if err := trading.auth(); err != nil {
+		log.Printf(errAuth, err)
+		err = fmt.Errorf(errAuth, err)
+		trading.publishErr(err)
+
+		// resubscribing on auth error
+		trading.resubscribe()
+		return
+	}
+}
+
+func (trading *TradingProvider) resubscribe() {
+	if err := trading.wsClient.Exit(); err != nil {
+		log.Printf(errExitWsClient, err)
+	}
+
+	trading.subscribe()
 	return
 }
 
 func (trading *TradingProvider) auth() error {
-	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+	nonce := fmt.Sprintf("%v", time.Now().UnixNano()/1000)
 
 	payload := "AUTH" + nonce
 	signature := createSignature384(payload, trading.credentials.APISecret)
@@ -241,7 +442,7 @@ func (trading *TradingProvider) handleMessages(data []byte) {
 
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
-		log.Println("Error unmarshalling message: ", err)
+		log.Printf(errUnmarshal, err)
 		return
 	}
 
@@ -279,7 +480,6 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 			return
 		}
 
-		log.Println("Access data", access)
 		trading.bus.uic <- schemas.UserInfoChannel{
 			Data: schemas.UserInfo{
 				Access:   access,
@@ -295,7 +495,6 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 			trading.publishErr(err)
 			return
 		}
-		log.Println("Access data", access)
 
 		trading.bus.uic <- schemas.UserInfoChannel{
 			Data: schemas.UserInfo{
@@ -306,16 +505,22 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 	}
 	if updType == "os" {
 		m := trading.mapOrders(msg[2].([]interface{}))
-		trading.bus.uoc <- m
+		trading.bus.uoc <- schemas.UserOrdersChannel{
+			Data: m,
+		}
 	}
 	if updType == "on" || updType == "ou" || updType == "oc" {
 		wslice := []interface{}{msg[2]}
 		m := trading.mapOrders(wslice)
-		trading.bus.uoc <- m
+		trading.bus.uoc <- schemas.UserOrdersChannel{
+			Data: m,
+		}
 	}
 	if updType == "tu" {
 		m := trading.mapTrades(msg[2].([]interface{}))
-		trading.bus.utc <- m
+		trading.bus.utc <- schemas.UserTradesChannel{
+			Data: m,
+		}
 	}
 }
 
@@ -325,7 +530,17 @@ func (trading *TradingProvider) handleEvents(msg map[string]interface{}) error {
 		return errors.New("WS error: " + msg["msg"].(string))
 	}
 	if msg["event"] == "info" {
-		log.Println("Info message: ", msg)
+		if msg["code"] == codeRestart {
+			trading.resubscribe()
+
+			return nil
+		}
+		if msg["code"] == codeMaintance {
+			time.Sleep(120 * time.Second)
+			trading.resubscribe()
+
+			return nil
+		}
 	}
 
 	return nil
@@ -337,15 +552,14 @@ func (trading *TradingProvider) checkAuthMessage(msg map[string]interface{}) err
 		return nil
 	}
 
-	return errors.New("WS subscription not authorized")
+	return errors.New(errWsNotAuth)
 }
 
 func (trading *TradingProvider) getAccessInfo() (access schemas.Access, err error) {
 	var b []byte
 	var resp accessResponse
 
-	// nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
-	nonce := fmt.Sprintf("%v", time.Now().Unix()*10000)
+	nonce := fmt.Sprintf("%v", time.Now().UnixNano()/1000)
 
 	payload := map[string]interface{}{
 		"request": "/v1/key_info",
@@ -359,13 +573,11 @@ func (trading *TradingProvider) getAccessInfo() (access schemas.Access, err erro
 	if err != nil {
 		return
 	}
-	signedReq := sign(trading.credentials.APIKey, trading.credentials.APISecret, req)
+	signedReq := signV1(trading.credentials.APIKey, trading.credentials.APISecret, req)
 	b, err = trading.httpClient.Do(signedReq)
 	if err != nil {
 		return
 	}
-
-	log.Printf("RESP %+v", string(b))
 
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
@@ -389,13 +601,17 @@ func (trading *TradingProvider) publishErr(err error) {
 func (trading *TradingProvider) mapBalance(msg []interface{}) map[string]schemas.Balance {
 	sb := make(map[string]schemas.Balance)
 
-	log.Printf("RAW BALANCE %+v", msg)
-
 	for i := range msg {
 		if wal, ok := msg[i].([]interface{}); ok {
 			b := schemas.Balance{
 				Coin:  wal[1].(string),
 				Total: wal[2].(float64),
+			}
+			// according to Bitfinex docs `available` balance field can be null
+			// if value isn't fresh enough
+			if wal[4] == nil {
+				b.Available = b.Total
+				b.InOrders = b.Total - b.Available
 			}
 			if aval, ok := wal[4].(float64); ok {
 				b.Available = aval
@@ -409,11 +625,7 @@ func (trading *TradingProvider) mapBalance(msg []interface{}) map[string]schemas
 	return sb
 }
 
-func (trading *TradingProvider) mapOrders(msg []interface{}) schemas.UserOrdersChannel {
-	var orders []schemas.Order
-
-	log.Printf("RAW ORDERS %+v", msg)
-
+func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.Order) {
 	for i := range msg {
 		if ord, ok := msg[i].([]interface{}); ok {
 			var side, status string
@@ -450,16 +662,10 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) schemas.UserOrdersC
 		}
 	}
 
-	return schemas.UserOrdersChannel{
-		Data: orders,
-	}
+	return
 }
 
-func (trading *TradingProvider) mapTrades(msg []interface{}) schemas.UserTradesChannel {
-	var trades []schemas.Trade
-
-	log.Printf("RAW TRADES %+v", msg)
-
+func (trading *TradingProvider) mapTrades(msg []interface{}) (trades []schemas.Trade) {
 	for i := range msg {
 		if trd, ok := msg[i].([]interface{}); ok {
 			var side string
@@ -473,11 +679,11 @@ func (trading *TradingProvider) mapTrades(msg []interface{}) schemas.UserTradesC
 			}
 
 			trade := schemas.Trade{
-				ID:        strconv.FormatInt(trd[0].(int64), 10),
-				OrderID:   strconv.FormatInt(trd[3].(int64), 10),
+				ID:        strconv.FormatFloat(trd[0].(float64), 'f', -1, 64),
+				OrderID:   strconv.FormatFloat(trd[3].(float64), 'f', -1, 64),
 				Symbol:    symbol,
 				Type:      side,
-				Timestamp: trd[2].(int64),
+				Timestamp: int64(trd[2].(float64)),
 				Amount:    trd[4].(float64),
 				Price:     trd[5].(float64),
 				Fee:       trd[9].(float64),
@@ -487,7 +693,5 @@ func (trading *TradingProvider) mapTrades(msg []interface{}) schemas.UserTradesC
 		}
 	}
 
-	return schemas.UserTradesChannel{
-		Data: trades,
-	}
+	return
 }
