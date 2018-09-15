@@ -1,13 +1,12 @@
 package httpclient
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
@@ -79,8 +78,7 @@ func (client *Client) Post(url string, params, payload KeyValue, isSigned bool) 
 
 // Request - custom HTTP request
 func (client *Client) Request(method, endpoint string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
-	// var formData string
-	var bodyBytes []byte
+	var formData string
 
 	rawurl := endpoint
 	// log.Println("ENDPOINT", rawurl)
@@ -100,25 +98,21 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 
 	if len(payload.data) > 0 {
 		var err error
-		// var URL *url.URL
-		// URL, err = url.Parse(rawurl)
-		// if err != nil {
-		// 	return
-		// }
-		// q := URL.Query()
-		// for key, value := range payload.data {
-		// 	q.Set(key, value)
-		// }
-		// formData = q.Encode()
-		// URL.RawQuery = formData
-		// rawurl = URL.String()
-
-		bodyBytes, err = json.Marshal(payload.data)
+		var URL *url.URL
+		URL, err = url.Parse(rawurl)
 		if err != nil {
 			return nil, err
 		}
+		q := URL.Query()
+		for key, value := range payload.data {
+			q.Set(key, value)
+		}
+		formData = q.Encode()
+		URL.RawQuery = formData
+		rawurl = URL.String()
 	}
-	req, err := http.NewRequest(method, rawurl, bytes.NewBuffer(bodyBytes))
+
+	req, err := http.NewRequest(method, rawurl, strings.NewReader(formData))
 	if err != nil {
 		return
 	}
@@ -138,7 +132,12 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 			req.Header.Add(key, v)
 		}
 	}
-	// log.Printf("req: %+v\n", req)
+
+	return client.Do(req)
+}
+
+// Do making HTTP request, can be user for custom requests
+func (client *Client) Do(req *http.Request) (b []byte, err error) {
 	resp, err := client.proxy.Do(req)
 	if err != nil {
 		fmt.Println("Error: ", err)

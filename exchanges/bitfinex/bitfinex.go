@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -97,19 +96,13 @@ func sign(key, secret string, req *http.Request) *http.Request {
 		return req
 	}
 
-	log.Println("BODY", string(body))
-
-	sig := createSignature384(string(body), secret)
+	payloadEnc := base64.StdEncoding.EncodeToString(body)
+	sig := createSignature384(payloadEnc, secret)
 	req.Header.Add("X-BFX-APIKEY", key)
-	req.Header.Add("X-BFX-PAYLOAD", string(body))
+	req.Header.Add("X-BFX-PAYLOAD", payloadEnc)
 	req.Header.Add("X-BFX-SIGNATURE", sig)
 
 	return req
-}
-
-func signRequest(msg, secret string) string {
-	signatureStr := base64.StdEncoding.EncodeToString([]byte(msg))
-	return createSignature384(signatureStr, secret)
 }
 
 func createSignature384(msg, secret string) string {

@@ -1,10 +1,12 @@
 package bitfinex
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -125,21 +127,33 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 		orderType = "sell"
 	}
 
-	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+	// nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+	nonce := fmt.Sprintf("%v", time.Now().Unix()*10000)
 
-	payload := httpclient.Params()
-	payload.Set("request", "/v1/order/new")
-	payload.Set("nonce", nonce)
-	payload.Set("symbol", symbol)
-	payload.Set("amount", strconv.FormatFloat(order.Amount, 'f', -1, 64))
-	payload.Set("price", strconv.FormatFloat(order.Price, 'f', -1, 64))
-	payload.Set("side", orderType)
-	payload.Set("type", "limit") // TODO: add type to order model, handle it here
-
-	b, err = trading.httpClient.Post(apiNewOrder, httpclient.Params(), payload, true)
+	payload := map[string]interface{}{
+		"request": "/v1/order/new",
+		"nonce":   nonce,
+		"symbol":  symbol,
+		"amount":  strconv.FormatFloat(order.Amount, 'f', -1, 64),
+		"price":   strconv.FormatFloat(order.Price, 'f', -1, 64),
+		"side":    orderType,
+		"type":    "limit", // TODO: add type to order model, handle it her
+	}
+	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		return
 	}
+	req, err := http.NewRequest("POST", apiAccess, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return
+	}
+	signedReq := sign(trading.credentials.APIKey, trading.credentials.APISecret, req)
+	b, err = trading.httpClient.Do(signedReq)
+	if err != nil {
+		return
+	}
+
+	log.Printf("RESP %+v", string(b))
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
@@ -330,16 +344,27 @@ func (trading *TradingProvider) getAccessInfo() (access schemas.Access, err erro
 	var b []byte
 	var resp accessResponse
 
-	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+	// nonce := strconv.FormatInt(time.Now().UnixNano(), 10)[:13]
+	nonce := fmt.Sprintf("%v", time.Now().Unix()*10000)
 
-	payload := httpclient.Params()
-	payload.Set("request", "/v1/key_info")
-	payload.Set("nonce", nonce)
-
-	b, err = trading.httpClient.Post(apiAccess, httpclient.Params(), payload, true)
+	payload := map[string]interface{}{
+		"request": "/v1/key_info",
+		"nonce":   nonce,
+	}
+	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		return
 	}
+	req, err := http.NewRequest("POST", apiAccess, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return
+	}
+	signedReq := sign(trading.credentials.APIKey, trading.credentials.APISecret, req)
+	b, err = trading.httpClient.Do(signedReq)
+	if err != nil {
+		return
+	}
+
 	log.Printf("RESP %+v", string(b))
 
 	if err = json.Unmarshal(b, &resp); err != nil {
