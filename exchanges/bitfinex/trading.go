@@ -346,6 +346,7 @@ func (trading *TradingProvider) CancelAll() (err error) {
 	}
 	b, err = trading.httpClient.Do(req)
 	if err != nil {
+		err = fmt.Errorf(errCancelAll, err)
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
