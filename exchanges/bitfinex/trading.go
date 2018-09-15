@@ -389,7 +389,7 @@ func (trading *TradingProvider) publishErr(err error) {
 func (trading *TradingProvider) mapBalance(msg []interface{}) map[string]schemas.Balance {
 	sb := make(map[string]schemas.Balance)
 
-	log.Println("RAW BALANCE", msg)
+	log.Printf("RAW BALANCE %+v", msg)
 
 	for i := range msg {
 		if wal, ok := msg[i].([]interface{}); ok {
@@ -411,6 +411,8 @@ func (trading *TradingProvider) mapBalance(msg []interface{}) map[string]schemas
 
 func (trading *TradingProvider) mapOrders(msg []interface{}) schemas.UserOrdersChannel {
 	var orders []schemas.Order
+
+	log.Printf("RAW ORDERS %+v", msg)
 
 	for i := range msg {
 		if ord, ok := msg[i].([]interface{}); ok {
@@ -455,6 +457,8 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) schemas.UserOrdersC
 
 func (trading *TradingProvider) mapTrades(msg []interface{}) schemas.UserTradesChannel {
 	var trades []schemas.Trade
+
+	log.Printf("RAW TRADES %+v", msg)
 
 	for i := range msg {
 		if trd, ok := msg[i].([]interface{}); ok {
