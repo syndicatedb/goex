@@ -67,6 +67,7 @@ func (ex *Exchange) TradingProvider() TradingProvider {
 // Options - exchange options for init
 type Options struct {
 	Name          string
+	API           string
 	Credentials   Credentials
 	ProxyProvider proxy.Provider
 }

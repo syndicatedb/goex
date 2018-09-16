@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -16,16 +17,16 @@ import (
 
 const (
 	// URL - API endpoint
-	apiSymbols     = "https://openapi.idax.mn/api/v1/marketinfo"
-	apiQuotes      = "https://openapi.idax.mn/api/v1/tickers"
-	apiQuote       = "https://openapi.idax.mn/api/v1/ticker"
-	apiOrderBook   = "https://openapi.idax.mn/api/v1/depth/"
-	apiTrades      = "https://openapi.idax.mn/api/3/trades/"
-	apiBalances    = "https://openapi.idax.mn/api/v1/balances"
-	apiOrderCreate = "https://openapi.idax.mn/api/v1/createorder"
-	apiOrderCancel = "https://openapi.idax.mn/api/v1/cancelorder"
-	apiUserOrders  = "https://openapi.idax.mn/api/v1/myOrders"
-	apiUserTrades  = "https://openapi.idax.mn/api/v1/myTrades"
+	apiSymbols     = "/api/v1/marketinfo"
+	apiQuotes      = "/api/v1/tickers"
+	apiQuote       = "/api/v1/ticker"
+	apiOrderBook   = "/api/v1/depth/"
+	apiTrades      = "/api/3/trades/"
+	apiBalances    = "/api/v1/balances"
+	apiOrderCreate = "/api/v1/createorder"
+	apiOrderCancel = "/api/v1/cancelorder"
+	apiUserOrders  = "/api/v1/myOrders"
+	apiUserTrades  = "/api/v1/myTrades"
 )
 
 const (
@@ -37,6 +38,7 @@ const (
 )
 
 var exchangeName = ""
+var apiHost = "https://openapi.idax.mn"
 
 /*
 IDAX - exchange struct
@@ -53,6 +55,10 @@ func New(opts schemas.Options) *IDAX {
 		proxyProvider = proxy.NewNoProxy()
 	}
 	opts.Credentials.Sign = sign
+	if opts.API != "" {
+		apiHost = opts.API
+	}
+	log.Println("apiHost: ", apiHost)
 	return &IDAX{
 		Exchange: schemas.Exchange{
 			Credentials:   opts.Credentials,
@@ -118,6 +124,10 @@ func sign(key, secret string, req *http.Request) *http.Request {
 	req.URL.RawQuery = q.Encode()
 
 	return req
+}
+
+func getURL(url string) string {
+	return apiHost + url
 }
 
 func getOrderSideByType(t string) string {
