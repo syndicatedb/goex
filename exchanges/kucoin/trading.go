@@ -45,6 +45,10 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
+	if resp.Success == false {
+		err = errors.New(resp.Msg)
+		return
+	}
 	return resp.Map(), nil
 }
 
