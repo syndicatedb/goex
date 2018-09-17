@@ -43,7 +43,7 @@ func (trading *TradingProvider) Balances() (balances map[string]schemas.Balance,
 	balances = make(map[string]schemas.Balance)
 
 	emptyParams := httpclient.Params()
-	if b, err = trading.httpClient.Get(apiBalances, emptyParams, true); err != nil {
+	if b, err = trading.httpClient.Get(getURL(apiBalances), emptyParams, true); err != nil {
 		return
 	}
 	var resp Response
@@ -114,7 +114,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	params := httpclient.Params()
 	params.Set("top", "100")
 
-	b, err = trading.httpClient.Get(apiUserOrders, params, true)
+	b, err = trading.httpClient.Get(getURL(apiUserOrders), params, true)
 	if err != nil {
 		return
 	}
@@ -169,7 +169,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 	if opts.FromID != "" {
 		payload.Set("from_id", opts.FromID)
 	}
-	b, err = trading.httpClient.Post(apiUserTrades, httpclient.Params(), payload, true)
+	b, err = trading.httpClient.Post(getURL(apiUserTrades), httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}
@@ -197,7 +197,7 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	params.Set("price", price)
 	params.Set("amount", amount)
 
-	b, err = trading.httpClient.Post(apiOrderCreate, params, payload, true)
+	b, err = trading.httpClient.Post(getURL(apiOrderCreate), params, payload, true)
 	if err != nil {
 		return
 	}
@@ -228,7 +228,7 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 
 	params.Set("orderId", order.ID)
 
-	b, err = trading.httpClient.Post(apiOrderCancel, params, payload, true)
+	b, err = trading.httpClient.Post(getURL(apiOrderCancel), params, payload, true)
 	if err != nil {
 		return
 	}

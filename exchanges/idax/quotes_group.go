@@ -67,7 +67,7 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 		return
 	}
 
-	if b, err = q.httpClient.Get(apiQuotes, httpclient.Params(), false); err != nil {
+	if b, err = q.httpClient.Get(getURL(apiQuotes), httpclient.Params(), false); err != nil {
 		return
 	}
 	var resp Response
@@ -91,7 +91,7 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 // getQuote - getting quote from Exchange by Symbol
 func (q *QuotesGroup) getQuote(symbol schemas.Symbol) (quote schemas.Quote, err error) {
 	var b []byte
-	if b, err = q.httpClient.Get(apiQuote+"?pairName="+symbolToPair(symbol.Name), httpclient.Params(), false); err != nil {
+	if b, err = q.httpClient.Get(getURL(apiQuote+"?pairName="+symbolToPair(symbol.Name)), httpclient.Params(), false); err != nil {
 		return
 	}
 	var resp Response

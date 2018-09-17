@@ -6,7 +6,6 @@ import (
 	b64 "encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -80,11 +79,11 @@ func parseSymbol(s string) (name, coin, baseCoin string) {
 
 // sign - signing request
 func sign(key, secret string, req *http.Request) *http.Request {
-	b, _ := req.GetBody()
-	body, err := ioutil.ReadAll(b)
-	if err != nil {
-		return req
-	}
+	// b, _ := req.GetBody()
+	// body, err := ioutil.ReadAll(b)
+	// if err != nil {
+	// 	return req
+	// }
 
 	// log.Printf("req: %+v\n", req.URL.Path)
 	// log.Printf("req: %+v\n", req.URL.Query().Encode())
@@ -93,7 +92,7 @@ func sign(key, secret string, req *http.Request) *http.Request {
 	// path := req.URL.String()
 	nonce := fmt.Sprintf("%v", time.Now().UnixNano()/int64(time.Millisecond))
 	var signed string
-	strForSign := path + "/" + nonce + "/" + string(body)
+	strForSign := path + "/" + nonce + "/" + req.URL.Query().Encode()
 	// log.Println("strForSign: ", strForSign)
 	signed = signRequest(strForSign, secret)
 	req.Header.Add("KC-API-NONCE", nonce)
