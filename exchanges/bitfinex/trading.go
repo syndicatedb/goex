@@ -19,16 +19,16 @@ import (
 )
 
 const (
-	errConnecting    = "Error connecting to bitfinex WS: %v"
-	errAuth          = "Bitfinex auth error: %v"
-	errOnWs          = "Error from websocket client: %v"
-	errLoadingTrades = "Error loading trades: %v"
-	errWsNotAuth     = "WS subscription not authorized"
-	errUnmarshal     = "Error unmarshalling message: %v"
-	errExitWsClient  = "Error exiting WS client: %v"
-	errCancelAll     = "Error cancelling all orders: %v"
-	errCreateOrder   = "Error creating order: %v"
-	errCancelOrder   = "Error cancelling order: %v"
+	errConnecting    = "[BITFINEX] Error connecting to bitfinex WS: %v"
+	errAuth          = "[BITFINEX] Bitfinex auth error: %v"
+	errOnWs          = "[BITFINEX] Error from websocket client: %v"
+	errLoadingTrades = "[BITFINEX] Error loading trades: %v"
+	errWsNotAuth     = "[BITFINEX] WS subscription not authorized"
+	errUnmarshal     = "[BITFINEX] Error unmarshalling message: %v"
+	errExitWsClient  = "[BITFINEX] Error exiting WS client: %v"
+	errCancelAll     = "[BITFINEX] Error cancelling all orders: %v"
+	errCreateOrder   = "[BITFINEX] Error creating order: %v"
+	errCancelOrder   = "[BITFINEX] Error cancelling order: %v"
 )
 
 const (

@@ -81,17 +81,17 @@ func (cg *CandlesGroup) Get() (candles [][]schemas.Candle, err error) {
 		url := apiKlines + "?" + "symbol=" + strings.ToUpper(symbol.OriginalName) + "&interval=1m&limit=400"
 
 		if b, err = cg.httpClient.Get(url, httpclient.Params(), false); err != nil {
-			log.Println("Error getting candles snapshot", symbol, err)
+			log.Println("[BINANCE] Error getting candles snapshot", symbol, err)
 			time.Sleep(5 * time.Second)
 			b, err = cg.httpClient.Get(url, httpclient.Params(), false)
 			return
 		}
 		if err = json.Unmarshal(b, &resp); err != nil {
-			log.Println("Error unmarshaling orderbook snapshot", err)
+			log.Println("[BINANCE] Error unmarshaling orderbook snapshot", err)
 		}
 		result, err := cg.mapSnapshot(resp, symbol.OriginalName)
 		if err != nil {
-			log.Println("Error mapping orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping orderbook snapshot", err)
 		}
 		candles = append(candles, result)
 	}
@@ -100,7 +100,7 @@ func (cg *CandlesGroup) Get() (candles [][]schemas.Candle, err error) {
 
 // Start - starting updates
 func (cg *CandlesGroup) Start(ch chan schemas.ResultChannel) {
-	log.Println("Orderbook starting")
+	log.Println("[BINANCE] Orderbook starting")
 	cg.resultCh = ch
 
 	go func() {
@@ -120,7 +120,7 @@ func (cg *CandlesGroup) Start(ch chan schemas.ResultChannel) {
 
 func (cg *CandlesGroup) restart() {
 	if err := cg.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[BINANCE] Error destroying connection: ", err)
 	}
 	cg.Start(cg.resultCh)
 }
@@ -135,7 +135,7 @@ func (cg *CandlesGroup) connect() {
 	ws := websocket.NewClient(wsURL+strings.ToLower(strings.Join(smbls, "@kline_1m/")+"@kline_1m"), cg.httpProxy)
 	cg.wsClient = ws
 	if err := cg.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to binance API: ", err)
+		log.Println("[BINANCE] Error connecting to binance API: ", err)
 		cg.restart()
 	}
 	cg.wsClient.Listen(cg.dataCh, cg.errorCh)
@@ -159,7 +159,7 @@ func (cg *CandlesGroup) listen() {
 			cg.resultCh <- schemas.ResultChannel{
 				Error: err,
 			}
-			log.Println("Error listening:", err)
+			log.Println("[BINANCE] Error listening:", err)
 			cg.restart()
 		}
 	}()
@@ -169,32 +169,32 @@ func (cg *CandlesGroup) handleUpdates(b []byte) (candles []schemas.Candle, dataT
 	var msg klinesStream
 	err := json.Unmarshal(b, &msg)
 	if err != nil {
-		log.Println("Error handling updates", err)
+		log.Println("[BINANCE] Error handling updates", err)
 		return
 	}
 	o, err := strconv.ParseFloat(msg.Data.Kline.Open, 64)
 	if err != nil {
-		log.Println("Parsing open error", err)
+		log.Println("[BINANCE] Parsing open error", err)
 		return
 	}
 	h, err := strconv.ParseFloat(msg.Data.Kline.High, 64)
 	if err != nil {
-		log.Println("Parsing high error", err)
+		log.Println("[BINANCE] Parsing high error", err)
 		return
 	}
 	l, err := strconv.ParseFloat(msg.Data.Kline.Low, 64)
 	if err != nil {
-		log.Println("Parsing low error", err)
+		log.Println("[BINANCE] Parsing low error", err)
 		return
 	}
 	cl, err := strconv.ParseFloat(msg.Data.Kline.Close, 64)
 	if err != nil {
-		log.Println("Parsing close error", err)
+		log.Println("[BINANCE] Parsing close error", err)
 		return
 	}
 	v, err := strconv.ParseFloat(msg.Data.Kline.Volume, 64)
 	if err != nil {
-		log.Println("Parsing volume error", err)
+		log.Println("[BINANCE] Parsing volume error", err)
 		return
 	}
 	s, _, _ := parseSymbol(msg.Data.Symbol)

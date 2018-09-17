@@ -57,7 +57,7 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 // Get - getting trades snapshot
 func (tg *TradesGroup) Get() (trades [][]schemas.Trade, err error) {
 	if len(tg.symbols) == 0 {
-		err = errors.New("No symbols provided")
+		err = errors.New("[POLONIEX] No symbols provided")
 		return
 	}
 
@@ -99,7 +99,7 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 
 func (tg *TradesGroup) restart() {
 	if err := tg.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[POLONIEX] Error destroying connection: ", err)
 	}
 	tg.Start(tg.outChannel)
 }
@@ -108,7 +108,7 @@ func (tg *TradesGroup) connect() {
 	tg.wsClient = websocket.NewClient(wsURL, tg.httpProxy)
 	tg.wsClient.UsePingMessage(".")
 	if err := tg.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to poloniex WS API: ", err)
+		log.Println("[POLONIEX] Error connecting to poloniex WS API: ", err)
 		tg.restart()
 		return
 	}
@@ -122,7 +122,7 @@ func (tg *TradesGroup) subscribe() {
 			Channel: symb.OriginalName,
 		}
 		if err := tg.wsClient.Write(msg); err != nil {
-			log.Printf("Error subsciring to %v order books", symb.Name)
+			log.Printf("[POLONIEX] Error subsciring to %v order books", symb.Name)
 			tg.restart()
 			return
 		}
@@ -137,7 +137,7 @@ func (tg *TradesGroup) collectSnapshots() {
 
 			data, err := tg.Get()
 			if err != nil {
-				log.Println("Error loading trades snapshot: ", err)
+				log.Println("[POLONIEX] Error loading trades snapshot: ", err)
 			}
 			for _, tr := range data {
 				if len(tr) > 0 {
@@ -155,7 +155,7 @@ func (tg *TradesGroup) listen() {
 			var data []interface{}
 
 			if err := json.Unmarshal(msg, &data); err != nil {
-				log.Println("Error parsing message: ", err)
+				log.Println("[POLONIEX] Error parsing message: ", err)
 				continue
 			}
 			if _, ok := data[0].([]interface{}); ok {
@@ -220,7 +220,7 @@ func (tg *TradesGroup) mapSnapshot(symbol string, data []trade) (trades []schema
 		layout := "2006-01-02 15:04:05"
 		tms, err := time.Parse(layout, tr.Date)
 		if err != nil {
-			log.Println("Error parsing time: ", err)
+			log.Println("[POLONIEX] Error parsing time: ", err)
 		}
 
 		if price, err = strconv.ParseFloat(tr.Rate, 64); err != nil {
@@ -249,7 +249,7 @@ func (tg *TradesGroup) mapUpdate(pairID int64, data []interface{}) schemas.Trade
 	var price, size float64
 	symbol, err := tg.getSymbolByID(int(pairID))
 	if err != nil {
-		log.Println("Error getting symbol: ", err)
+		log.Println("[POLONIEX] Error getting symbol: ", err)
 		return schemas.Trade{}
 	}
 
@@ -284,5 +284,5 @@ func (tg *TradesGroup) getSymbolByID(pairID int) (string, error) {
 	if symbol, ok := tg.pairs[pairID]; ok {
 		return symbol, nil
 	}
-	return "", fmt.Errorf("Symbol %d not found", pairID)
+	return "", fmt.Errorf("[POLONIEX] Symbol %d not found", pairID)
 }

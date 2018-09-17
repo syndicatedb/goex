@@ -76,7 +76,7 @@ func (q *TradesGroup) subscribe(ch chan schemas.ResultChannel, d time.Duration) 
 					}
 					// Sending to listener
 					if len(t) > 0 {
-						log.Println("IDAX: Trades updates trades / input / processed: ", len(tradesMap), "/", len(b), "/", len(t))
+						log.Println("[IDAX] Trades updates trades / input / processed: ", len(tradesMap), "/", len(b), "/", len(t))
 						ch <- schemas.ResultChannel{
 							DataType: dataType,
 							Data:     b,
@@ -103,17 +103,17 @@ func (q *TradesGroup) Get() (trades [][]schemas.Trade, err error) {
 	}
 	var resp Response
 	if err = json.Unmarshal(b, &resp); err != nil {
-		fmt.Println("Response error:", string(b))
+		fmt.Println("[IDAX] Response error:", string(b))
 		return
 	}
 	if resp.Success != true {
-		log.Println("Error in Trades response: ", resp.Message)
+		log.Println("[IDAX] Error in Trades response: ", resp.Message)
 		err = errors.New(resp.Message)
 		return
 	}
 	var tradesResponse TradesResponse
 	if err = json.Unmarshal(b, &tradesResponse); err != nil {
-		fmt.Println("string(b)", string(b))
+		fmt.Println("[IDAX] string(b)", string(b))
 		return
 	}
 	for sname, d := range tradesResponse {

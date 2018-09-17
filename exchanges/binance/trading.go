@@ -54,7 +54,7 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	}
 	lk, err := trading.CreateListenkey(credentials.APIKey)
 	if err != nil {
-		log.Println("Error creating key", err)
+		log.Println("[BINANCE] Error creating key", err)
 	}
 	trading.listenKey = lk
 
@@ -86,7 +86,7 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	go func() {
 		ui, err := trading.Info()
 		if err != nil {
-			log.Println("Balances snapshot error:", err)
+			log.Println("[BINANCE] Balances snapshot error:", err)
 		}
 		trading.uic <- schemas.UserInfoChannel{
 			Data:  ui,
@@ -97,7 +97,7 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	go func() {
 		o, err := trading.Orders(trading.symbols)
 		if err != nil {
-			log.Println("Orders snapshot error:", err)
+			log.Println("[BINANCE] Orders snapshot error:", err)
 		}
 		trading.uoc <- schemas.UserOrdersChannel{
 			Data:  o,
@@ -108,7 +108,7 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	go func() {
 		t, _, err := trading.Trades(schemas.FilterOptions{Symbols: trading.symbols})
 		if err != nil {
-			log.Println("Trades snapshot error:", err)
+			log.Println("[BINANCE] Trades snapshot error:", err)
 		}
 		trading.utc <- schemas.UserTradesChannel{
 			Data:  t,
@@ -127,7 +127,7 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 			case data := <-trading.ch:
 				trading.handleUpdates(data)
 			case err := <-trading.ech:
-				log.Println("Error handling", err)
+				log.Println("[BINANCE] Error handling", err)
 				trading.uic <- schemas.UserInfoChannel{
 					Data:  schemas.UserInfo{},
 					Error: err,
@@ -217,14 +217,14 @@ func (trading *TradingProvider) handleUpdates(data []byte) {
 	var msg generalMessage
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
-		log.Println("Unmarshalling error:", err)
+		log.Println("[BINANCE] Unmarshalling error:", err)
 	}
 
 	if msg.EventType == balanceType {
 		var balanceMsg balanceMessage
 		err = json.Unmarshal(data, &balanceMsg)
 		if err != nil {
-			log.Println("Balance unmarshalling error:", err)
+			log.Println("[BINANCE] Balance unmarshalling error:", err)
 		}
 		ui := balanceMsg.Map()
 		trading.uic <- schemas.UserInfoChannel{
@@ -237,7 +237,7 @@ func (trading *TradingProvider) handleUpdates(data []byte) {
 		var tradesMsg tradesMessage
 		err = json.Unmarshal(data, &tradesMsg)
 		if err != nil {
-			log.Println("Trades unmarshalling error:", err)
+			log.Println("[BINANCE] Trades unmarshalling error:", err)
 		}
 
 		if tradesMsg.CurrentExecutionType == "TRADE" {
@@ -272,7 +272,7 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 		for {
 			trades, _, err := trading.Trades(opts)
 			if err != nil {
-				log.Println("Error loading trades: ", err)
+				log.Println("[BINANCE] Error loading trades: ", err)
 				continue
 			}
 			ch <- schemas.UserTradesChannel{
@@ -319,15 +319,15 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	}
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	if err != nil {
-		log.Println("Error mapping price in private trades. Binance:", err)
+		log.Println("[BINANCE] Error mapping price in private trades. Binance:", err)
 	}
 	amount, err := strconv.ParseFloat(resp.OriginalQuantity, 64)
 	if err != nil {
-		log.Println("Error mapping qty in private trades. Binance:", err)
+		log.Println("[BINANCE] Error mapping qty in private trades. Binance:", err)
 	}
 	amountFilled, err := strconv.ParseFloat(resp.ExecQuantity, 64)
 	if err != nil {
-		log.Println("Error mapping filled qty in private trades. Binance:", err)
+		log.Println("[BINANCE] Error mapping filled qty in private trades. Binance:", err)
 	}
 	result = schemas.Order{
 		ID:           strconv.FormatInt(resp.OrderID, 10),

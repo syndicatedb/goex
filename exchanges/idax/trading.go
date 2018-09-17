@@ -48,7 +48,7 @@ func (trading *TradingProvider) Balances() (balances map[string]schemas.Balance,
 	}
 	var resp Response
 	if err = json.Unmarshal(b, &resp); err != nil {
-		fmt.Println("Response error:", string(b))
+		fmt.Println("[IDAX] Response error:", string(b))
 		return
 	}
 	if resp.Success != true {
@@ -58,7 +58,7 @@ func (trading *TradingProvider) Balances() (balances map[string]schemas.Balance,
 	}
 	var items []Balance
 	if err = json.Unmarshal(resp.Data, &items); err != nil {
-		fmt.Println("Balance parsing error:", err, string(b))
+		fmt.Println("[IDAX] Balance parsing error:", err, string(b))
 		return
 	}
 	for _, b := range items {
@@ -120,7 +120,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	}
 	var resp Response
 	if err = json.Unmarshal(b, &resp); err != nil {
-		log.Println("Error getting user orders: ", err)
+		log.Println("[IDAX] Error getting user orders: ", err)
 		return
 	}
 	if resp.Success != true {

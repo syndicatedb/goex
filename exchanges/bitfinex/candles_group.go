@@ -51,7 +51,7 @@ func (cg *CandlesGroup) Get() (candles [][]schemas.Candle, err error) {
 	var resp interface{}
 
 	if len(cg.symbols) == 0 {
-		err = errors.New("Symbol is empty")
+		err = errors.New("[BITFINEX] Symbol is empty")
 		return
 	}
 	for _, symb := range cg.symbols {
@@ -88,7 +88,7 @@ func (cg *CandlesGroup) Start(ch chan schemas.ResultChannel) {
 // need for restarting group after error.
 func (cg *CandlesGroup) restart() {
 	if err := cg.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[BITFINEX] Error destroying connection: ", err)
 	}
 	cg.Start(cg.bus.outChannel)
 }
@@ -97,7 +97,7 @@ func (cg *CandlesGroup) restart() {
 func (cg *CandlesGroup) connect() {
 	cg.wsClient = websocket.NewClient(wsURL, cg.httpProxy)
 	if err := cg.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to bitfinex API: ", err)
+		log.Println("[BITFINEX] Error connecting to bitfinex API: ", err)
 		cg.restart()
 		return
 	}
@@ -114,12 +114,12 @@ func (cg *CandlesGroup) subscribe() {
 		}
 
 		if err := cg.wsClient.Write(message); err != nil {
-			log.Printf("Error subsciring to %v candles", symb.Name)
+			log.Printf("[BITFINEX] Error subsciring to %v candles", symb.Name)
 			cg.restart()
 			return
 		}
 	}
-	log.Println("Subscription ok")
+	log.Println("[BITFINEX] Subscription ok")
 }
 
 // listen - listening to updates from WS
@@ -131,7 +131,7 @@ func (cg *CandlesGroup) listen() {
 	}()
 	go func() {
 		for err := range cg.bus.ech {
-			log.Printf("Error listen: %+v", err)
+			log.Printf("[BITFINEX] Error listen: %+v", err)
 			cg.restart()
 			return
 		}
@@ -157,13 +157,13 @@ func (cg *CandlesGroup) parseMessage(msg []byte) {
 		cg.handleMessage(msg)
 	} else if bytes.HasPrefix(t, []byte("{")) {
 		if err = cg.handleEvent(msg); err != nil {
-			log.Println("Error handling event: ", err)
+			log.Println("[BITFINEX] Error handling event: ", err)
 		}
 	} else {
-		err = fmt.Errorf("unexpected message: %s", msg)
+		err = fmt.Errorf("[BITFINEX] unexpected message: %s", msg)
 	}
 	if err != nil {
-		fmt.Println("[ERROR] handleMessage: ", err, string(msg))
+		fmt.Println("[BITFINEX] Error handleMessage: ", err, string(msg))
 	}
 }
 
@@ -187,7 +187,7 @@ func (cg *CandlesGroup) handleEvent(msg []byte) (err error) {
 		cg.add(event)
 		return
 	}
-	log.Println("Unprocessed event: ", string(msg))
+	log.Println("[BITFINEX] Unprocessed event: ", string(msg))
 	return
 }
 
@@ -203,7 +203,7 @@ func (cg *CandlesGroup) handleMessage(msg []byte) {
 	if chanID > 0 {
 		e, err = cg.get(chanID)
 		if err != nil {
-			log.Println("Error getting subscriptions: ", chanID, err)
+			log.Println("[BITFINEX] Error getting subscriptions: ", chanID, err)
 			return
 		}
 	} else {
@@ -227,7 +227,7 @@ func (cg *CandlesGroup) handleMessage(msg []byte) {
 			return
 		}
 
-		log.Println("Unrecognized ", resp)
+		log.Println("[BITFINEX] Unrecognized ", resp)
 		return
 	}
 }
@@ -285,5 +285,5 @@ func (cg *CandlesGroup) get(chanID int64) (e event, err error) {
 	if e, ok = cg.subs[chanID]; ok {
 		return
 	}
-	return e, errors.New("subscription not found")
+	return e, errors.New("[BITFINEX] subscription not found")
 }

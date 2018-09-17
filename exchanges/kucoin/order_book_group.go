@@ -72,14 +72,14 @@ func (ob *OrderBookGroup) Get() (books map[string]schemas.OrderBook, err error) 
 		query.Set("limit", "200")
 
 		if b, err = ob.httpClient.Get(apiOrderBook, query, false); err != nil {
-			log.Println("Error sending request", err)
+			log.Println("[KUCOIN] Error sending request", err)
 			return
 		}
 		if err = json.Unmarshal(b, &resp); err != nil {
 			return
 		}
 		if !resp.Success {
-			err = fmt.Errorf("Error getting orderbook: %v", resp.Message)
+			err = fmt.Errorf("[KUCOIN] Error getting orderbook: %v", resp.Message)
 			return
 		}
 

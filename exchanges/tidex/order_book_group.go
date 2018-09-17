@@ -79,7 +79,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 	// }
 	var resp Response
 	if err = json.Unmarshal(by, &resp); err != nil {
-		fmt.Println("Response error:", string(by))
+		fmt.Println("[TIDEX] Response error:", string(by))
 		return
 	}
 	if resp.Error != "" {
@@ -88,7 +88,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 	}
 	var booksResponse OrderBookResponse
 	if err = json.Unmarshal(by, &booksResponse); err != nil {
-		fmt.Println("Order Response error:", string(by))
+		fmt.Println("[TIDEX] Order Response error:", string(by))
 		return
 	}
 	for sname, d := range booksResponse {
