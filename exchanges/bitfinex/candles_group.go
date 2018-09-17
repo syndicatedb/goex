@@ -217,8 +217,8 @@ func (cg *CandlesGroup) handleMessage(msg []byte) {
 	}
 	if data, ok := resp[1].([]interface{}); ok {
 		if _, ok := data[1].(float64); ok {
-			candle := cg.mapUpdate(e.Symbol, data)
-			go cg.publish(candle, "u", nil)
+			candles := cg.mapUpdate(e.Symbol, data)
+			go cg.publish(candles, "u", nil)
 			return
 		}
 		if _, ok := data[1].([]interface{}); ok {
@@ -254,9 +254,9 @@ func (cg *CandlesGroup) mapSnapshot(symbol string, data []interface{}) (candles 
 }
 
 // mapUpdate - mapping incoming candle update message into common Candle model
-func (cg *CandlesGroup) mapUpdate(symbol string, data []interface{}) schemas.Candle {
+func (cg *CandlesGroup) mapUpdate(symbol string, data []interface{}) []schemas.Candle {
 	s, _, _ := parseSymbol(symbol)
-	return schemas.Candle{
+	return []schemas.Candle{schemas.Candle{
 		Symbol:         s,
 		Open:           data[1].(float64),
 		Close:          data[2].(float64),
@@ -265,6 +265,7 @@ func (cg *CandlesGroup) mapUpdate(symbol string, data []interface{}) schemas.Can
 		Volume:         data[5].(float64),
 		Timestamp:      int64(data[0].(float64)),
 		Discretization: 60,
+	},
 	}
 }
 
