@@ -39,7 +39,7 @@ func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, er
 
 	params := httpclient.Params()
 	params.Set("pair", symbolToPair(symbol.Name))
-	if b, err = ob.httpClient.Get(apiOrderBook, params, false); err != nil {
+	if b, err = ob.httpClient.Get(getURL(apiOrderBook), params, false); err != nil {
 		return
 	}
 	var resp Response

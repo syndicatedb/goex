@@ -52,7 +52,7 @@ func NewTradesGroup(symbols []schemas.Symbol, httpProxy proxy.Provider) *TradesG
 // Get - getting trades snapshot by symbol
 func (tg *TradesGroup) Get() (trades []schemas.Trade, err error) {
 	if len(tg.symbols) == 0 {
-		err = errors.New("No symbols provided")
+		err = errors.New("[BITFINEX] No symbols provided")
 		return
 	}
 	for i := range tg.symbols {
@@ -97,7 +97,7 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 // need for restarting group after error.
 func (tg *TradesGroup) restart() {
 	if err := tg.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[BITFINEX] Error destroying connection: ", err)
 	}
 	tg.Start(tg.bus.outChannel)
 }
@@ -106,7 +106,7 @@ func (tg *TradesGroup) restart() {
 func (tg *TradesGroup) connect() {
 	tg.wsClient = websocket.NewClient(wsURL, tg.httpProxy)
 	if err := tg.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to bitfinex API: ", err)
+		log.Println("[BITFINEX] Error connecting to bitfinex API: ", err)
 		return
 	}
 	tg.wsClient.Listen(tg.bus.dch, tg.bus.ech)
@@ -121,12 +121,12 @@ func (tg *TradesGroup) subscribe() {
 			Symbol:  "t" + strings.ToUpper(s.OriginalName),
 		}
 		if err := tg.wsClient.Write(message); err != nil {
-			log.Printf("Error subsciring to %v trades", s.Name)
+			log.Printf("[BITFINEX] Error subsciring to %v trades", s.Name)
 			tg.restart()
 			return
 		}
 	}
-	log.Println("Subscription ok")
+	log.Println("[BITFINEX] Subscription ok")
 }
 
 // collectSnapshots getting snapshots by TradesGroup symbols and publishing thme to outChannel
@@ -165,7 +165,7 @@ func (tg *TradesGroup) listen() {
 	}()
 	go func() {
 		for err := range tg.bus.ech {
-			log.Printf("Error listen: %+v", err)
+			log.Printf("[BITFINEX] Error listen: %+v", err)
 			tg.restart()
 			return
 		}
@@ -191,13 +191,13 @@ func (tg *TradesGroup) parseMessage(msg []byte) {
 		tg.handleMessage(msg)
 	} else if bytes.HasPrefix(t, []byte("{")) {
 		if err = tg.handleEvent(msg); err != nil {
-			log.Println("Error handling event: ", err)
+			log.Println("[BITFINEX] Error handling event: ", err)
 		}
 	} else {
-		err = fmt.Errorf("unexpected message: %s", msg)
+		err = fmt.Errorf("[BITFINEX] unexpected message: %s", msg)
 	}
 	if err != nil {
-		fmt.Println("Error handleMessage: ", err, string(msg))
+		fmt.Println("[BITFINEX] Error handleMessage: ", err, string(msg))
 	}
 }
 
@@ -221,7 +221,7 @@ func (tg *TradesGroup) handleEvent(msg []byte) (err error) {
 		tg.add(event)
 		return
 	}
-	log.Println("Unprocessed event: ", string(msg))
+	log.Println("[BITFINEX] Unprocessed event: ", string(msg))
 	return
 }
 
@@ -238,7 +238,7 @@ func (tg *TradesGroup) handleMessage(msg []byte) {
 	if chanID > 0 {
 		e, err = tg.get(chanID)
 		if err != nil {
-			log.Println("Error getting subscriptions: ", chanID, err)
+			log.Println("[BITFINEX] Error getting subscriptions: ", chanID, err)
 			return
 		}
 	} else {
@@ -312,5 +312,5 @@ func (tg *TradesGroup) get(chanID int64) (e event, err error) {
 	if e, ok = tg.subs[chanID]; ok {
 		return
 	}
-	return e, errors.New("subscription not found")
+	return e, errors.New("[BITFINEX] subscription not found")
 }

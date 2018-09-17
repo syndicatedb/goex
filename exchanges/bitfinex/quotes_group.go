@@ -57,7 +57,7 @@ func (q *QuotesGroup) Get() (quote schemas.Quote, err error) {
 	var symbol string
 
 	if len(q.symbols) == 0 {
-		err = errors.New("Symbol is empty")
+		err = errors.New("[BITFINEX] Symbol is empty")
 		return
 	}
 	symbol = q.symbols[0].OriginalName
@@ -73,7 +73,7 @@ func (q *QuotesGroup) Get() (quote schemas.Quote, err error) {
 		return q.mapQuote(symbol, qt), nil
 	}
 
-	err = errors.New("Exchange order books data invalid")
+	err = errors.New("[BITFINEX] Exchange order books data invalid")
 	return
 }
 
@@ -90,7 +90,7 @@ func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 // need for restarting group after error.
 func (q *QuotesGroup) restart() {
 	if err := q.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[BITFINEX] Error destroying connection: ", err)
 	}
 	q.Start(q.bus.outChannel)
 }
@@ -99,7 +99,7 @@ func (q *QuotesGroup) restart() {
 func (q *QuotesGroup) connect() {
 	q.wsClient = websocket.NewClient(wsURL, q.httpProxy)
 	if err := q.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to bitfinex API: ", err)
+		log.Println("[BITFINEX] Error connecting to bitfinex API: ", err)
 		return
 	}
 	q.wsClient.Listen(q.bus.dch, q.bus.ech)
@@ -118,12 +118,12 @@ func (q *QuotesGroup) subscribe() {
 		}
 
 		if err := q.wsClient.Write(message); err != nil {
-			log.Printf("Error subsciring to %v quotes", s.Name)
+			log.Printf("[BITFINEX] Error subsciring to %v quotes", s.Name)
 			q.restart()
 			return
 		}
 	}
-	log.Println("Subscription ok")
+	log.Println("[BITFINEX] Subscription ok")
 }
 
 // listen - listening to updates from WS
@@ -135,7 +135,7 @@ func (q *QuotesGroup) listen() {
 	}()
 	go func() {
 		for err := range q.bus.ech {
-			log.Printf("Error listen: %+v", err)
+			log.Printf("[BITFINEX] Error listen: %+v", err)
 			q.restart()
 			return
 		}
@@ -161,13 +161,13 @@ func (q *QuotesGroup) parseMessage(msg []byte) {
 		q.handleMessage(msg)
 	} else if bytes.HasPrefix(t, []byte("{")) {
 		if err = q.handleEvent(msg); err != nil {
-			log.Println("Error handling event: ", err)
+			log.Println("[BITFINEX] Error handling event: ", err)
 		}
 	} else {
-		err = fmt.Errorf("unexpected message: %s", msg)
+		err = fmt.Errorf("[BITFINEX] unexpected message: %s", msg)
 	}
 	if err != nil {
-		fmt.Println("Error handleMessage: ", err, string(msg))
+		fmt.Println("[BITFINEX] Error handleMessage: ", err, string(msg))
 	}
 }
 
@@ -191,7 +191,7 @@ func (q *QuotesGroup) handleEvent(msg []byte) (err error) {
 		q.add(event)
 		return
 	}
-	log.Println("Unprocessed event: ", string(msg))
+	log.Println("[BITFINEX] Unprocessed event: ", string(msg))
 	return
 }
 
@@ -208,7 +208,7 @@ func (q *QuotesGroup) handleMessage(msg []byte) {
 	if chanID > 0 {
 		e, err = q.get(chanID)
 		if err != nil {
-			log.Println("Error getting subscriptions: ", chanID, err)
+			log.Println("[BITFINEX] Error getting subscriptions: ", chanID, err)
 			return
 		}
 	} else {
@@ -265,5 +265,5 @@ func (q *QuotesGroup) get(chanID int64) (e event, err error) {
 	if e, ok = q.subs[chanID]; ok {
 		return
 	}
-	return e, errors.New("subscription not found")
+	return e, errors.New("[BITFINEX] subscription not found")
 }

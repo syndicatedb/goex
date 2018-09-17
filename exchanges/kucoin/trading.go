@@ -45,6 +45,10 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
+	if resp.Success == false {
+		err = errors.New(resp.Msg)
+		return
+	}
 	return resp.Map(), nil
 }
 
@@ -122,7 +126,7 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 		for {
 			trades, _, err := trading.Trades(opts)
 			if err != nil {
-				log.Println("Error loading trades: ", err)
+				log.Println("[KUCOIN] Error loading trades: ", err)
 				continue
 			}
 			ch <- schemas.UserTradesChannel{
@@ -176,7 +180,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 		return
 	}
 	if resp.Success == false {
-		log.Printf("resp error: %+v\n", resp)
+		log.Printf("[KUCOIN] resp error: %+v\n", resp)
 		if resp.Code == "UNAUTH" {
 			err = errors.New(resp.Msg)
 			return

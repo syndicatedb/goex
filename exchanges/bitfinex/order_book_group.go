@@ -53,7 +53,7 @@ func (ob *OrderBookGroup) Get() (books []schemas.OrderBook, err error) {
 	var resp interface{}
 
 	if len(ob.symbols) == 0 {
-		err = errors.New("Symbol is empty")
+		err = errors.New("[BITFINEX] Symbol is empty")
 		return
 	}
 
@@ -90,7 +90,7 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 // need for restarting group after error.
 func (ob *OrderBookGroup) restart() {
 	if err := ob.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[BITFINEX] Error destroying connection: ", err)
 	}
 	ob.Start(ob.bus.outChannel)
 }
@@ -99,7 +99,7 @@ func (ob *OrderBookGroup) restart() {
 func (ob *OrderBookGroup) connect() {
 	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
 	if err := ob.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to bitfinex API: ", err)
+		log.Println("[BITFINEX] Error connecting to bitfinex API: ", err)
 		ob.restart()
 		return
 	}
@@ -119,12 +119,12 @@ func (ob *OrderBookGroup) subscribe() {
 		}
 
 		if err := ob.wsClient.Write(message); err != nil {
-			log.Printf("Error subsciring to %v order books", s.Name)
+			log.Printf("[BITFINEX] Error subsciring to %v order books", s.Name)
 			ob.restart()
 			return
 		}
 	}
-	log.Println("Subscription ok")
+	log.Println("[BITFINEX] Subscription ok")
 }
 
 // collectSnapshots getting snapshots by OrderBookGroup symbols and publishing them
@@ -155,7 +155,7 @@ func (ob *OrderBookGroup) listen() {
 	}()
 	go func() {
 		for err := range ob.bus.ech {
-			log.Printf("Error listen: %+v", err)
+			log.Printf("[BITFINEX] Error listen: %+v", err)
 			ob.restart()
 			return
 		}
@@ -181,13 +181,13 @@ func (ob *OrderBookGroup) parseMessage(msg []byte) {
 		ob.handleMessage(msg)
 	} else if bytes.HasPrefix(t, []byte("{")) {
 		if err = ob.handleEvent(msg); err != nil {
-			log.Println("Error handling event: ", err)
+			log.Println("[BITFINEX] Error handling event: ", err)
 		}
 	} else {
-		err = fmt.Errorf("unexpected message: %s", msg)
+		err = fmt.Errorf("[BITFINEX] unexpected message: %s", msg)
 	}
 	if err != nil {
-		fmt.Println("Error handleMessage: ", err, string(msg))
+		fmt.Println("[BITFINEX] Error handleMessage: ", err, string(msg))
 	}
 }
 
@@ -211,7 +211,7 @@ func (ob *OrderBookGroup) handleEvent(msg []byte) (err error) {
 		ob.add(event)
 		return
 	}
-	log.Println("Unprocessed event: ", string(msg))
+	log.Println("[BITFINEX] Unprocessed event: ", string(msg))
 	return
 }
 
@@ -228,7 +228,7 @@ func (ob *OrderBookGroup) handleMessage(msg []byte) {
 	if chanID > 0 {
 		e, err = ob.get(chanID)
 		if err != nil {
-			log.Println("Error getting subscriptions: ", chanID, err)
+			log.Println("[BITFINEX] Error getting subscriptions: ", chanID, err)
 			return
 		}
 	} else {
@@ -254,7 +254,7 @@ func (ob *OrderBookGroup) handleMessage(msg []byte) {
 		return
 	}
 
-	log.Println("Unrecognized: ", resp)
+	log.Println("[BITFINEX] Unrecognized: ", resp)
 	return
 }
 
@@ -315,5 +315,5 @@ func (ob *OrderBookGroup) get(chanID int64) (e event, err error) {
 	if e, ok = ob.subs[chanID]; ok {
 		return
 	}
-	return e, errors.New("subscription not found")
+	return e, errors.New("[BITFINEX] subscription not found")
 }

@@ -80,7 +80,7 @@ func (qp *QuotesProvider) Get(symbol schemas.Symbol) (q schemas.Quote, err error
 		}
 	}
 
-	err = fmt.Errorf("No quotes found for %v", symbol.Name)
+	err = fmt.Errorf("[POLONIEX] No quotes found for %v", symbol.Name)
 	return
 }
 
@@ -110,7 +110,7 @@ func (qp *QuotesProvider) start(ch chan schemas.ResultChannel) {
 // Need for restarting provider on errors.
 func (qp *QuotesProvider) restart() {
 	if err := qp.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[POLONIEX] Error destroying connection: ", err)
 	}
 	qp.start(qp.bus.resChannel)
 }
@@ -119,7 +119,7 @@ func (qp *QuotesProvider) connect() {
 	qp.wsClient = websocket.NewClient(wsURL, qp.httpProxy)
 	qp.wsClient.UsePingMessage(".")
 	if err := qp.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to poloniex WS API: ", err)
+		log.Println("[POLONIEX] Error connecting to poloniex WS API: ", err)
 		qp.restart()
 		return
 	}
@@ -133,7 +133,7 @@ func (qp *QuotesProvider) subscribe() {
 		Channel: 1002,
 	}
 	if err := qp.wsClient.Write(msg); err != nil {
-		log.Printf("Error subsciring to poloniex ticker")
+		log.Printf("[POLONIEX] Error subsciring to poloniex ticker")
 		qp.restart()
 		return
 	}
@@ -147,7 +147,7 @@ func (qp *QuotesProvider) listen() {
 
 			// log.Printf("DATA %+v", msg)
 			if err := json.Unmarshal(msg, &data); err != nil {
-				log.Println("Error parsing message:", err)
+				log.Println("[POLONIEX] Error parsing message:", err)
 				continue
 			}
 			if len(data) > 2 {
@@ -165,7 +165,7 @@ func (qp *QuotesProvider) listen() {
 
 	go func() {
 		for err := range qp.bus.ech {
-			log.Println("Error: ", err)
+			log.Println("[POLONIEX] Error: ", err)
 			qp.restart()
 			return
 		}
@@ -268,7 +268,7 @@ func (qp *QuotesProvider) getSymbol(id int) string {
 func parseFloat(s string) (d float64) {
 	d, err := strconv.ParseFloat(s, 65)
 	if err != nil {
-		log.Println("Error parsing string to float64: ", err)
+		log.Println("[POLONIEX] Error parsing string to float64: ", err)
 	}
 
 	return

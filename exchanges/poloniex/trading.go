@@ -35,6 +35,10 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	uoc := make(chan schemas.UserOrdersChannel)
 	utc := make(chan schemas.UserTradesChannel)
 
+	if interval < 5*time.Second {
+		interval = 5 * time.Second
+	}
+
 	go func() {
 		for {
 			ui, err := trading.Info()
@@ -42,28 +46,19 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 				Data:  ui,
 				Error: err,
 			}
-			time.Sleep(interval)
-		}
-	}()
 
-	go func() {
-		for {
 			uo, err := trading.Orders([]schemas.Symbol{})
 			uoc <- schemas.UserOrdersChannel{
 				Data:  uo,
 				Error: err,
 			}
-			time.Sleep(interval)
-		}
-	}()
 
-	go func() {
-		for {
 			ut, _, err := trading.Trades(schemas.FilterOptions{})
 			utc <- schemas.UserTradesChannel{
 				Data:  ut,
 				Error: err,
 			}
+
 			time.Sleep(interval)
 		}
 	}()
@@ -162,14 +157,14 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
-		err = fmt.Errorf("Error creating order: %v", string(b))
+		err = fmt.Errorf("[POLONIEX] Error creating order: %v", string(b))
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 	if len(resp.Error) > 0 {
-		err = fmt.Errorf("Error creating order: %v", resp.Error)
+		err = fmt.Errorf("[POLONIEX] Error creating order: %v", resp.Error)
 		return
 	}
 
@@ -191,13 +186,13 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
-		err = fmt.Errorf("Error creating order: %v", string(b))
+		err = fmt.Errorf("[POLONIEX] Error creating order: %v", string(b))
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 	if len(resp.Error) > 0 {
-		err = fmt.Errorf("Error cancelling order: %v", resp.Error)
+		err = fmt.Errorf("[POLONIEX] Error cancelling order: %v", resp.Error)
 		return
 	}
 

@@ -66,7 +66,7 @@ func (ob *OrderBookGroup) Get() (books []schemas.OrderBook, err error) {
 	var b []byte
 	var resp orderbook
 	if len(ob.symbols) == 0 {
-		err = errors.New("Symbol is empty")
+		err = errors.New("[POLONIEX] Symbol is empty")
 		return
 	}
 
@@ -102,7 +102,7 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 
 func (ob *OrderBookGroup) restart() {
 	if err := ob.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[POLONIEX] Error destroying connection: ", err)
 	}
 	ob.Start(ob.outChannel)
 }
@@ -111,7 +111,7 @@ func (ob *OrderBookGroup) connect() {
 	ob.wsClient = websocket.NewClient(wsURL, ob.httpProxy)
 	ob.wsClient.UsePingMessage(".")
 	if err := ob.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to poloniex WS API: ", err)
+		log.Println("[POLONIEX] Error connecting to poloniex WS API: ", err)
 		ob.restart()
 		return
 	}
@@ -125,12 +125,12 @@ func (ob *OrderBookGroup) subscribe() {
 			Channel: symb.OriginalName,
 		}
 		if err := ob.wsClient.Write(msg); err != nil {
-			log.Printf("Error subsciring to %v order books", symb.Name)
+			log.Printf("[POLONIEX] Error subsciring to %v order books", symb.Name)
 			ob.restart()
 			return
 		}
 	}
-	log.Println("Subscription ok")
+	log.Println("[POLONIEX] Subscription ok")
 }
 
 // collectSnapshots getting snapshots and publishing them to outChannel
@@ -141,7 +141,7 @@ func (ob *OrderBookGroup) collectSnapshots() {
 
 			data, err := ob.Get()
 			if err != nil {
-				log.Println("Error loading orderbook snapshot: ", err)
+				log.Println("[POLONIEX] Error loading orderbook snapshot: ", err)
 			}
 			for _, book := range data {
 				if len(book.Buy) > 0 || len(book.Sell) > 0 {
@@ -153,13 +153,13 @@ func (ob *OrderBookGroup) collectSnapshots() {
 }
 
 func (ob *OrderBookGroup) listen() {
-	log.Println("Start listening")
+	log.Println("[POLONIEX] Start listening")
 	go func() {
 		for msg := range ob.dch {
 			var data []interface{}
 
 			if err := json.Unmarshal(msg, &data); err != nil {
-				log.Println("Error parsing message: ", err)
+				log.Println("[POLONIEX] Error parsing message: ", err)
 				continue
 			}
 			if _, ok := data[0].([]interface{}); ok {
@@ -203,7 +203,7 @@ func (ob *OrderBookGroup) listen() {
 	}()
 	go func() {
 		for msg := range ob.ech {
-			log.Println("Error: ", msg)
+			log.Println("[POLONIEX] Error: ", msg)
 			ob.restart()
 			return
 		}
@@ -239,12 +239,12 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas
 		for pr, sz := range ordr {
 			price, err := strconv.ParseFloat(pr, 64)
 			if err != nil {
-				log.Println("Error mapping snapshot: ", err)
+				log.Println("[POLONIEX] Error mapping snapshot: ", err)
 				continue
 			}
 			size, err := strconv.ParseFloat(sz.(string), 64)
 			if err != nil {
-				log.Println("Error mapping snapshot: ", err)
+				log.Println("[POLONIEX] Error mapping snapshot: ", err)
 				continue
 			}
 			book.Buy = append(book.Buy, schemas.Order{
@@ -258,12 +258,12 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) schemas
 		for pr, sz := range ordr {
 			price, err := strconv.ParseFloat(pr, 64)
 			if err != nil {
-				log.Println("Error mapping snapshot: ", err)
+				log.Println("[POLONIEX] Error mapping snapshot: ", err)
 				continue
 			}
 			size, err := strconv.ParseFloat(sz.(string), 64)
 			if err != nil {
-				log.Println("Error mapping snapshot: ", err)
+				log.Println("[POLONIEX] Error mapping snapshot: ", err)
 				continue
 			}
 			book.Sell = append(book.Sell, schemas.Order{
@@ -283,7 +283,7 @@ func (ob *OrderBookGroup) mapUpdate(pairID int64, data []interface{}) (book sche
 	remove := 0
 	symbol, err := ob.getSymbolByID(pairID)
 	if err != nil {
-		log.Println("Error getting symbol: ", err)
+		log.Println("[POLONIEX] Error getting symbol: ", err)
 		return
 	}
 
@@ -326,7 +326,7 @@ func (ob *OrderBookGroup) mapHTTPSnapshot(symbol string, data orderbook) schemas
 	for _, asks := range data.Asks {
 		price, err := strconv.ParseFloat(asks[0].(string), 10)
 		if err != nil {
-			log.Println("Error mapping orderbook snapshot: ", err)
+			log.Println("[POLONIEX] Error mapping orderbook snapshot: ", err)
 		}
 		book.Sell = append(book.Sell, schemas.Order{
 			Symbol: symbol,
@@ -337,7 +337,7 @@ func (ob *OrderBookGroup) mapHTTPSnapshot(symbol string, data orderbook) schemas
 	for _, bids := range data.Bids {
 		price, err := strconv.ParseFloat(bids[0].(string), 10)
 		if err != nil {
-			log.Println("Error mapping orderbook snapshot: ", err)
+			log.Println("[POLONIEX] Error mapping orderbook snapshot: ", err)
 		}
 		book.Buy = append(book.Buy, schemas.Order{
 			Symbol: symbol,
@@ -353,5 +353,5 @@ func (ob *OrderBookGroup) getSymbolByID(pairID int64) (string, error) {
 	if symbol, ok := ob.pairs[int(pairID)]; ok {
 		return symbol, nil
 	}
-	return "", fmt.Errorf("Symbol %d not found", pairID)
+	return "", fmt.Errorf("[POLONIEX] Symbol %d not found", pairID)
 }

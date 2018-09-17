@@ -64,7 +64,7 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	}
 	var resp QuoteResponse
 	if err = json.Unmarshal(b, &resp); err != nil {
-		fmt.Println("string(b)", string(b))
+		fmt.Println("[TIDEX] string(b)", string(b))
 		return
 	}
 	for sname, d := range resp {
