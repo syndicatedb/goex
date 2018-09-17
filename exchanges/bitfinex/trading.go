@@ -415,6 +415,7 @@ func (trading *TradingProvider) subscribe() {
 }
 
 func (trading *TradingProvider) resubscribe() {
+	time.Sleep(1 * time.Second)
 	if err := trading.wsClient.Exit(); err != nil {
 		log.Printf(errExitWsClient, err)
 	}
