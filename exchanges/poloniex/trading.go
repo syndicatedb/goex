@@ -35,6 +35,10 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	uoc := make(chan schemas.UserOrdersChannel)
 	utc := make(chan schemas.UserTradesChannel)
 
+	if interval < 5*time.Second {
+		interval = 5 * time.Second
+	}
+
 	go func() {
 		for {
 			ui, err := trading.Info()

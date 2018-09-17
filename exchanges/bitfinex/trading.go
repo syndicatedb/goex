@@ -630,7 +630,6 @@ func (trading *TradingProvider) mapBalance(msg []interface{}) map[string]schemas
 }
 
 func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.Order) {
-	log.Println("RAW MESSAGE", msg)
 	for i := range msg {
 		if ord, ok := msg[i].([]interface{}); ok {
 			var side, status string
@@ -649,10 +648,13 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.O
 				status = schemas.StatusNew
 			} else if ord[13] == "CANCELED" {
 				status = schemas.StatusCancelled
+			} else if ord[13] == "REJECTED" {
+				status = schemas.StatusRejected
 			} else {
-				if st, ok := ord[13].(string); ok {
-					status = st
-				}
+				// if st, ok := ord[13].(string); ok {
+				// 	status = st
+				// }
+				status = schemas.StatusNew
 			}
 
 			order := schemas.Order{
