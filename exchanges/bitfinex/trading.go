@@ -138,8 +138,10 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
 	var b []byte
 
-	path := "/v2/tickers?symbols=ALL"
-	b, err = trading.httpClient.Get(apiURL+path, httpclient.Params(), false)
+	path := "/v2/tickers"
+	params := httpclient.Params()
+	params.Set("symbols", "ALL")
+	b, err = trading.httpClient.Get(apiURL+path, params, false)
 	if err != nil {
 		return
 	}
