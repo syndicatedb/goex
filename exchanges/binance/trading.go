@@ -39,7 +39,7 @@ type TradingProvider struct {
 }
 
 // NewTradingProvider - TradingProvider constructor
-func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provider, symbols []schemas.Symbol) *TradingProvider {
+func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provider) *TradingProvider {
 	proxyClient := httpProxy.NewClient(exchangeName)
 	trading := TradingProvider{
 		credentials: credentials,
@@ -48,7 +48,6 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		uic:         make(chan schemas.UserInfoChannel),
 		uoc:         make(chan schemas.UserOrdersChannel),
 		utc:         make(chan schemas.UserTradesChannel),
-		symbols:     symbols,
 		ch:          make(chan []byte, 400),
 		ech:         make(chan error, 400),
 	}
@@ -68,6 +67,13 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	// ws updates of trading data
 
 	return &trading
+}
+
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
 }
 
 type errorMsg struct {
@@ -167,7 +173,7 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 
 	prices, err := trading.prices()
 	if err != nil {
-		return
+		log.Println("Error getting prices for balances")
 	}
 
 	return resp.Map(prices), nil

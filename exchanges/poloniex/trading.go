@@ -3,6 +3,7 @@ package poloniex
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ type TradingProvider struct {
 	credentials schemas.Credentials
 	httpProxy   proxy.Provider
 	httpClient  *httpclient.Client
+	symbols     []schemas.Symbol
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -27,6 +29,13 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		httpProxy:   httpProxy,
 		httpClient:  httpclient.NewSigned(credentials, proxyClient),
 	}
+}
+
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
 }
 
 // Subscribe subscribing to user trade data updates: balance, orders, trades
@@ -89,7 +98,43 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 		userBalance[coin] = value.Map(coin)
 	}
 
+	prices, err := trading.prices()
+	if err != nil {
+		log.Println("Error getting prices for balances")
+	}
+
 	ui.Balances = userBalance
+	ui.Prices = prices
+	return
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+	query := httpclient.Params()
+	query.Set("command", commandTicker)
+
+	if b, err = trading.httpClient.Get(restURL, query, false); err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+
+	var prices map[string]quote
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	resp = make(map[string]float64)
+	for s, p := range prices {
+		symbol, _, _ := parseSymbol(s)
+		price, err := strconv.ParseFloat(p.Last, 64)
+		if err != nil {
+			log.Println("Error parsing price for balances", err)
+		}
+		resp[symbol] = price
+	}
+
 	return
 }
 

@@ -66,7 +66,7 @@ func New(opts schemas.Options) *Binance {
 	if err != nil {
 		log.Println("Error getting symbols", err)
 	}
-	binance.Trading = NewTradingProvider(opts.Credentials, proxyProvider, symbols)
+	binance.Trading = NewTradingProvider(opts.Credentials, proxyProvider).SetSymbols(symbols)
 	return binance
 }
 

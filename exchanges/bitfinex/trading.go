@@ -47,7 +47,8 @@ type TradingProvider struct {
 	httpClient  *httpclient.Client
 	proxyClient proxy.Client
 
-	bus tradingBus
+	bus     tradingBus
+	symbols []schemas.Symbol
 }
 
 type tradingBus struct {
@@ -72,6 +73,13 @@ func NewTradingProvider(creds schemas.Credentials, proxy proxy.Provider) *Tradin
 			utc: make(chan schemas.UserTradesChannel, 100),
 		},
 	}
+}
+
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
 }
 
 // Subscribe subscribing to accounts updates for balances, orders, trades
@@ -105,6 +113,7 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
+
 	balances := trading.mapBalance(resp)
 
 	access, err := trading.getAccessInfo()
@@ -112,9 +121,45 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 		return
 	}
 
+	prices, err := trading.prices()
+	if err != nil {
+		log.Println("Error getting prices for symbols", err)
+	}
+
 	ui = schemas.UserInfo{
 		Access:   access,
 		Balances: balances,
+		Prices:   prices,
+	}
+
+	return
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+
+	path := "/v2/tickers?symbols=ALL"
+	b, err = trading.httpClient.Get(apiURL+path, httpclient.Params(), false)
+	if err != nil {
+		return
+	}
+
+	var prices [][]interface{}
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	resp = make(map[string]float64)
+	for _, p := range prices {
+		var symbol string
+		if symb, ok := p[0].(string); ok {
+			if strings.Index(symb, "f") != 0 { // for symbols as fUSD, fSAN, etc.
+				symbol, _, _ = parseSymbol(symb)
+			}
+		}
+		if price, ok := p[7].(float64); ok {
+			resp[symbol] = price
+		}
 	}
 
 	return
