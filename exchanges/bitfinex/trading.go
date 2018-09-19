@@ -149,6 +149,10 @@ func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
 		return
 	}
 
+	log.Println(string(b))
+	log.Println("=====================")
+	log.Println(prices)
+
 	resp = make(map[string]float64)
 	for _, p := range prices {
 		var symbol string
