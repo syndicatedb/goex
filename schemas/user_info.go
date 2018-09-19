@@ -4,6 +4,7 @@ package schemas
 type UserInfo struct {
 	Access   Access
 	Balances map[string]Balance
+	Prices   map[string]float64
 	TradesCount,
 	OrdersCount int32
 }

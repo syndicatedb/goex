@@ -75,6 +75,12 @@ type errorMsg struct {
 	Message string `json:"msg"`
 }
 
+// Price for symbol
+type price struct {
+	Symbol string `json:"symbol"`
+	Price  string `json:"price"`
+}
+
 /*
 Subscribe - subscribing to user info
 — user info
@@ -158,7 +164,44 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-	return resp.Map(), nil
+
+	prices, err := trading.prices()
+	if err != nil {
+		return
+	}
+
+	return resp.Map(prices), nil
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+	var eMsg errorMsg
+
+	b, err = trading.httpClient.Get(apiPrices, httpclient.Params(), false)
+	if err != nil {
+		if e := json.Unmarshal(b, &eMsg); e != nil {
+			return
+		}
+		err = errors.New(eMsg.Message)
+		return
+	}
+
+	var prices []price
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	resp = make(map[string]float64)
+	for _, p := range prices {
+		symbol, _, _ := parseSymbol(p.Symbol)
+		price, err := strconv.ParseFloat(p.Price, 64)
+		if err != nil {
+			log.Println("Error parsing price", err)
+		}
+		resp[symbol] = price
+	}
+
+	return
 }
 
 // Orders - getting user active orders

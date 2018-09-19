@@ -27,7 +27,7 @@ type UserBalance struct {
 	Locked string `json:"locked"`
 }
 
-func (ubr *UserBalanceResponse) Map() schemas.UserInfo {
+func (ubr *UserBalanceResponse) Map(prices map[string]float64) schemas.UserInfo {
 	balances := make(map[string]schemas.Balance)
 	for _, b := range ubr.Balances {
 		free, err := strconv.ParseFloat(b.Free, 64)
@@ -47,6 +47,7 @@ func (ubr *UserBalanceResponse) Map() schemas.UserInfo {
 	}
 	return schemas.UserInfo{
 		Balances: balances,
+		Prices:   prices,
 	}
 }
 
