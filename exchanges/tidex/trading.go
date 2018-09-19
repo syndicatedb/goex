@@ -55,7 +55,7 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 
 	prices, err := trading.prices()
 	if err != nil {
-		log.Println("Error getting prices for balances")
+		log.Println("Error getting prices for balances", err)
 	}
 	return resp.Map(prices), nil
 }
