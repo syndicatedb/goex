@@ -535,10 +535,16 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 			return
 		}
 
+		prices, err := trading.prices()
+		if err != nil {
+			log.Println("Error getting prices for symbols", err)
+		}
+
 		trading.bus.uic <- schemas.UserInfoChannel{
 			Data: schemas.UserInfo{
 				Access:   access,
 				Balances: b,
+				Prices:   prices,
 			},
 		}
 	}
