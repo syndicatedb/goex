@@ -5,6 +5,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -47,7 +48,7 @@ func New(opts schemas.Options) *Tidex {
 		proxyProvider = proxy.NewNoProxy()
 	}
 	opts.Credentials.Sign = sign
-	return &Tidex{
+	tidex := &Tidex{
 		Exchange: schemas.Exchange{
 			Credentials:   opts.Credentials,
 			ProxyProvider: proxyProvider,
@@ -56,9 +57,14 @@ func New(opts schemas.Options) *Tidex {
 			Quotes:        NewQuotesProvider(proxyProvider),
 			Trades:        NewTradesProvider(proxyProvider),
 			Candles:       NewCandlesProvider(proxyProvider),
-			Trading:       NewTradingProvider(opts.Credentials, proxyProvider),
 		},
 	}
+	symbols, err := tidex.SymbolProvider().Get()
+	if err != nil {
+		log.Println("Error getting symbols", err)
+	}
+	tidex.Trading = NewTradingProvider(opts.Credentials, proxyProvider).SetSymbols(symbols)
+	return tidex
 }
 
 func parseSymbol(s string) (name, coin, baseCoin string) {
