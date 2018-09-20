@@ -71,8 +71,8 @@ func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
 	if err != nil {
 		return
 	}
-
-	var prices QuoteResponse
+	log.Println("TIDEX", string(b))
+	var prices map[string]Quote
 	if err = json.Unmarshal(b, &prices); err != nil {
 		return
 	}
