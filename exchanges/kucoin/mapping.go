@@ -123,7 +123,7 @@ type UserBalanceResponse struct {
 	Data      []UserBalance `json:"data"`
 }
 
-func (ubr *UserBalanceResponse) Map() schemas.UserInfo {
+func (ubr *UserBalanceResponse) Map(prices map[string]float64) schemas.UserInfo {
 	balances := make(map[string]schemas.Balance)
 	for _, b := range ubr.Data {
 		balances[b.CoinType] = schemas.Balance{
@@ -135,6 +135,7 @@ func (ubr *UserBalanceResponse) Map() schemas.UserInfo {
 	}
 	return schemas.UserInfo{
 		Balances: balances,
+		Prices:   prices,
 	}
 }
 

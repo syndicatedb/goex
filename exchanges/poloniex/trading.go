@@ -3,6 +3,7 @@ package poloniex
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ type TradingProvider struct {
 	credentials schemas.Credentials
 	httpProxy   proxy.Provider
 	httpClient  *httpclient.Client
+	symbols     []schemas.Symbol
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -29,11 +31,22 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	}
 }
 
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
+}
+
 // Subscribe subscribing to user trade data updates: balance, orders, trades
 func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.UserInfoChannel, chan schemas.UserOrdersChannel, chan schemas.UserTradesChannel) {
 	uic := make(chan schemas.UserInfoChannel)
 	uoc := make(chan schemas.UserOrdersChannel)
 	utc := make(chan schemas.UserTradesChannel)
+
+	if interval < 5*time.Second {
+		interval = 5 * time.Second
+	}
 
 	go func() {
 		for {
@@ -42,28 +55,19 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 				Data:  ui,
 				Error: err,
 			}
-			time.Sleep(interval)
-		}
-	}()
 
-	go func() {
-		for {
 			uo, err := trading.Orders([]schemas.Symbol{})
 			uoc <- schemas.UserOrdersChannel{
 				Data:  uo,
 				Error: err,
 			}
-			time.Sleep(interval)
-		}
-	}()
 
-	go func() {
-		for {
 			ut, _, err := trading.Trades(schemas.FilterOptions{})
 			utc <- schemas.UserTradesChannel{
 				Data:  ut,
 				Error: err,
 			}
+
 			time.Sleep(interval)
 		}
 	}()
@@ -94,7 +98,43 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 		userBalance[coin] = value.Map(coin)
 	}
 
+	prices, err := trading.prices()
+	if err != nil {
+		log.Println("Error getting prices for balances", err)
+	}
+
 	ui.Balances = userBalance
+	ui.Prices = prices
+	return
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+	query := httpclient.Params()
+	query.Set("command", commandTicker)
+
+	if b, err = trading.httpClient.Get(restURL, query, false); err != nil {
+		return
+	}
+	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+
+	var prices map[string]quote
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	resp = make(map[string]float64)
+	for s, p := range prices {
+		symbol, _, _ := parseSymbol(s)
+		price, err := strconv.ParseFloat(p.Last, 64)
+		if err != nil {
+			log.Println("Error parsing price for balances", err)
+		}
+		resp[symbol] = price
+	}
+
 	return
 }
 
@@ -162,14 +202,14 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
-		err = fmt.Errorf("Error creating order: %v", string(b))
+		err = fmt.Errorf("[POLONIEX] Error creating order: %v", string(b))
 		return
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 	if len(resp.Error) > 0 {
-		err = fmt.Errorf("Error creating order: %v", resp.Error)
+		err = fmt.Errorf("[POLONIEX] Error creating order: %v", resp.Error)
 		return
 	}
 
@@ -191,13 +231,13 @@ func (trading *TradingProvider) Cancel(order schemas.Order) (err error) {
 
 	b, err = trading.httpClient.Post(tradingAPI, httpclient.Params(), payload, true)
 	if err != nil {
-		err = fmt.Errorf("Error creating order: %v", string(b))
+		err = fmt.Errorf("[POLONIEX] Error creating order: %v", string(b))
 	}
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
 	if len(resp.Error) > 0 {
-		err = fmt.Errorf("Error cancelling order: %v", resp.Error)
+		err = fmt.Errorf("[POLONIEX] Error cancelling order: %v", resp.Error)
 		return
 	}
 

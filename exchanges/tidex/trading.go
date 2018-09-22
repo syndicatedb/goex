@@ -17,6 +17,7 @@ type TradingProvider struct {
 	credentials schemas.Credentials
 	httpProxy   proxy.Provider
 	httpClient  *httpclient.Client
+	symbols     []schemas.Symbol
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -27,6 +28,13 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		httpProxy:   httpProxy,
 		httpClient:  httpclient.NewSigned(credentials, proxyClient),
 	}
+}
+
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
 }
 
 // Info - provides user info: Keys access, balances
@@ -44,7 +52,40 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-	return resp.Map(), nil
+
+	prices, err := trading.prices()
+	if err != nil {
+		log.Println("Data:", string(b))
+		log.Println("Error getting prices for balances", err)
+	}
+	return resp.Map(prices), nil
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+	var symbols []string
+
+	for _, s := range trading.symbols {
+		symbols = append(symbols, s.OriginalName)
+	}
+	b, err = trading.httpClient.Get(apiQuotes+strings.Join(symbols, "-"), httpclient.Params(), false)
+	if err != nil {
+		return
+	}
+
+	var prices map[string]Quote
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+	log.Println("Length of prices:", len(prices))
+
+	resp = make(map[string]float64)
+	for s, p := range prices {
+		symbol, _, _ := parseSymbol(s)
+		resp[symbol] = p.Last
+	}
+
+	return
 }
 
 /*

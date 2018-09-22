@@ -72,6 +72,7 @@ func (uo *UserOrder) Map(symbol string) schemas.Order {
 		Price:     price,
 		Amount:    amount,
 		CreatedAt: 1, // poloniex doesn't return open orders timestamp
+		Status:    schemas.StatusNew,
 	}
 }
 

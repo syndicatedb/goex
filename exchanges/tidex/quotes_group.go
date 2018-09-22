@@ -64,34 +64,15 @@ func (q *QuotesGroup) Get() (quotes []schemas.Quote, err error) {
 	}
 	var resp QuoteResponse
 	if err = json.Unmarshal(b, &resp); err != nil {
-		fmt.Println("string(b)", string(b))
+		fmt.Println("[TIDEX] string(b)", string(b))
 		return
 	}
 	for sname, d := range resp {
 		name, _, _ := parseSymbol(sname)
 		quote := d.Map(name)
 
-		// oldPriceStr, err := q.data.Get("price_" + name)
-		// if err != nil {
-		// 	log.Println(err)
-		// 	oldPriceStr = "0"
-		// }
-		// oldPrice, err := strconv.ParseFloat(oldPriceStr, 64)
-		// if err != nil {
-		// 	log.Println(err)
-		// }
-		// newPrice, err := strconv.ParseFloat(quote.Price, 64)
-		// if err != nil {
-		// 	log.Println(err)
-		// }
-
-		// quote.DrawdownValue = strconv.FormatFloat(newPrice-oldPrice, 'f', 8, 64)
-
-		// quote.DrawdownPercent = strconv.FormatFloat(100*(newPrice-oldPrice)/newPrice, 'f', 4, 64)
-
 		quotes = append(quotes, quote)
 
-		// q.data.Set("price_"+name, quote.Price)
 	}
 	return
 }

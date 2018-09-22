@@ -78,7 +78,7 @@ func (cg *CandlesGroup) Get() (candles [][]schemas.Candle, err error) {
 			return
 		}
 		if resp.Success != "ok" {
-			err = fmt.Errorf("Error getting candle: %v", resp)
+			err = fmt.Errorf("[KUCOIN] Error getting candle: %v", resp)
 			return
 		}
 

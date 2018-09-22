@@ -84,7 +84,7 @@ func (sp *SymbolsProvider) getSymbols() (symbols []symbol, err error) {
 		return
 	}
 	if !resp.Success {
-		err = fmt.Errorf("Error getting symbols: %v", resp.Message)
+		err = fmt.Errorf("[KUCOIN] Error getting symbols: %v", resp.Message)
 		return
 	}
 	for _, smb := range resp.Data {
@@ -108,7 +108,7 @@ func (sp *SymbolsProvider) getCoins() (coins map[string]coin, err error) {
 		return
 	}
 	if !resp.Success {
-		err = fmt.Errorf("Error getting coins: %v", resp.Message)
+		err = fmt.Errorf("[KUCOIN] Error getting coins: %v", resp.Message)
 		return
 	}
 	for _, coin := range resp.Data {

@@ -84,7 +84,7 @@ func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 
 func (q *QuotesGroup) restart() {
 	if err := q.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[BINANCE] Error destroying connection: ", err)
 	}
 	q.Start(q.resultCh)
 }
@@ -98,7 +98,7 @@ func (q *QuotesGroup) connect() {
 
 	q.wsClient = websocket.NewClient(wsURL+strings.Join(smbls, "@ticker/")+"@ticker", q.httpProxy)
 	if err := q.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to binance API: ", err)
+		log.Println("[BINANCE] Error connecting to binance API: ", err)
 		q.restart()
 	}
 	q.wsClient.Listen(q.dataCh, q.errorCh)
@@ -120,7 +120,7 @@ func (q *QuotesGroup) listen() {
 			q.resultCh <- schemas.ResultChannel{
 				Error: err,
 			}
-			log.Println("Error listening:", err)
+			log.Println("[BINANCE] Error listening:", err)
 			q.restart()
 		}
 	}()
@@ -146,12 +146,12 @@ func (q *QuotesGroup) handleUpdates(data []byte) (quotes schemas.Quote, dataType
 	var msg QuotesStream
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
-		log.Println("Unmarshalling error:", err)
+		log.Println("[BINANCE] Unmarshalling error:", err)
 	}
 
 	quotes = q.mapUpdates(msg.Data)
 	if err != nil {
-		log.Println("Decorating error:", err)
+		log.Println("[BINANCE] Decorating error:", err)
 	}
 	dataType = "u"
 
@@ -206,7 +206,7 @@ func (q *QuotesGroup) mapUpdates(data QuotesChannelMessage) schemas.Quote {
 func parseFloat(s string) (d float64) {
 	d, err := strconv.ParseFloat(s, 65)
 	if err != nil {
-		log.Println("Error parsing string to float64: ", err)
+		log.Println("[BINANCE] Error parsing string to float64: ", err)
 	}
 
 	return

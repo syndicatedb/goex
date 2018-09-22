@@ -21,6 +21,7 @@ const (
 	apiQuote       = "/api/v1/ticker"
 	apiOrderBook   = "/api/v1/depth/"
 	apiTrades      = "/api/3/trades/"
+	apiPrices      = "/api/v2/ticker"
 	apiBalances    = "/api/v1/balances"
 	apiOrderCreate = "/api/v1/createorder"
 	apiOrderCancel = "/api/v1/cancelorder"

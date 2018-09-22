@@ -19,16 +19,16 @@ import (
 )
 
 const (
-	errConnecting    = "Error connecting to bitfinex WS: %v"
-	errAuth          = "Bitfinex auth error: %v"
-	errOnWs          = "Error from websocket client: %v"
-	errLoadingTrades = "Error loading trades: %v"
-	errWsNotAuth     = "WS subscription not authorized"
-	errUnmarshal     = "Error unmarshalling message: %v"
-	errExitWsClient  = "Error exiting WS client: %v"
-	errCancelAll     = "Error cancelling all orders: %v"
-	errCreateOrder   = "Error creating order: %v"
-	errCancelOrder   = "Error cancelling order: %v"
+	errConnecting    = "[BITFINEX] Error connecting to bitfinex WS: %v"
+	errAuth          = "[BITFINEX] Bitfinex auth error: %v"
+	errOnWs          = "[BITFINEX] Error from websocket client: %v"
+	errLoadingTrades = "[BITFINEX] Error loading trades: %v"
+	errWsNotAuth     = "[BITFINEX] WS subscription not authorized"
+	errUnmarshal     = "[BITFINEX] Error unmarshalling message: %v"
+	errExitWsClient  = "[BITFINEX] Error exiting WS client: %v"
+	errCancelAll     = "[BITFINEX] Error cancelling all orders: %v"
+	errCreateOrder   = "[BITFINEX] Error creating order: %v"
+	errCancelOrder   = "[BITFINEX] Error cancelling order: %v"
 )
 
 const (
@@ -47,7 +47,8 @@ type TradingProvider struct {
 	httpClient  *httpclient.Client
 	proxyClient proxy.Client
 
-	bus tradingBus
+	bus     tradingBus
+	symbols []schemas.Symbol
 }
 
 type tradingBus struct {
@@ -72,6 +73,13 @@ func NewTradingProvider(creds schemas.Credentials, proxy proxy.Provider) *Tradin
 			utc: make(chan schemas.UserTradesChannel, 100),
 		},
 	}
+}
+
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
 }
 
 // Subscribe subscribing to accounts updates for balances, orders, trades
@@ -105,6 +113,7 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
+
 	balances := trading.mapBalance(resp)
 
 	access, err := trading.getAccessInfo()
@@ -112,9 +121,51 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 		return
 	}
 
+	prices, err := trading.prices()
+	if err != nil {
+		log.Println("Error getting prices for symbols", err)
+	}
+
 	ui = schemas.UserInfo{
 		Access:   access,
 		Balances: balances,
+		Prices:   prices,
+	}
+
+	return
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+
+	path := "/v2/tickers"
+	params := httpclient.Params()
+	params.Set("symbols", "ALL")
+	b, err = trading.httpClient.Get(apiURL+path, params, false)
+	if err != nil {
+		return
+	}
+
+	var prices [][]interface{}
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	log.Println(string(b))
+	log.Println("=====================")
+	log.Println(prices)
+
+	resp = make(map[string]float64)
+	for _, p := range prices {
+		var symbol string
+		if symb, ok := p[0].(string); ok {
+			if strings.Index(symb, "f") != 0 { // for symbols as fUSD, fSAN, etc.
+				symbol, _, _ = parseSymbol(symb)
+			}
+		}
+		if price, ok := p[7].(float64); ok {
+			resp[symbol] = price
+		}
 	}
 
 	return
@@ -415,6 +466,7 @@ func (trading *TradingProvider) subscribe() {
 }
 
 func (trading *TradingProvider) resubscribe() {
+	time.Sleep(1 * time.Second)
 	if err := trading.wsClient.Exit(); err != nil {
 		log.Printf(errExitWsClient, err)
 	}
@@ -483,10 +535,16 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 			return
 		}
 
+		prices, err := trading.prices()
+		if err != nil {
+			log.Println("Error getting prices for symbols", err)
+		}
+
 		trading.bus.uic <- schemas.UserInfoChannel{
 			Data: schemas.UserInfo{
 				Access:   access,
 				Balances: b,
+				Prices:   prices,
 			},
 		}
 	}
@@ -629,7 +687,6 @@ func (trading *TradingProvider) mapBalance(msg []interface{}) map[string]schemas
 }
 
 func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.Order) {
-	log.Println("RAW MESSAGE", msg)
 	for i := range msg {
 		if ord, ok := msg[i].([]interface{}); ok {
 			var side, status string
@@ -648,10 +705,13 @@ func (trading *TradingProvider) mapOrders(msg []interface{}) (orders []schemas.O
 				status = schemas.StatusNew
 			} else if ord[13] == "CANCELED" {
 				status = schemas.StatusCancelled
+			} else if ord[13] == "REJECTED" {
+				status = schemas.StatusRejected
 			} else {
-				if st, ok := ord[13].(string); ok {
-					status = st
-				}
+				// if st, ok := ord[13].(string); ok {
+				// 	status = st
+				// }
+				status = schemas.StatusNew
 			}
 
 			order := schemas.Order{

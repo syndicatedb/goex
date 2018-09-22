@@ -19,6 +19,7 @@ type TradingProvider struct {
 	credentials schemas.Credentials
 	httpProxy   proxy.Provider
 	httpClient  *httpclient.Client
+	symbols     []schemas.Symbol
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -31,9 +32,63 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	}
 }
 
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
+}
+
 // Info - provides user info: Keys access, balances
 func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	ui.Balances, err = trading.Balances()
+	if err != nil {
+		return
+	}
+
+	ui.Prices, err = trading.prices()
+
+	return
+}
+
+type priceResponse struct {
+	Code      int     `json:"code"`
+	Msg       string  `json:"msg"`
+	Timestamp int64   `json:"timestamp"`
+	Ticker    []price `json:"ticker"`
+}
+type price struct {
+	Symbol string `json:"pair"`
+	Open   string `json:"open"`
+	High   string `json:"high"`
+	Low    string `json:"low"`
+	Last   string `json:"last"`
+	Volume string `json:"vol"`
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+
+	b, err = trading.httpClient.Get(getURL(apiPrices), httpclient.Params(), false)
+	if err != nil {
+		return
+	}
+
+	var prices priceResponse
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	resp = make(map[string]float64)
+	for _, p := range prices.Ticker {
+		symbol, _, _ := parseSymbol(p.Symbol)
+		price, err := strconv.ParseFloat(p.Last, 64)
+		if err != nil {
+			log.Println("Error parsing price for balances", err)
+		}
+		resp[symbol] = price
+	}
+
 	return
 }
 
@@ -48,7 +103,7 @@ func (trading *TradingProvider) Balances() (balances map[string]schemas.Balance,
 	}
 	var resp Response
 	if err = json.Unmarshal(b, &resp); err != nil {
-		fmt.Println("Response error:", string(b))
+		fmt.Println("[IDAX] Response error:", string(b))
 		return
 	}
 	if resp.Success != true {
@@ -58,7 +113,7 @@ func (trading *TradingProvider) Balances() (balances map[string]schemas.Balance,
 	}
 	var items []Balance
 	if err = json.Unmarshal(resp.Data, &items); err != nil {
-		fmt.Println("Balance parsing error:", err, string(b))
+		fmt.Println("[IDAX] Balance parsing error:", err, string(b))
 		return
 	}
 	for _, b := range items {
@@ -120,7 +175,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	}
 	var resp Response
 	if err = json.Unmarshal(b, &resp); err != nil {
-		log.Println("Error getting user orders: ", err)
+		log.Println("[IDAX] Error getting user orders: ", err)
 		return
 	}
 	if resp.Success != true {

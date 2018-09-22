@@ -91,7 +91,7 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 
 func (tg *TradesGroup) restart() {
 	if err := tg.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[BINANCE] Error destroying connection: ", err)
 	}
 	tg.Start(tg.resultCh)
 }
@@ -115,7 +115,7 @@ func (tg *TradesGroup) Get() (result [][]schemas.Trade, err error) {
 
 		trades, err = tg.mapSnapshot(resp, symbol.OriginalName)
 		if err != nil {
-			log.Println("Error mapping trades snapshot", err)
+			log.Println("[BINANCE] Error mapping trades snapshot", err)
 		}
 
 		result = append(result, trades)
@@ -134,12 +134,12 @@ func (tg *TradesGroup) mapSnapshot(data []recentTrade, symbol string) (trades []
 		}
 		price, err := strconv.ParseFloat(t.Price, 64)
 		if err != nil {
-			log.Println("Error mapping public trades snapshot", err)
+			log.Println("[BINANCE] Error mapping public trades snapshot", err)
 			return nil, err
 		}
 		qty, err := strconv.ParseFloat(t.Quantity, 64)
 		if err != nil {
-			log.Println("Error mapping public trades snapshot", err)
+			log.Println("[BINANCE] Error mapping public trades snapshot", err)
 			return nil, err
 		}
 		symb, _, _ := parseSymbol(symbol)
@@ -164,7 +164,7 @@ func (tg *TradesGroup) connect() {
 	ws := websocket.NewClient(wsURL+strings.Join(smbls, "@aggTrade/")+"@aggTrade", tg.httpProxy)
 	tg.wsClient = ws
 	if err := tg.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to binance API: ", err)
+		log.Println("[BINANCE] Error connecting to binance API: ", err)
 		tg.restart()
 	}
 	tg.wsClient.Listen(tg.dataCh, tg.errorCh)
@@ -189,7 +189,7 @@ func (tg *TradesGroup) listen() {
 			tg.resultCh <- schemas.ResultChannel{
 				Error: err,
 			}
-			log.Println("Error listening:", err)
+			log.Println("[BINANCE] Error listening:", err)
 			tg.restart()
 		}
 	}()
@@ -199,12 +199,12 @@ func (tg *TradesGroup) handleUpdates(data []byte) (trades []schemas.Trade, dataT
 	var msg recentTradesStream
 	err = json.Unmarshal(data, &msg)
 	if err != nil {
-		log.Println("Unmarshalling error:", err)
+		log.Println("[BINANCE] Unmarshalling error:", err)
 	}
 
 	trades, err = tg.mapUpdates(msg.Data)
 	if err != nil {
-		log.Println("Decorating error:", err)
+		log.Println("[BINANCE] Decorating error:", err)
 	}
 	dataType = "u"
 
@@ -214,12 +214,12 @@ func (tg *TradesGroup) handleUpdates(data []byte) (trades []schemas.Trade, dataT
 func (tg *TradesGroup) mapUpdates(data recentTradesChannelMessage) (trades []schemas.Trade, err error) {
 	qty, err := strconv.ParseFloat(data.Quantity, 64)
 	if err != nil {
-		log.Println("Error mapping trades update:", err)
+		log.Println("[BINANCE] Error mapping trades update:", err)
 		return nil, err
 	}
 	price, err := strconv.ParseFloat(data.Price, 64)
 	if err != nil {
-		log.Println("Error mapping trades update:", err)
+		log.Println("[BINANCE] Error mapping trades update:", err)
 		return nil, err
 	}
 	var typeStr string

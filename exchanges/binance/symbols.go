@@ -73,13 +73,13 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 					if min, ok := f["minPrice"].(string); ok {
 						minPrice, err = strconv.ParseFloat(min, 64)
 						if err != nil {
-							log.Println("Error parsing symbols data:", err)
+							log.Println("[BINANCE] Error parsing symbols data:", err)
 						}
 					}
 					if max, ok := f["maxPrice"].(string); ok {
 						maxPrice, err = strconv.ParseFloat(max, 64)
 						if err != nil {
-							log.Println("Error parsing symbols data:", err)
+							log.Println("[BINANCE] Error parsing symbols data:", err)
 						}
 					}
 				}
@@ -88,13 +88,13 @@ func (sp *SymbolsProvider) Get() (symbols []schemas.Symbol, err error) {
 					if min, ok := f["minQty"].(string); ok {
 						minAmount, err = strconv.ParseFloat(min, 64)
 						if err != nil {
-							log.Println("Error parsing symbols data:", err)
+							log.Println("[BINANCE] Error parsing symbols data:", err)
 						}
 					}
 					if max, ok := f["maxQty"].(string); ok {
 						maxAmount, err = strconv.ParseFloat(max, 64)
 						if err != nil {
-							log.Println("Error parsing symbols data:", err)
+							log.Println("[BINANCE] Error parsing symbols data:", err)
 						}
 					}
 				}

@@ -73,17 +73,17 @@ func (ob *OrderBookGroup) Get() (book []schemas.OrderBook, err error) {
 		query.Set("limit", "100")
 
 		if b, err = ob.httpClient.Get(apiOrderBook, query, false); err != nil {
-			log.Println("Error getting orderbook snapshot", symbol, err)
+			log.Println("[BINANCE] Error getting orderbook snapshot", symbol, err)
 			time.Sleep(5 * time.Second)
 			return
 		}
 		if err = json.Unmarshal(b, &resp); err != nil {
-			log.Println("Error unmarshaling orderbook snapshot", err)
+			log.Println("[BINANCE] Error unmarshaling orderbook snapshot", err)
 		}
 
 		result := ob.mapSnapshot(resp, symbol.OriginalName)
 		if err != nil {
-			log.Println("Error mapping orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping orderbook snapshot", err)
 		}
 
 		book = append(book, result)
@@ -94,7 +94,7 @@ func (ob *OrderBookGroup) Get() (book []schemas.OrderBook, err error) {
 
 // Start - starting updates
 func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
-	log.Println("Orderbook starting")
+	log.Println("[BINANCE] Orderbook starting")
 	ob.resultCh = ch
 
 	go func() {
@@ -116,7 +116,7 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 
 func (ob *OrderBookGroup) restart() {
 	if err := ob.wsClient.Exit(); err != nil {
-		log.Println("Error destroying connection: ", err)
+		log.Println("[BINANCE] Error destroying connection: ", err)
 	}
 	ob.Start(ob.resultCh)
 }
@@ -131,7 +131,7 @@ func (ob *OrderBookGroup) connect() {
 	ws := websocket.NewClient(wsURL+strings.ToLower(strings.Join(smbls, "@depth/")+"@depth"), ob.httpProxy)
 	ob.wsClient = ws
 	if err := ob.wsClient.Connect(); err != nil {
-		log.Println("Error connecting to binance API: ", err)
+		log.Println("[BINANCE] Error connecting to binance API: ", err)
 		ob.restart()
 	}
 	ob.wsClient.Listen(ob.dataCh, ob.errorCh)
@@ -155,7 +155,7 @@ func (ob *OrderBookGroup) listen() {
 			ob.resultCh <- schemas.ResultChannel{
 				Error: err,
 			}
-			log.Println("Error listening:", err)
+			log.Println("[BINANCE] Error listening:", err)
 			ob.restart()
 		}
 	}()
@@ -166,7 +166,7 @@ func (ob *OrderBookGroup) handleUpdates(data []byte) (orders schemas.OrderBook, 
 	var msg Message
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
-		log.Println("Error handling updates", err)
+		log.Println("[BINANCE] Error handling updates", err)
 	}
 
 	if msg.Data.FinalUpdateID <= ob.lastUpdateID[msg.Data.Symbol] {
@@ -189,12 +189,12 @@ func (ob *OrderBookGroup) mapSnapshot(data orderBookSnapshot, symbol string) sch
 	for _, bid := range data.Bids {
 		price, err := strconv.ParseFloat(bid[0].(string), 64)
 		if err != nil {
-			log.Println("Error mapping public orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping public orderbook snapshot", err)
 
 		}
 		amount, err := strconv.ParseFloat(bid[1].(string), 64)
 		if err != nil {
-			log.Println("Error mapping public orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping public orderbook snapshot", err)
 		}
 		buy := schemas.Order{
 			Symbol: smb,
@@ -208,11 +208,11 @@ func (ob *OrderBookGroup) mapSnapshot(data orderBookSnapshot, symbol string) sch
 	for _, ask := range data.Asks {
 		price, err := strconv.ParseFloat(ask[0].(string), 64)
 		if err != nil {
-			log.Println("Error mapping public orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping public orderbook snapshot", err)
 		}
 		amount, err := strconv.ParseFloat(ask[1].(string), 64)
 		if err != nil {
-			log.Println("Error mapping public orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping public orderbook snapshot", err)
 		}
 		sell := schemas.Order{
 			Symbol: smb,
@@ -236,11 +236,11 @@ func (ob *OrderBookGroup) mapUpdates(data orderbookChannelMessage) schemas.Order
 	for _, bid := range data.Bids {
 		price, err := strconv.ParseFloat(bid[0].(string), 64)
 		if err != nil {
-			log.Println("Error mapping public orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping public orderbook snapshot", err)
 		}
 		amount, err := strconv.ParseFloat(bid[1].(string), 64)
 		if err != nil {
-			log.Println("Error mapping public orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping public orderbook snapshot", err)
 		}
 		buy := schemas.Order{
 			Symbol: smb,
@@ -257,11 +257,11 @@ func (ob *OrderBookGroup) mapUpdates(data orderbookChannelMessage) schemas.Order
 	for _, ask := range data.Asks {
 		price, err := strconv.ParseFloat(ask[0].(string), 64)
 		if err != nil {
-			log.Println("Error mapping public orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping public orderbook snapshot", err)
 		}
 		amount, err := strconv.ParseFloat(ask[1].(string), 64)
 		if err != nil {
-			log.Println("Error mapping public orderbook snapshot", err)
+			log.Println("[BINANCE] Error mapping public orderbook snapshot", err)
 		}
 		sell := schemas.Order{
 			Symbol: smb,

@@ -18,6 +18,7 @@ type TradingProvider struct {
 	credentials schemas.Credentials
 	httpProxy   proxy.Provider
 	httpClient  *httpclient.Client
+	symbols     []schemas.Symbol
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -28,6 +29,13 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		httpProxy:   httpProxy,
 		httpClient:  httpclient.NewSigned(credentials, proxyClient),
 	}
+}
+
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
 }
 
 // Info - provides user info: Keys access, balances
@@ -49,7 +57,33 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 		err = errors.New(resp.Msg)
 		return
 	}
-	return resp.Map(), nil
+	prices, err := trading.prices()
+	if err != nil {
+		log.Println("Error getting prices for balances", err)
+	}
+	return resp.Map(prices), nil
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+
+	b, err = trading.httpClient.Get(apiTicker, httpclient.Params(), false)
+	if err != nil {
+		return
+	}
+
+	var prices allQuotesResp
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	resp = make(map[string]float64)
+	for _, p := range prices.Data {
+		symbol, _, _ := parseSymbol(p.Symbol)
+		resp[symbol] = p.LastDealPrice
+	}
+
+	return
 }
 
 /*
@@ -126,7 +160,7 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 		for {
 			trades, _, err := trading.Trades(opts)
 			if err != nil {
-				log.Println("Error loading trades: ", err)
+				log.Println("[KUCOIN] Error loading trades: ", err)
 				continue
 			}
 			ch <- schemas.UserTradesChannel{
@@ -180,7 +214,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 		return
 	}
 	if resp.Success == false {
-		log.Printf("resp error: %+v\n", resp)
+		log.Printf("[KUCOIN] resp error: %+v\n", resp)
 		if resp.Code == "UNAUTH" {
 			err = errors.New(resp.Msg)
 			return

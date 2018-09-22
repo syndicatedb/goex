@@ -80,7 +80,7 @@ func (tg *TradesGroup) Subscribe(ch chan schemas.ResultChannel, d time.Duration)
 					}
 					// Sending to listener
 					if len(t) > 0 {
-						log.Println("Kucoin: Trades updates trades / input / processed: ", len(tradesMap), "/", len(b), "/", len(t))
+						log.Println("[KUCOIN] Trades updates trades / input / processed: ", len(tradesMap), "/", len(b), "/", len(t))
 						ch <- schemas.ResultChannel{
 							DataType: dataType,
 							Data:     b,
@@ -112,7 +112,7 @@ func (tg *TradesGroup) Get() (trades [][]schemas.Trade, err error) {
 			return
 		}
 		if !resp.Success {
-			err = fmt.Errorf("Error getting trades: %v", err)
+			err = fmt.Errorf("[KUCOIN] Error getting trades: %v", err)
 			return
 		}
 
