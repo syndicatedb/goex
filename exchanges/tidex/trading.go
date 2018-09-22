@@ -77,7 +77,6 @@ func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
 	if err = json.Unmarshal(b, &prices); err != nil {
 		return
 	}
-	log.Println("Length of prices:", len(prices))
 
 	resp = make(map[string]float64)
 	for s, p := range prices {
