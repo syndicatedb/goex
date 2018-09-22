@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -58,7 +57,6 @@ func New(opts schemas.Options) *IDAX {
 	if opts.API != "" {
 		apiHost = opts.API
 	}
-	log.Println("apiHost: ", apiHost)
 	return &IDAX{
 		Exchange: schemas.Exchange{
 			Credentials:   opts.Credentials,
