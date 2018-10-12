@@ -210,37 +210,35 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 
 // Trades - getting user trades
 func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
-	var b []byte
-	payload := httpclient.Params()
-	// payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
-
-	if len(opts.Symbols) > 0 {
-		var pairs []string
-		for _, s := range opts.Symbols {
-			pairs = append(pairs, symbolToPair(s.Name))
+	if len(opts.Symbols) == 0 {
+		err = errors.New("Symbols empty")
+	}
+	for _, s := range opts.Symbols {
+		var b []byte
+		var req *http.Request
+		payload := httpclient.Params()
+		payload.Set("pair", symbolToPair(s.Name))
+		payload.Set("since", "")
+		if opts.FromID != "" {
+			payload.Set("since", opts.FromID)
 		}
-		payload.Set("pair", strings.Join(pairs, "-"))
+		log.Printf("payload: %+v\n", payload)
+		req, err = signJSON(trading.credentials.APIKey, trading.credentials.APISecret, getURL(apiUserTrades), payload)
+		if err != nil {
+			continue
+		}
+		b, err = trading.httpClient.Do(req)
+		if err != nil {
+			continue
+		}
+		var resp UserTradesResponse
+		if err = json.Unmarshal(b, &resp); err != nil {
+			continue
+		}
+		tr := resp.Map(s.Name)
+		trades = append(trades, tr...)
 	}
-	payload.Set("since", "")
-	if opts.FromID != "" {
-		payload.Set("since", opts.FromID)
-	}
-	log.Printf("payload: %+v\n", payload)
-	trading.httpClient.ContentType = httpclient.ContentTypeJSON
-	req, err := signJSON(trading.credentials.APIKey, trading.credentials.APISecret, getURL(apiUserTrades), payload)
-	if err != nil {
-		return
-	}
-	b, err = trading.httpClient.Do(req)
-	if err != nil {
-		return
-	}
-	log.Println("string(b): ", string(b))
-	var resp UserTradesResponse
-	if err = json.Unmarshal(b, &resp); err != nil {
-		return
-	}
-	return resp.Map(), p, nil
+	return
 }
 
 // Create - creating order
