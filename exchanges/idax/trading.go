@@ -206,8 +206,7 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
 	var b []byte
 	payload := httpclient.Params()
-	payload.Set("method", "TradeHistory")
-	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
+	// payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
 
 	if len(opts.Symbols) > 0 {
 		var pairs []string
@@ -216,18 +215,17 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 		}
 		payload.Set("pair", strings.Join(pairs, "-"))
 	}
-
-	if opts.Limit > 0 {
-		payload.Set("count", fmt.Sprintf("%d", opts.Limit))
-	}
-
+	payload.Set("since", "1")
 	if opts.FromID != "" {
-		payload.Set("from_id", opts.FromID)
+		payload.Set("since", opts.FromID)
 	}
+	log.Printf("payload: %+v\n", payload)
+	trading.httpClient.ContentType = httpclient.ContentTypeJSON
 	b, err = trading.httpClient.Post(getURL(apiUserTrades), httpclient.Params(), payload, true)
 	if err != nil {
 		return
 	}
+	log.Println("string(b): ", string(b))
 	var resp UserTradesResponse
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return

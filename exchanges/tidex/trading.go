@@ -2,6 +2,7 @@ package tidex
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -214,6 +215,10 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 	}
 	var resp OrdersCreateResponse
 	if err = json.Unmarshal(b, &resp); err != nil {
+		return
+	}
+	if resp.Success == 0 {
+		err = errors.New(resp.Error)
 		return
 	}
 	order.ID = fmt.Sprintf("%d", resp.Return.OrderID)

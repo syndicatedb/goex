@@ -227,4 +227,5 @@ type OrdersCreateResponse struct {
 		OrderID  int64              `json:"order_id"` // 0,
 		Funds    map[string]float64 `json:"funds"`    // "eth":325
 	} `json:"return"`
+	Error string `json:"error"`
 }

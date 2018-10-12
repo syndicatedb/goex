@@ -154,7 +154,11 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 		opts.Since = opts.Since * 1000
 	}
 
-	trades, paging, err := trading.Trades(opts)
+	_, paging, err := trading.Trades(opts)
+	if err != nil {
+		log.Println("[KUCOIN] Error loading trades, exiting: ", err)
+		return nil
+	}
 	opts.Page = int(paging.Pages)
 	go func() {
 		for {
@@ -174,7 +178,7 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 			time.Sleep(1 * time.Second)
 		}
 	}()
-	log.Printf("paging: %d, %+v, %v", len(trades), paging, err)
+	// log.Printf("paging: %d, %+v, %v", len(trades), paging, err)
 
 	return ch
 }
