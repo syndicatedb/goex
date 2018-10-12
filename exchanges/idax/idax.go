@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"sort"
@@ -97,9 +96,8 @@ func sign(key, secret string, req *http.Request) *http.Request {
 	mts := time.Now().UTC().UnixNano() / 1000000
 	timestamp := fmt.Sprintf("%d", mts)
 
-	b, _ := req.GetBody()
-	body, _ := ioutil.ReadAll(b)
-	log.Printf("body: %+v\n", string(body))
+	// b, _ := req.GetBody()
+	// body, _ := ioutil.ReadAll(b)
 	rawParams := make(map[string]string)
 	for k, v := range req.URL.Query() {
 		rawParams[k] = strings.Join(v, "")
@@ -120,11 +118,11 @@ func sign(key, secret string, req *http.Request) *http.Request {
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(str))
 
-	// q := req.URL.Query()
-	req.URL.Query().Add("key", key)
-	req.URL.Query().Add("timestamp", timestamp)
-	req.URL.Query().Add("sign", hex.EncodeToString(mac.Sum(nil)))
-	req.URL.RawQuery = req.URL.Query().Encode()
+	q := req.URL.Query()
+	q.Add("key", key)
+	q.Add("timestamp", timestamp)
+	q.Add("sign", hex.EncodeToString(mac.Sum(nil)))
+	req.URL.RawQuery = q.Encode()
 	log.Println("req.URL.RawQuery: ", req.URL.RawQuery)
 	return req
 }
