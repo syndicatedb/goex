@@ -1,15 +1,21 @@
 package idax
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/syndicatedb/goex/internal/http"
+	httpclient "github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -215,13 +221,17 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 		}
 		payload.Set("pair", strings.Join(pairs, "-"))
 	}
-	payload.Set("since", "1")
+	payload.Set("since", "")
 	if opts.FromID != "" {
 		payload.Set("since", opts.FromID)
 	}
 	log.Printf("payload: %+v\n", payload)
 	trading.httpClient.ContentType = httpclient.ContentTypeJSON
-	b, err = trading.httpClient.Post(getURL(apiUserTrades), httpclient.Params(), payload, true)
+	req, err := signJSON(trading.credentials.APIKey, trading.credentials.APISecret, getURL(apiUserTrades), payload)
+	if err != nil {
+		return
+	}
+	b, err = trading.httpClient.Do(req)
 	if err != nil {
 		return
 	}
@@ -305,4 +315,43 @@ func (trading *TradingProvider) CancelAll() (err error) {
 		err = trading.Cancel(o)
 	}
 	return
+}
+
+func signJSON(key, secret, url string, payload httpclient.KeyValue) (*http.Request, error) {
+	// pair and since already in payload
+	var query []string
+	mts := time.Now().UTC().UnixNano() / 1000000
+	timestamp := fmt.Sprintf("%d", mts)
+
+	payload.Set("key", key)
+	payload.Set("timestamp", timestamp)
+	rawParams := payload.Map()
+	var keys []string
+	for k := range rawParams {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		query = append(query, k+"="+rawParams[k])
+	}
+	str := strings.Join(query, "&")
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(str))
+
+	payload.Set("sign", hex.EncodeToString(mac.Sum(nil)))
+	b, err := json.Marshal(payload.Map())
+	if err != nil {
+		log.Println("Marshalling error in sign json", err)
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
+	if err != nil {
+		log.Println("Error creating new request in sign json", err)
+		return nil, err
+	}
+	req.Header.Set("Content-Type", httpclient.ContentTypeJSON)
+
+	return req, nil
 }
