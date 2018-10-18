@@ -1,15 +1,21 @@
 package idax
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/syndicatedb/goex/internal/http"
+	httpclient "github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/schemas"
 	"github.com/syndicatedb/goproxy/proxy"
 )
@@ -19,6 +25,7 @@ type TradingProvider struct {
 	credentials schemas.Credentials
 	httpProxy   proxy.Provider
 	httpClient  *httpclient.Client
+	symbols     []schemas.Symbol
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -31,9 +38,63 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	}
 }
 
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
+}
+
 // Info - provides user info: Keys access, balances
 func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	ui.Balances, err = trading.Balances()
+	if err != nil {
+		return
+	}
+
+	ui.Prices, err = trading.prices()
+
+	return
+}
+
+type priceResponse struct {
+	Code      int     `json:"code"`
+	Msg       string  `json:"msg"`
+	Timestamp int64   `json:"timestamp"`
+	Ticker    []price `json:"ticker"`
+}
+type price struct {
+	Symbol string `json:"pair"`
+	Open   string `json:"open"`
+	High   string `json:"high"`
+	Low    string `json:"low"`
+	Last   string `json:"last"`
+	Volume string `json:"vol"`
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+
+	b, err = trading.httpClient.Get(getURL(apiPrices), httpclient.Params(), false)
+	if err != nil {
+		return
+	}
+
+	var prices priceResponse
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	resp = make(map[string]float64)
+	for _, p := range prices.Ticker {
+		symbol, _, _ := parseSymbol(p.Symbol)
+		price, err := strconv.ParseFloat(p.Last, 64)
+		if err != nil {
+			log.Println("Error parsing price for balances", err)
+		}
+		resp[symbol] = price
+	}
+
 	return
 }
 
@@ -149,35 +210,35 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 
 // Trades - getting user trades
 func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
-	var b []byte
-	payload := httpclient.Params()
-	payload.Set("method", "TradeHistory")
-	payload.Set("nonce", fmt.Sprintf("%d", time.Now().Unix()))
-
-	if len(opts.Symbols) > 0 {
-		var pairs []string
-		for _, s := range opts.Symbols {
-			pairs = append(pairs, symbolToPair(s.Name))
+	if len(opts.Symbols) == 0 {
+		err = errors.New("Symbols empty")
+	}
+	for _, s := range opts.Symbols {
+		var b []byte
+		var req *http.Request
+		payload := httpclient.Params()
+		payload.Set("pair", symbolToPair(s.Name))
+		payload.Set("since", "")
+		if opts.FromID != "" {
+			payload.Set("since", opts.FromID)
 		}
-		payload.Set("pair", strings.Join(pairs, "-"))
+		log.Printf("payload: %+v\n", payload)
+		req, err = signJSON(trading.credentials.APIKey, trading.credentials.APISecret, getURL(apiUserTrades), payload)
+		if err != nil {
+			continue
+		}
+		b, err = trading.httpClient.Do(req)
+		if err != nil {
+			continue
+		}
+		var resp UserTradesResponse
+		if err = json.Unmarshal(b, &resp); err != nil {
+			continue
+		}
+		tr := resp.Map(s.Name)
+		trades = append(trades, tr...)
 	}
-
-	if opts.Limit > 0 {
-		payload.Set("count", fmt.Sprintf("%d", opts.Limit))
-	}
-
-	if opts.FromID != "" {
-		payload.Set("from_id", opts.FromID)
-	}
-	b, err = trading.httpClient.Post(getURL(apiUserTrades), httpclient.Params(), payload, true)
-	if err != nil {
-		return
-	}
-	var resp UserTradesResponse
-	if err = json.Unmarshal(b, &resp); err != nil {
-		return
-	}
-	return resp.Map(), p, nil
+	return
 }
 
 // Create - creating order
@@ -252,4 +313,43 @@ func (trading *TradingProvider) CancelAll() (err error) {
 		err = trading.Cancel(o)
 	}
 	return
+}
+
+func signJSON(key, secret, url string, payload httpclient.KeyValue) (*http.Request, error) {
+	// pair and since already in payload
+	var query []string
+	mts := time.Now().UTC().UnixNano() / 1000000
+	timestamp := fmt.Sprintf("%d", mts)
+
+	payload.Set("key", key)
+	payload.Set("timestamp", timestamp)
+	rawParams := payload.Map()
+	var keys []string
+	for k := range rawParams {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		query = append(query, k+"="+rawParams[k])
+	}
+	str := strings.Join(query, "&")
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(str))
+
+	payload.Set("sign", hex.EncodeToString(mac.Sum(nil)))
+	b, err := json.Marshal(payload.Map())
+	if err != nil {
+		log.Println("Marshalling error in sign json", err)
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
+	if err != nil {
+		log.Println("Error creating new request in sign json", err)
+		return nil, err
+	}
+	req.Header.Set("Content-Type", httpclient.ContentTypeJSON)
+
+	return req, nil
 }

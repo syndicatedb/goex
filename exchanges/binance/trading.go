@@ -39,7 +39,7 @@ type TradingProvider struct {
 }
 
 // NewTradingProvider - TradingProvider constructor
-func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provider, symbols []schemas.Symbol) *TradingProvider {
+func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provider) *TradingProvider {
 	proxyClient := httpProxy.NewClient(exchangeName)
 	trading := TradingProvider{
 		credentials: credentials,
@@ -48,7 +48,6 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		uic:         make(chan schemas.UserInfoChannel),
 		uoc:         make(chan schemas.UserOrdersChannel),
 		utc:         make(chan schemas.UserTradesChannel),
-		symbols:     symbols,
 		ch:          make(chan []byte, 400),
 		ech:         make(chan error, 400),
 	}
@@ -70,9 +69,22 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 	return &trading
 }
 
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
+}
+
 type errorMsg struct {
 	Code    int    `json:"code"`
 	Message string `json:"msg"`
+}
+
+// Price for symbol
+type price struct {
+	Symbol string `json:"symbol"`
+	Price  string `json:"price"`
 }
 
 /*
@@ -158,7 +170,44 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-	return resp.Map(), nil
+
+	prices, err := trading.prices()
+	if err != nil {
+		log.Println("Error getting prices for balances")
+	}
+
+	return resp.Map(prices), nil
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+	var eMsg errorMsg
+
+	b, err = trading.httpClient.Get(apiPrices, httpclient.Params(), false)
+	if err != nil {
+		if e := json.Unmarshal(b, &eMsg); e != nil {
+			return
+		}
+		err = errors.New(eMsg.Message)
+		return
+	}
+
+	var prices []price
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	resp = make(map[string]float64)
+	for _, p := range prices {
+		symbol, _, _ := parseSymbol(p.Symbol)
+		price, err := strconv.ParseFloat(p.Price, 64)
+		if err != nil {
+			log.Println("Error parsing price", err)
+		}
+		resp[symbol] = price
+	}
+
+	return
 }
 
 // Orders - getting user active orders

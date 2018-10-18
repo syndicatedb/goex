@@ -1,7 +1,10 @@
 package httpclient
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,11 +20,18 @@ const (
 	methodPOST = "POST"
 )
 
+// ContentTypes for requests
+const (
+	ContentTypeJSON = "application/json"
+	ContentTypeForm = "application/x-www-form-urlencoded;charset=utf-8"
+)
+
 // Client - http mapper/helper
 type Client struct {
 	proxy       proxy.Client
 	credentials schemas.Credentials
 	Headers     KeyValue
+	ContentType string
 }
 
 // NewSigned - HTTP mapper constructor
@@ -81,9 +91,9 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 	var formData string
 
 	rawurl := endpoint
+	var URL *url.URL
 	// log.Println("ENDPOINT", rawurl)
 	if len(params.data) > 0 {
-		var URL *url.URL
 		URL, err = url.Parse(rawurl)
 		if err != nil {
 			return
@@ -98,7 +108,7 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 
 	if len(payload.data) > 0 {
 		var err error
-		var URL *url.URL
+
 		URL, err = url.Parse(rawurl)
 		if err != nil {
 			return nil, err
@@ -112,16 +122,16 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		rawurl = URL.String()
 	}
 
-	req, err := http.NewRequest(method, rawurl, strings.NewReader(formData))
+	body := client.getBody(URL, payload)
+	req, err := http.NewRequest(method, rawurl, body)
 	if err != nil {
 		return
 	}
 
 	if method == "POST" || method == "PUT" {
-		req.Header.Add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
+		req.Header.Add("Content-Type", client.getContentType())
 	}
 	req.Header.Add("Accept", "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
-	req.Header.Add("User-Agent", "Xenon bot")
 
 	if isSigned {
 		req = client.sign(req)
@@ -134,6 +144,30 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 	}
 
 	return client.Do(req)
+}
+
+func (client *Client) getBody(u *url.URL, payload KeyValue) io.Reader {
+	if u == nil {
+		return strings.NewReader("")
+	}
+	log.Printf("u: %+v\n", u.Query())
+	if client.getContentType() == ContentTypeForm {
+		return strings.NewReader(u.RawQuery)
+	}
+	log.Printf("u: %+v\n", u)
+	data := payload.Map()
+	b, err := json.Marshal(data)
+	if err != nil {
+		log.Println("err: ", err)
+	}
+	return bytes.NewBuffer(b)
+}
+
+func (client *Client) getContentType() string {
+	if client.ContentType == "" {
+		return ContentTypeForm
+	}
+	return client.ContentType
 }
 
 // Do making HTTP request, can be user for custom requests

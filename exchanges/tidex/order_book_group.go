@@ -2,6 +2,7 @@ package tidex
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -84,6 +85,7 @@ func (ob *OrderBookGroup) Get() (book map[string]schemas.OrderBook, err error) {
 	}
 	if resp.Error != "" {
 		log.Println("[TIDEX] Error in Order response: ", resp.Error)
+		err = errors.New(resp.Error)
 		return
 	}
 	var booksResponse OrderBookResponse

@@ -18,6 +18,7 @@ type TradingProvider struct {
 	credentials schemas.Credentials
 	httpProxy   proxy.Provider
 	httpClient  *httpclient.Client
+	symbols     []schemas.Symbol
 }
 
 // NewTradingProvider - TradingProvider constructor
@@ -28,6 +29,13 @@ func NewTradingProvider(credentials schemas.Credentials, httpProxy proxy.Provide
 		httpProxy:   httpProxy,
 		httpClient:  httpclient.NewSigned(credentials, proxyClient),
 	}
+}
+
+// SetSymbols update symbols in trading provider
+func (trading *TradingProvider) SetSymbols(symbols []schemas.Symbol) schemas.TradingProvider {
+	trading.symbols = symbols
+
+	return trading
 }
 
 // Info - provides user info: Keys access, balances
@@ -49,7 +57,33 @@ func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 		err = errors.New(resp.Msg)
 		return
 	}
-	return resp.Map(), nil
+	prices, err := trading.prices()
+	if err != nil {
+		log.Println("Error getting prices for balances", err)
+	}
+	return resp.Map(prices), nil
+}
+
+func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
+	var b []byte
+
+	b, err = trading.httpClient.Get(apiTicker, httpclient.Params(), false)
+	if err != nil {
+		return
+	}
+
+	var prices allQuotesResp
+	if err = json.Unmarshal(b, &prices); err != nil {
+		return
+	}
+
+	resp = make(map[string]float64)
+	for _, p := range prices.Data {
+		symbol, _, _ := parseSymbol(p.Symbol)
+		resp[symbol] = p.LastDealPrice
+	}
+
+	return
 }
 
 /*
@@ -120,7 +154,11 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 		opts.Since = opts.Since * 1000
 	}
 
-	trades, paging, err := trading.Trades(opts)
+	_, paging, err := trading.Trades(opts)
+	if err != nil {
+		log.Println("[KUCOIN] Error loading trades, exiting: ", err)
+		return nil
+	}
 	opts.Page = int(paging.Pages)
 	go func() {
 		for {
@@ -140,7 +178,7 @@ func (trading *TradingProvider) ImportTrades(opts schemas.FilterOptions) chan sc
 			time.Sleep(1 * time.Second)
 		}
 	}()
-	log.Printf("paging: %d, %+v, %v", len(trades), paging, err)
+	// log.Printf("paging: %d, %+v, %v", len(trades), paging, err)
 
 	return ch
 }

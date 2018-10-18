@@ -22,6 +22,7 @@ const (
 	apiQuotes    = "https://api.binance.com/api/v1/ticker/24hr"
 
 	apiUserBalance  = "https://api.binance.com/api/v3/account"
+	apiPrices       = "https://api.binance.com/api/v3/ticker/price"
 	apiActiveOrders = "https://api.binance.com/api/v3/openOrders"
 	apiUserTrades   = "https://api.binance.com/api/v3/myTrades"
 
@@ -65,7 +66,7 @@ func New(opts schemas.Options) *Binance {
 	if err != nil {
 		log.Println("Error getting symbols", err)
 	}
-	binance.Trading = NewTradingProvider(opts.Credentials, proxyProvider, symbols)
+	binance.Trading = NewTradingProvider(opts.Credentials, proxyProvider).SetSymbols(symbols)
 	return binance
 }
 

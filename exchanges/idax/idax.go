@@ -22,11 +22,13 @@ const (
 	apiQuote       = "/api/v1/ticker"
 	apiOrderBook   = "/api/v1/depth/"
 	apiTrades      = "/api/3/trades/"
+	apiPrices      = "/api/v2/ticker"
 	apiBalances    = "/api/v1/balances"
 	apiOrderCreate = "/api/v1/createorder"
 	apiOrderCancel = "/api/v1/cancelorder"
 	apiUserOrders  = "/api/v1/myOrders"
-	apiUserTrades  = "/api/v1/myTrades"
+	// apiUserTrades  = "/api/v1/myTrades"
+	apiUserTrades = "/api/v2/tradesHistory"
 )
 
 const (
@@ -58,7 +60,6 @@ func New(opts schemas.Options) *IDAX {
 	if opts.API != "" {
 		apiHost = opts.API
 	}
-	log.Println("apiHost: ", apiHost)
 	return &IDAX{
 		Exchange: schemas.Exchange{
 			Credentials:   opts.Credentials,
@@ -122,7 +123,7 @@ func sign(key, secret string, req *http.Request) *http.Request {
 	q.Add("timestamp", timestamp)
 	q.Add("sign", hex.EncodeToString(mac.Sum(nil)))
 	req.URL.RawQuery = q.Encode()
-
+	log.Println("req.URL.RawQuery: ", req.URL.RawQuery)
 	return req
 }
 

@@ -3,6 +3,7 @@ package idax
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -203,32 +204,32 @@ func (ui *UserInfoResponse) Map() schemas.UserInfo {
 
 // UserTradesResponse - response with user trades
 type UserTradesResponse struct {
-	Success int                  `json:"success"`
-	Return  map[string]UserTrade `json:"return"`
+	Code   int         `json:"code"`
+	Msg    string      `json:"msg"`
+	Trades []UserTrade `json:"trades"`
 }
 
 // UserTrade - IDAX trade
 type UserTrade struct {
-	Pair      string  `json:"pair"`      // "eth_btc",
-	Type      string  `json:"type"`      // "ask",
-	Amount    float64 `json:"amount"`    // 0.18422595,
-	Rate      float64 `json:"rate"`      // 0.0721605,
-	OrderID   int64   `json:"order_id"`  // 21490692,
-	Timestamp int64   `json:"timestamp"` // 1531088906
+	Type      string `json:"maker"`     // "ask",
+	Quantity  string `json:"quantity"`  // 0.18422595,
+	Price     string `json:"price"`     // 0.0721605,
+	ID        int64  `json:"id"`        // 21490692,
+	Timestamp int64  `json:"timestamp"` // 1531088906
 }
 
 // Map - mapping IDAX orders to common
-func (ut *UserTradesResponse) Map() (trades []schemas.Trade) {
-	for id, t := range ut.Return {
-		symbol, _, _ := parseSymbol(t.Pair)
+func (ut *UserTradesResponse) Map(symbol string) (trades []schemas.Trade) {
+	for _, t := range ut.Trades {
+		price, _ := strconv.ParseFloat(t.Price, 64)
+		qty, _ := strconv.ParseFloat(t.Quantity, 64)
 		trades = append(trades,
 			schemas.Trade{
-				ID:        id,
-				OrderID:   fmt.Sprintf("%d", t.OrderID),
+				ID:        strconv.FormatInt(t.ID, 10),
 				Type:      strings.ToUpper(t.Type),
 				Symbol:    symbol,
-				Price:     t.Rate,
-				Amount:    t.Amount,
+				Price:     price,
+				Amount:    qty,
 				Timestamp: t.Timestamp * 1000,
 			},
 		)
