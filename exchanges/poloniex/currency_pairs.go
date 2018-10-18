@@ -112,8 +112,10 @@ var currencPairs = map[int]string{
 	221: "BTC_QTUM",
 	222: "ETH_QTUM",
 	223: "USDT_QTUM",
+	224: "USDC_BTC",
 	225: "USDC_ETH",
 	226: "USDC_USDT",
+	229: "BTC_MANA",
 	230: "ETH_MANA",
 	231: "USDT_MANA",
 }
