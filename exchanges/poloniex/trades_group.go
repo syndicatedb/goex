@@ -98,6 +98,7 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 }
 
 func (tg *TradesGroup) restart() {
+	time.Sleep(5 * time.Second)
 	if err := tg.wsClient.Exit(); err != nil {
 		log.Println("[POLONIEX] Error destroying connection: ", err)
 	}

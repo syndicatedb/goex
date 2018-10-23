@@ -109,6 +109,7 @@ func (qp *QuotesProvider) start(ch chan schemas.ResultChannel) {
 // restart - calling start.
 // Need for restarting provider on errors.
 func (qp *QuotesProvider) restart() {
+	time.Sleep(5 * time.Second)
 	if err := qp.wsClient.Exit(); err != nil {
 		log.Println("[POLONIEX] Error destroying connection: ", err)
 	}
