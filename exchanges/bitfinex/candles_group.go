@@ -8,6 +8,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -87,6 +88,7 @@ func (cg *CandlesGroup) Start(ch chan schemas.ResultChannel) {
 // restart - calling start with outChannel.
 // need for restarting group after error.
 func (cg *CandlesGroup) restart() {
+	time.Sleep(5 * time.Second)
 	if err := cg.wsClient.Exit(); err != nil {
 		log.Println("[BITFINEX] Error destroying connection: ", err)
 	}

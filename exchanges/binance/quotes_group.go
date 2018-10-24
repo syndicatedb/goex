@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
 	"github.com/syndicatedb/goex/internal/websocket"
@@ -83,6 +84,7 @@ func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 }
 
 func (q *QuotesGroup) restart() {
+	time.Sleep(5 * time.Second)
 	if err := q.wsClient.Exit(); err != nil {
 		log.Println("[BINANCE] Error destroying connection: ", err)
 	}

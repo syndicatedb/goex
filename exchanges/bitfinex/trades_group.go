@@ -96,6 +96,7 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 // restart - calling start with outChannel.
 // need for restarting group after error.
 func (tg *TradesGroup) restart() {
+	time.Sleep(5 * time.Second)
 	if err := tg.wsClient.Exit(); err != nil {
 		log.Println("[BITFINEX] Error destroying connection: ", err)
 	}

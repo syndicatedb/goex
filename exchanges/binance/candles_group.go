@@ -119,6 +119,7 @@ func (cg *CandlesGroup) Start(ch chan schemas.ResultChannel) {
 }
 
 func (cg *CandlesGroup) restart() {
+	time.Sleep(5 * time.Second)
 	if err := cg.wsClient.Exit(); err != nil {
 		log.Println("[BINANCE] Error destroying connection: ", err)
 	}

@@ -115,6 +115,7 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 }
 
 func (ob *OrderBookGroup) restart() {
+	time.Sleep(5 * time.Second)
 	if err := ob.wsClient.Exit(); err != nil {
 		log.Println("[BINANCE] Error destroying connection: ", err)
 	}

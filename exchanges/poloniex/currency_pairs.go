@@ -118,4 +118,7 @@ var currencPairs = map[int]string{
 	229: "BTC_MANA",
 	230: "ETH_MANA",
 	231: "USDT_MANA",
+	232: "BTC_BNT",
+	233: "ETH_BNT",
+	234: "USDT_BNT",
 }
