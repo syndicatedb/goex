@@ -51,6 +51,11 @@ const (
 	typeBuy  = "BUY"
 )
 
+const (
+	dataTypeSnapshot = "s"
+	dataTypeUpdate   = "u"
+)
+
 // Poloniex - poloniex exchange structure
 type Poloniex struct {
 	schemas.Exchange

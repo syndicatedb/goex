@@ -39,6 +39,11 @@ const (
 	quotesSymbolsLimit    = 10
 )
 
+const (
+	dataTypeSnapshot = "s"
+	dataTypeUpdate   = "u"
+)
+
 // Binance exchange structure
 type Binance struct {
 	schemas.Exchange

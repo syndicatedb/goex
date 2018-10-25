@@ -9,18 +9,21 @@ type ResultChannel struct {
 
 // UserInfoChannel - for User info subscription
 type UserInfoChannel struct {
-	Data  UserInfo
-	Error error
+	Data     UserInfo
+	DataType string
+	Error    error
 }
 
 // UserOrdersChannel - for User orders subscription
 type UserOrdersChannel struct {
-	Data  []Order
-	Error error
+	Data     []Order
+	DataType string
+	Error    error
 }
 
 // UserTradesChannel - for User trades subscription
 type UserTradesChannel struct {
-	Data  []Trade
-	Error error
+	Data     []Trade
+	DataType string
+	Error    error
 }

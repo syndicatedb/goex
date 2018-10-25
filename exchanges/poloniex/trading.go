@@ -52,20 +52,23 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 		for {
 			ui, err := trading.Info()
 			uic <- schemas.UserInfoChannel{
-				Data:  ui,
-				Error: err,
+				DataType: dataTypeSnapshot,
+				Data:     ui,
+				Error:    err,
 			}
 
 			uo, err := trading.Orders([]schemas.Symbol{})
 			uoc <- schemas.UserOrdersChannel{
-				Data:  uo,
-				Error: err,
+				DataType: dataTypeSnapshot,
+				Data:     uo,
+				Error:    err,
 			}
 
 			ut, _, err := trading.Trades(schemas.FilterOptions{})
 			utc <- schemas.UserTradesChannel{
-				Data:  ut,
-				Error: err,
+				DataType: dataTypeSnapshot,
+				Data:     ut,
+				Error:    err,
 			}
 
 			time.Sleep(interval)

@@ -41,6 +41,11 @@ const (
 	quotesSymbolsLimit    = 10
 )
 
+const (
+	dataTypeSnapshot = "s"
+	dataTypeUpdate   = "u"
+)
+
 // Bitfinex - bitfinex exchange structure
 type Bitfinex struct {
 	schemas.Exchange

@@ -282,7 +282,6 @@ func (trading *TradingProvider) Create(order schemas.Order) (result schemas.Orde
 		"type":    "exchange limit", // TODO: add type to order model, handle it here
 	}
 
-	log.Println("PAYLOAD", payload)
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		return
@@ -541,6 +540,7 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 		}
 
 		trading.bus.uic <- schemas.UserInfoChannel{
+			DataType: dataTypeSnapshot,
 			Data: schemas.UserInfo{
 				Access:   access,
 				Balances: b,
@@ -558,6 +558,7 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 		}
 
 		trading.bus.uic <- schemas.UserInfoChannel{
+			DataType: dataTypeUpdate,
 			Data: schemas.UserInfo{
 				Access:   access,
 				Balances: b,
@@ -567,20 +568,23 @@ func (trading *TradingProvider) handleUpdates(msg []interface{}) {
 	if updType == "os" {
 		m := trading.mapOrders(msg[2].([]interface{}))
 		trading.bus.uoc <- schemas.UserOrdersChannel{
-			Data: m,
+			DataType: dataTypeSnapshot,
+			Data:     m,
 		}
 	}
 	if updType == "on" || updType == "ou" || updType == "oc" {
 		wslice := []interface{}{msg[2]}
 		m := trading.mapOrders(wslice)
 		trading.bus.uoc <- schemas.UserOrdersChannel{
-			Data: m,
+			DataType: dataTypeUpdate,
+			Data:     m,
 		}
 	}
 	if updType == "tu" {
 		m := trading.mapTrades(msg[2].([]interface{}))
 		trading.bus.utc <- schemas.UserTradesChannel{
-			Data: m,
+			DataType: dataTypeUpdate,
+			Data:     m,
 		}
 	}
 }

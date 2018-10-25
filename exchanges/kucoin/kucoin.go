@@ -42,6 +42,11 @@ const (
 	defaultPrecision      = 4
 )
 
+const (
+	dataTypeSnapshot = "s"
+	dataTypeUpdate   = "u"
+)
+
 // Kucoin - kucoin exchange structure
 type Kucoin struct {
 	schemas.Exchange
