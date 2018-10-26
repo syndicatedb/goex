@@ -89,6 +89,11 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	return trading.bus.uic, trading.bus.uoc, trading.bus.utc
 }
 
+// Unsubscribe from trading data
+func (trading *TradingProvider) Unsubscribe() error {
+	return trading.wsClient.Exit()
+}
+
 // Info stub method
 func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	var b []byte
