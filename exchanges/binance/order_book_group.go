@@ -69,7 +69,7 @@ func (ob *OrderBookGroup) Get() (book []schemas.OrderBook, err error) {
 	var resp orderBookSnapshot
 	for _, symbol := range ob.symbols {
 		query := httpclient.Params()
-		query.Set("symbol", strings.ToUpper(symbol.OriginalName))
+		query.Set("symbol", unparseSymbol(symbol.Name))
 		query.Set("limit", "100")
 
 		if b, err = ob.httpClient.Get(apiOrderBook, query, false); err != nil {
@@ -126,7 +126,7 @@ func (ob *OrderBookGroup) restart() {
 func (ob *OrderBookGroup) connect() {
 	var smbls []string
 	for _, s := range ob.symbols {
-		smbls = append(smbls, s.OriginalName)
+		smbls = append(smbls, unparseSymbol(s.Name))
 	}
 
 	ws := websocket.NewClient(wsURL+strings.ToLower(strings.Join(smbls, "@depth/")+"@depth"), ob.httpProxy)
