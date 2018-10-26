@@ -222,7 +222,7 @@ func (trading *TradingProvider) prices() (resp map[string]float64, err error) {
 // Orders - getting user active orders
 func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schemas.Order, err error) {
 	var b []byte
-	var resp UserOrdersResponse
+	var resp []activeOrder
 	var eMsg errorMsg
 	params := httpclient.Params()
 	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
@@ -238,13 +238,15 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
-
-	return resp.Map(), nil
+	r := UserOrdersResponse{
+		Orders: resp,
+	}
+	return r.Map(), nil
 }
 
 // Trades - getting user trades
 func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []schemas.Trade, p schemas.Paging, err error) {
-	var resp UserTradesResponse
+	var resp []UserTrade
 	var b []byte
 	var result []schemas.Trade
 	var eMsg errorMsg
@@ -265,7 +267,10 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 		if err = json.Unmarshal(b, &resp); err != nil {
 			return
 		}
-		respSymb := resp.Map()
+		r := UserTradesResponse{
+			Trades: resp,
+		}
+		respSymb := r.Map()
 		result = append(result, respSymb...)
 	}
 	return result, schemas.Paging{}, nil
