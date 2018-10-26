@@ -89,6 +89,8 @@ func (client *Client) Post(url string, params, payload KeyValue, isSigned bool) 
 // Request - custom HTTP request
 func (client *Client) Request(method, endpoint string, params, payload KeyValue, isSigned bool) (b []byte, err error) {
 	var formData string
+	var body io.Reader
+	body = nil
 
 	rawurl := endpoint
 	var URL *url.URL
@@ -120,9 +122,10 @@ func (client *Client) Request(method, endpoint string, params, payload KeyValue,
 		formData = q.Encode()
 		URL.RawQuery = formData
 		rawurl = URL.String()
+
+		body = client.getBody(URL, payload)
 	}
 
-	body := client.getBody(URL, payload)
 	req, err := http.NewRequest(method, rawurl, body)
 	if err != nil {
 		return
