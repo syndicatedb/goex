@@ -155,6 +155,11 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 	return trading.uic, trading.uoc, trading.utc
 }
 
+// Unsubscribe from trading data
+func (trading *TradingProvider) Unsubscribe() error {
+	return trading.wsClient.Exit()
+}
+
 // Info - provides user info: Keys access, balances
 func (trading *TradingProvider) Info() (ui schemas.UserInfo, err error) {
 	var b []byte
