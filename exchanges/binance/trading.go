@@ -228,6 +228,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 
 	b, err = trading.httpClient.Get(apiActiveOrders, params, true)
+	log.Printf("BINANCE ORDERS %+v", string(b))
 	if err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
@@ -254,6 +255,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 		params.Set("symbol", s.OriginalName)
 
 		b, err = trading.httpClient.Get(apiUserTrades, params, true)
+		log.Printf("BINANCE TRADES %+v", string(b))
 		if err != nil {
 			if e := json.Unmarshal(b, &eMsg); e != nil {
 				return
