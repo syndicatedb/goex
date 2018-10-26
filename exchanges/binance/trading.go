@@ -228,7 +228,6 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	params.Set("timestamp", strconv.FormatInt(time.Now().UTC().UnixNano(), 10)[:13])
 
 	b, err = trading.httpClient.Get(apiActiveOrders, params, true)
-	log.Printf("BINANCE ORDERS %+v", string(b))
 	if err != nil {
 		if e := json.Unmarshal(b, &eMsg); e != nil {
 			return
@@ -238,6 +237,7 @@ func (trading *TradingProvider) Orders(symbols []schemas.Symbol) (orders []schem
 	if err = json.Unmarshal(b, &resp); err != nil {
 		return
 	}
+	// TODO: Erase shitcode
 	r := UserOrdersResponse{
 		Orders: resp,
 	}
@@ -257,7 +257,6 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 		params.Set("symbol", s.OriginalName)
 
 		b, err = trading.httpClient.Get(apiUserTrades, params, true)
-		log.Printf("BINANCE TRADES %+v", string(b))
 		if err != nil {
 			if e := json.Unmarshal(b, &eMsg); e != nil {
 				return
@@ -278,7 +277,7 @@ func (trading *TradingProvider) Trades(opts schemas.FilterOptions) (trades []sch
 
 // handleUpdates - handling incoming updates data
 func (trading *TradingProvider) handleUpdates(data []byte) {
-	log.Println("[BINANCE] INCOMING WS DATA:", string(data))
+	// log.Println("[BINANCE] INCOMING WS DATA:", string(data))
 	var msg generalMessage
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
