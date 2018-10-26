@@ -288,6 +288,9 @@ func (tm *tradesMessage) MapOrder() (orders []schemas.Order) {
 	if strings.Contains(strings.ToUpper(o.Status), "CANCEL") {
 		o.Status = "CANCELLED"
 	}
+	if o.Status == "TRADE" {
+		o.Status = "FILLED"
+	}
 	orders = append(orders, o)
 	return orders
 }
