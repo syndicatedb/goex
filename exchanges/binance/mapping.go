@@ -85,8 +85,7 @@ func (uor *UserOrdersResponse) Map() (orders []schemas.Order) {
 		if err != nil {
 			log.Println("Error mapping price in active orders. Binance:", err)
 		}
-
-		orders = append(orders, schemas.Order{
+		or := schemas.Order{
 			ID:           strconv.FormatInt(o.OrderID, 10),
 			Symbol:       o.Symbol,
 			Type:         o.Side,
@@ -97,7 +96,12 @@ func (uor *UserOrdersResponse) Map() (orders []schemas.Order) {
 			Remove:       0,
 			CreatedAt:    o.Time,
 			Status:       o.Status,
-		})
+		}
+
+		if o.Status == "TRADE" {
+			or.Status = "FILLED"
+		}
+		orders = append(orders, or)
 	}
 	return
 }
