@@ -101,8 +101,9 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 			log.Println("[BINANCE] Balances snapshot error:", err)
 		}
 		trading.uic <- schemas.UserInfoChannel{
-			Data:  ui,
-			Error: err,
+			Data:     ui,
+			DataType: "s",
+			Error:    err,
 		}
 	}()
 
@@ -112,8 +113,9 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 			log.Println("[BINANCE] Orders snapshot error:", err)
 		}
 		trading.uoc <- schemas.UserOrdersChannel{
-			Data:  o,
-			Error: err,
+			Data:     o,
+			DataType: "s",
+			Error:    err,
 		}
 	}()
 
@@ -123,8 +125,9 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 			log.Println("[BINANCE] Trades snapshot error:", err)
 		}
 		trading.utc <- schemas.UserTradesChannel{
-			Data:  t,
-			Error: err,
+			Data:     t,
+			DataType: "s",
+			Error:    err,
 		}
 	}()
 
@@ -141,8 +144,9 @@ func (trading *TradingProvider) Subscribe(interval time.Duration) (chan schemas.
 			case err := <-trading.ech:
 				log.Println("[BINANCE] Error handling", err)
 				trading.uic <- schemas.UserInfoChannel{
-					Data:  schemas.UserInfo{},
-					Error: err,
+					Data:     schemas.UserInfo{},
+					DataType: "u",
+					Error:    err,
 				}
 			}
 		}
