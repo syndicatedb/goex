@@ -67,7 +67,7 @@ func (ob *OrderBookGroup) Get() (books []schemas.OrderBook, err error) {
 			return
 		}
 		if bks, ok := resp.([]interface{}); ok {
-			books = append(books, ob.mapOrderBook(smb.Name, bks))
+			books = append(books, ob.mapOrderBook("t"+unparseSymbol(smb.Name), bks))
 		}
 
 		time.Sleep(2 * time.Second)
@@ -267,9 +267,9 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) (orders
 }
 
 // mapOrderBook - mapping incoming books message into commot OrderBook model
-func (ob *OrderBookGroup) mapOrderBook(smb string, raw []interface{}) schemas.OrderBook {
-	log.Println("SYMBOL", smb)
-	// smb, _, _ := parseSymbol(symbol)
+func (ob *OrderBookGroup) mapOrderBook(symbol string, raw []interface{}) schemas.OrderBook {
+	// log.Println("SYMBOL", smb)
+	smb, _, _ := parseSymbol(symbol)
 	orderBook := schemas.OrderBook{
 		Symbol: smb,
 	}
