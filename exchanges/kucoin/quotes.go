@@ -3,7 +3,6 @@ package kucoin
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/syndicatedb/goex/internal/http"
@@ -146,13 +145,5 @@ func (qp *QuotesProvider) getBySymbol(symbol schemas.Symbol) (quote schemas.Quot
 	}
 
 	quote = resp.Data.Map()
-	return
-}
-
-// Unsubscribe closes all connections, unsubscribes from updates
-// TODO: unsubscribe method
-func (qp *QuotesProvider) Unsubscribe() (err error) {
-	log.Println("Unsubsribing...")
-
 	return
 }

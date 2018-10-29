@@ -85,11 +85,6 @@ func (cg *CandlesGroup) Start(ch chan schemas.ResultChannel) {
 	cg.subscribe()
 }
 
-// Stop closes WS connection
-func (cg *CandlesGroup) Stop() error {
-	return cg.wsClient.Exit()
-}
-
 // restart - calling start with outChannel.
 // need for restarting group after error.
 func (cg *CandlesGroup) restart() {

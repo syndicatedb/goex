@@ -118,11 +118,6 @@ func (cg *CandlesGroup) Start(ch chan schemas.ResultChannel) {
 	cg.connect()
 }
 
-// Stop closes WS connection
-func (cg *CandlesGroup) Stop() error {
-	return cg.wsClient.Exit()
-}
-
 func (cg *CandlesGroup) restart() {
 	time.Sleep(5 * time.Second)
 	if err := cg.wsClient.Exit(); err != nil {

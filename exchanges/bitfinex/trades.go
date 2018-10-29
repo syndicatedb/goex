@@ -70,14 +70,3 @@ func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	}
 	return ch
 }
-
-// Unsubscribe closes all connections, unsubscribes from updates
-func (tp *TradesProvider) Unsubscribe() (err error) {
-	for _, book := range tp.groups {
-		if err := book.Stop(); err != nil {
-			return err
-		}
-	}
-
-	return
-}

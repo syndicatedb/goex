@@ -83,11 +83,6 @@ func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 	q.connect()
 }
 
-// Stop closes WS connection
-func (q *QuotesGroup) Stop() error {
-	return q.wsClient.Exit()
-}
-
 func (q *QuotesGroup) restart() {
 	time.Sleep(5 * time.Second)
 	if err := q.wsClient.Exit(); err != nil {

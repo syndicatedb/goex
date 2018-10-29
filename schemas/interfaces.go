@@ -46,7 +46,6 @@ type CandlesProvider interface {
 type subscriber interface {
 	Subscribe(symbol Symbol, d time.Duration) chan ResultChannel
 	SubscribeAll(d time.Duration) chan ResultChannel
-	Unsubscribe() error
 }
 
 // type OHLCVProvider interface {

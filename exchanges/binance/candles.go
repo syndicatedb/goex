@@ -81,14 +81,3 @@ func (cp *CandlesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChan
 	}
 	return ch
 }
-
-// Unsubscribe closes all connections, unsubscribes from updates
-func (cp *CandlesProvider) Unsubscribe() (err error) {
-	for _, book := range cp.groups {
-		if err := book.Stop(); err != nil {
-			return err
-		}
-	}
-
-	return
-}

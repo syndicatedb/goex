@@ -81,14 +81,3 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 
 	return ch
 }
-
-// Unsubscribe closes all connections, unsubscribes from updates
-func (ob *OrdersProvider) Unsubscribe() (err error) {
-	for _, book := range ob.groups {
-		if err := book.Stop(); err != nil {
-			return err
-		}
-	}
-
-	return
-}

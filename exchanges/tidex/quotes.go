@@ -1,7 +1,6 @@
 package tidex
 
 import (
-	"log"
 	"time"
 
 	"github.com/syndicatedb/goex/schemas"
@@ -76,12 +75,4 @@ func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch
-}
-
-// Unsubscribe closes all connections, unsubscribes from updates
-// TODO: unsubscribe method
-func (qp *QuotesProvider) Unsubscribe() (err error) {
-	log.Println("Unsubsribing...")
-
-	return
 }

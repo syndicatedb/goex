@@ -71,11 +71,3 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	}
 	return ch
 }
-
-// Unsubscribe closes all connections, unsubscribes from updates
-// TODO: unsubscribe method
-func (ob *OrdersProvider) Unsubscribe() (err error) {
-	log.Println("Unsubsribing...")
-
-	return
-}

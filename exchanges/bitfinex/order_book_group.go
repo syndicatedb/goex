@@ -86,11 +86,6 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	ob.collectSnapshots()
 }
 
-// Stop closes WS connection
-func (ob *OrderBookGroup) Stop() error {
-	return ob.wsClient.Exit()
-}
-
 // restart - calling start with outChannel.
 // need for restarting group after error.
 func (ob *OrderBookGroup) restart() {

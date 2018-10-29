@@ -2,7 +2,6 @@ package kucoin
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -81,12 +80,4 @@ func (cp *CandlesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChan
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch
-}
-
-// Unsubscribe closes all connections, unsubscribes from updates
-// TODO: unsubscribe method
-func (cp *CandlesProvider) Unsubscribe() (err error) {
-	log.Println("Unsubsribing...")
-
-	return
 }

@@ -71,14 +71,3 @@ func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	}
 	return ch
 }
-
-// Unsubscribe closes all connections, unsubscribes from updates
-func (qp *QuotesProvider) Unsubscribe() (err error) {
-	for _, book := range qp.groups {
-		if err := book.Stop(); err != nil {
-			return err
-		}
-	}
-
-	return
-}

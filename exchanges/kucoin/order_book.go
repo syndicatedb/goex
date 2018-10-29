@@ -2,7 +2,6 @@ package kucoin
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -80,12 +79,4 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch
-}
-
-// Unsubscribe closes all connections, unsubscribes from updates
-// TODO: unsubscribe method
-func (ob *OrdersProvider) Unsubscribe() (err error) {
-	log.Println("Unsubsribing...")
-
-	return
 }
