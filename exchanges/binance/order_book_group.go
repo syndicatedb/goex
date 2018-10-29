@@ -107,7 +107,7 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 					Error:    err,
 				}
 			}
-			time.Sleep(1 * time.Minute)
+			time.Sleep(5 * time.Minute)
 		}
 	}()
 	ob.listen()
