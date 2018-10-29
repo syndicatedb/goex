@@ -250,7 +250,7 @@ func (ob *OrderBookGroup) handleMessage(msg []byte) {
 		}
 
 		// handlng update
-		orders := ob.mapOrderBook(unparseSymbol(e.Symbol), []interface{}{v})
+		orders := ob.mapOrderBook(e.Symbol, []interface{}{v})
 		go ob.publish(orders, "u", nil)
 		return
 	}
