@@ -82,3 +82,14 @@ func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, er
 
 	return schemas.OrderBook{}, errors.New("Empty orderbook for symbol " + symbol.Name)
 }
+
+// Unsubscribe closes all connections, unsubscribes from updates
+func (ob *OrdersProvider) Unsubscribe() (err error) {
+	for _, book := range ob.books {
+		if err := book.Stop(); err != nil {
+			return err
+		}
+	}
+
+	return
+}

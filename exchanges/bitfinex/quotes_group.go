@@ -87,6 +87,11 @@ func (q *QuotesGroup) Start(ch chan schemas.ResultChannel) {
 	q.subscribe()
 }
 
+// Stop closes WS connection
+func (q *QuotesGroup) Stop() error {
+	return q.wsClient.Exit()
+}
+
 // restart - calling start with outChannel.
 // need for restarting group after error.
 func (q *QuotesGroup) restart() {

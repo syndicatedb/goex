@@ -48,6 +48,21 @@ func (ob *OrdersProvider) SetSymbols(symbols []schemas.Symbol) schemas.OrdersPro
 	return ob
 }
 
+// Get - getting orderbook snapshot by symbol
+func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
+	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
+	d, err := group.Get()
+	if err != nil {
+		return
+	}
+	if len(d) == 0 {
+		err = fmt.Errorf("No orderbook found for %v", symbol)
+		return
+	}
+
+	return d[0], err
+}
+
 // Subscribe - subscribing to quote by one symbol
 func (ob *OrdersProvider) Subscribe(symbol schemas.Symbol, d time.Duration) (r chan schemas.ResultChannel) {
 	ch := make(chan schemas.ResultChannel)
@@ -67,17 +82,13 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	return ch
 }
 
-// Get - getting orderbook snapshot by symbol
-func (ob *OrdersProvider) Get(symbol schemas.Symbol) (book schemas.OrderBook, err error) {
-	group := NewOrderBookGroup([]schemas.Symbol{symbol}, ob.httpProxy)
-	d, err := group.Get()
-	if err != nil {
-		return
-	}
-	if len(d) == 0 {
-		err = fmt.Errorf("No orderbook found for %v", symbol)
-		return
+// Unsubscribe closes all connections, unsubscribes from updates
+func (ob *OrdersProvider) Unsubscribe() (err error) {
+	for _, book := range ob.books {
+		if err := book.Stop(); err != nil {
+			return err
+		}
 	}
 
-	return d[0], err
+	return
 }

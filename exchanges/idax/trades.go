@@ -1,6 +1,7 @@
 package idax
 
 import (
+	"log"
 	"time"
 
 	"github.com/syndicatedb/goex/schemas"
@@ -75,4 +76,12 @@ func (tp *TradesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 		time.Sleep(100 * time.Millisecond)
 	}
 	return ch
+}
+
+// Unsubscribe closes all connections, unsubscribes from updates
+// TODO: unsubscribe method
+func (tp *TradesProvider) Unsubscribe() (err error) {
+	log.Println("Unsubsribing...")
+
+	return
 }

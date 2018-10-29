@@ -89,6 +89,11 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	tg.connect()
 }
 
+// Stop closes WS connection
+func (tg *TradesGroup) Stop() error {
+	return tg.wsClient.Exit()
+}
+
 func (tg *TradesGroup) restart() {
 	time.Sleep(5 * time.Second)
 	if err := tg.wsClient.Exit(); err != nil {

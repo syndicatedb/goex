@@ -1,6 +1,7 @@
 package idax
 
 import (
+	"log"
 	"time"
 
 	"github.com/syndicatedb/goex/schemas"
@@ -33,4 +34,12 @@ func (cp *CandlesProvider) Subscribe(symbol schemas.Symbol, d time.Duration) cha
 // SubscribeAll - stub method for IDAX candles provider
 func (cp *CandlesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChannel {
 	return nil
+}
+
+// Unsubscribe closes all connections, unsubscribes from updates
+// TODO: unsubscribe method
+func (cp *CandlesProvider) Unsubscribe() (err error) {
+	log.Println("Unsubsribing...")
+
+	return
 }

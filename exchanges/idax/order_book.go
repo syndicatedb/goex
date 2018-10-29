@@ -94,6 +94,14 @@ func (ob *OrdersProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	return ch
 }
 
+// Unsubscribe closes all connections, unsubscribes from updates
+// TODO: unsubscribe method
+func (ob *OrdersProvider) Unsubscribe() (err error) {
+	log.Println("Unsubsribing...")
+
+	return
+}
+
 // subscribe - getting all symbols from Exchange
 func (ob *OrdersProvider) subscribe(symbol schemas.Symbol, d time.Duration, ch chan schemas.ResultChannel) {
 	go func() {

@@ -114,6 +114,11 @@ func (ob *OrderBookGroup) Start(ch chan schemas.ResultChannel) {
 	ob.connect()
 }
 
+// Stop closes WS connection and stop updates
+func (ob *OrderBookGroup) Stop() error {
+	return ob.wsClient.Exit()
+}
+
 func (ob *OrderBookGroup) restart() {
 	time.Sleep(5 * time.Second)
 	if err := ob.wsClient.Exit(); err != nil {

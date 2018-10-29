@@ -93,6 +93,11 @@ func (tg *TradesGroup) Start(ch chan schemas.ResultChannel) {
 	tg.collectSnapshots()
 }
 
+// Stop closes WS connection
+func (tg *TradesGroup) Stop() error {
+	return tg.wsClient.Exit()
+}
+
 // restart - calling start with outChannel.
 // need for restarting group after error.
 func (tg *TradesGroup) restart() {

@@ -97,6 +97,11 @@ func (qp *QuotesProvider) SubscribeAll(d time.Duration) chan schemas.ResultChann
 	return ch
 }
 
+// Unsubscribe closes all connections, unsubscribes from updates
+func (qp *QuotesProvider) Unsubscribe() error {
+	return qp.wsClient.Exit()
+}
+
 // start - starting quotes updates
 func (qp *QuotesProvider) start(ch chan schemas.ResultChannel) {
 	qp.bus.resChannel = ch
