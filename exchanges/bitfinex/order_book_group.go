@@ -268,6 +268,7 @@ func (ob *OrderBookGroup) mapSnapshot(symbol string, data []interface{}) (orders
 
 // mapOrderBook - mapping incoming books message into commot OrderBook model
 func (ob *OrderBookGroup) mapOrderBook(smb string, raw []interface{}) schemas.OrderBook {
+	log.Println("SYMBOL", smb)
 	// smb, _, _ := parseSymbol(symbol)
 	orderBook := schemas.OrderBook{
 		Symbol: smb,
